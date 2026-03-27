@@ -28,7 +28,7 @@ export default function Footer({ telefone, endereco, ano, campus }) {
                     <Col xs={6}>.</Col>
                     <Col className="d-flex flex-colum justify-content-center align-items-center">
                         <div className="d-flex flex-column">
-                            <p className="fs-4 text-white">Contato e Suporte</p>
+                            <p className="fs-4 text-white fw-bold">Contato e Suporte</p>
 
                             <p className="text-white d-flex align-items-end">
                                 <MdPhone
