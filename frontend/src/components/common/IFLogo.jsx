@@ -1,7 +1,7 @@
 export default function IFLogo({
     corCirculo = '#CD191E',
     corRect = '#2F9E41',
-    corTexto = "#000",
+    corTexto = '#000',
     estado = '',
     campus = '',
     width = 139,

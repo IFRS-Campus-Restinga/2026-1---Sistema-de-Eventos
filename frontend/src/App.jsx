@@ -5,11 +5,11 @@ import Home from './pages/Home';
 
 function App() {
     return (
-        <>
+        <div className="min-vh-100 d-flex flex-column">
             <Routes>
                 <Route path="/" element={<Home />} />
             </Routes>
-        </>
+        </div>
     );
 }
 

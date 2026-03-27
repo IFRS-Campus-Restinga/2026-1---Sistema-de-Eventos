@@ -24,7 +24,7 @@ export default function NavBar() {
                         <Nav.Link href="#home" className="text-white">
                             Home
                         </Nav.Link>
-                        <Nav.Link href="#link" className="text-white">
+                        {/* <Nav.Link href="#link" className="text-white">
                             Meus Eventos
                         </Nav.Link>
                         <Nav.Link href="#link" className="text-white">
@@ -32,11 +32,11 @@ export default function NavBar() {
                         </Nav.Link>
                         <Nav.Link href="#link" className="text-white">
                             Gestão
-                        </Nav.Link>
+                        </Nav.Link> */}
                     </Nav>
                 </Navbar.Collapse>
                 <div className="d-flex align-items-center ms-auto pe-5">
-                    <Navbar.Text>Nelson</Navbar.Text>
+                    <Navbar.Text>Login</Navbar.Text>
                 </div>
             </Container>
         </Navbar>
