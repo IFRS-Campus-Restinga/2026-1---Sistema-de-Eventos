@@ -1,0 +1,178 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-30 00:01-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+#: api/enumerations/area_conhecimento.py:6
+msgid "Ciências Exatas e da Terra"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:7
+msgid "Ciências Biológicas"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:8
+msgid "Engenharias"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:9
+msgid "Ciências da Saúde"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:10
+msgid "Ciências Agrárias"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:11
+msgid "Ciências Sociais Aplicadas"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:12
+msgid "Ciências Humanas"
+msgstr ""
+
+#: api/enumerations/area_conhecimento.py:13
+msgid "Linguística Letras e Artes"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:6
+msgid "Ensino Médio Integrado"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:7
+msgid "Subsequente"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:8
+msgid "Graduação"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:9
+msgid "Pós Graduação"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:10
+msgid "Mestrado"
+msgstr ""
+
+#: api/enumerations/nivel_ensino.py:11
+msgid "Livre"
+msgstr ""
+
+#: api/enumerations/setor.py:6
+msgid "Ensino"
+msgstr ""
+
+#: api/enumerations/setor.py:7
+msgid "Pesquisa"
+msgstr ""
+
+#: api/enumerations/setor.py:8
+msgid "Extensão"
+msgstr ""
+
+#: api/enumerations/status_aprovacao.py:6
+msgid "Em avaliação"
+msgstr ""
+
+#: api/enumerations/status_aprovacao.py:7
+msgid "Aprovado"
+msgstr ""
+
+#: api/enumerations/status_aprovacao.py:8
+msgid "Reprovado"
+msgstr ""
+
+#: api/enumerations/status_aprovacao.py:9
+msgid "Aprovado com Ressalvas"
+msgstr ""
+
+#: api/enumerations/status_atracao.py:6
+msgid "Prevista"
+msgstr ""
+
+#: api/enumerations/status_atracao.py:7 api/enumerations/status_inscricao.py:6
+msgid "Confirmada"
+msgstr ""
+
+#: api/enumerations/status_atracao.py:8 api/enumerations/status_inscricao.py:7
+msgid "Cancelada"
+msgstr ""
+
+#: api/enumerations/status_atracao.py:9
+msgid "Em Andamento"
+msgstr ""
+
+#: api/enumerations/status_atracao.py:10
+msgid "Encerrada"
+msgstr ""
+
+#: api/enumerations/status_evento.py:6
+msgid "Inscrições Abertas"
+msgstr ""
+
+#: api/enumerations/status_evento.py:7
+msgid "Em andamento"
+msgstr ""
+
+#: api/enumerations/status_evento.py:8
+msgid "Encerrado"
+msgstr ""
+
+#: api/enumerations/status_evento.py:9
+msgid "Em Planejamento"
+msgstr ""
+
+#: api/enumerations/status_inscricao.py:8
+msgid "Fila de Espera"
+msgstr ""
+
+#: api/enumerations/tipo_campo.py:6
+msgid "Texto"
+msgstr ""
+
+#: api/enumerations/tipo_campo.py:7
+msgid "Número"
+msgstr ""
+
+#: api/enumerations/tipo_campo.py:8
+msgid "Booleano"
+msgstr ""
+
+#: api/enumerations/tipo_campo.py:9
+msgid "Arquivo"
+msgstr ""
+
+#: api/enumerations/tipo_etapa.py:6
+msgid "Submissão de Trabalhos"
+msgstr ""
+
+#: api/enumerations/tipo_etapa.py:7
+msgid "Avaliação Prévia"
+msgstr ""
+
+#: api/enumerations/tipo_etapa.py:8
+msgid "Homologação"
+msgstr ""
+
+#: api/enumerations/tipo_etapa.py:9
+msgid "Inscrição do Público"
+msgstr ""
+
+#: api/enumerations/tipo_etapa.py:10
+msgid "Realização do Evento"
+msgstr ""

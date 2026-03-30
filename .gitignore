@@ -163,3 +163,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ignorar arquivos de tradução compilados (não versionar .mo)
+*.mo
