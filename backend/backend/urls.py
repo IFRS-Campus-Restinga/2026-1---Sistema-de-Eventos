@@ -14,9 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path
 
+from .views.perms_view import PermissaoListView
+from .views.groups_view import GrupoListView
+from .views import csrf_token_view as views
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
+
+    # paths relacionados a permissões e grupos de permissões
+    path("api/permissoes/", PermissaoListView.as_view()),
+    path("api/grupos/", GrupoListView.as_view()),
+    # endpoint pra pegar o csrf token, que o frontend vai usar pra autenticação
+    path("api/csrf/", views.get_csrf_token),
 ]
