@@ -4,3 +4,4 @@ from .groups_serializer import (
     GrupoPermissoesSerializer,
     GrupoPermissoesUpdateSerializer,
 )
+from .local_serializer import LocalSerializer
