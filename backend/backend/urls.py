@@ -16,7 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
 from .views.perms_view import PermissaoListView
 from .views.groups_view import GrupoListView, GrupoPermissoesView
@@ -31,4 +31,6 @@ urlpatterns = [
     path("api/grupos/<int:pk>/", GrupoPermissoesView.as_view()),
     # endpoint pra pegar o csrf token, que o frontend vai usar pra autenticação
     path("api/csrf/", views.get_csrf_token),
+
+    path("api/", include('api.urls')),
 ]
