@@ -5,3 +5,4 @@ from .groups_serializer import (
     GrupoPermissoesUpdateSerializer,
 )
 from .local_serializer import LocalSerializer
+from .users_serializer import UserSerializer

@@ -21,7 +21,7 @@ export default function NavBar() {
                     className="justify-content-center"
                 >
                     <Nav className="gap-5">
-                        <Nav.Link href="home" className="text-white">
+                        <Nav.Link href="/" className="text-white">
                             Home
                         </Nav.Link>
                          <Nav.Link href="permissoesGrupos" className="text-white">

@@ -17,7 +17,7 @@ import { usePermissoes } from '../hooks/usePermissoes';
 import { useGroupPermissions } from '../hooks/usePermissoesGrupos';
 import Vinculo from '../components/common/Vinculo';
 
-export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
+export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
     const { csrfToken } = useCsrf();
     const { grupos } = useGrupos();
     const { perms } = usePermissoes();
@@ -44,7 +44,7 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                     <Row>
                         <Col className="text-center my-5">
                             <h1 className="fw-bold text-success">
-                                Painel dos Grupos - Permissões
+                                Painel dos Grupos - Pessoas
                             </h1>
                         </Col>
                     </Row>
@@ -69,7 +69,7 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                                     }
                                 />
                                 <Button className='ms-4 h-50' variant="success" style={{background:'#006B3F', }} >
-                                    <Link to={'/usuarioGrupos'} className='text-white fw-bold text-decoration-none'>Atribuir Pessoas</Link>
+                                    <Link to={'/permissoesGrupos'} className='text-white fw-bold text-decoration-none'>Atribuir Permissões</Link>
                                 </Button>
                             </div>     
                         </Col>
@@ -91,8 +91,8 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                     <Row className="mt-5">
                         <Col>
                             <Vinculo
-                                cabecario1="Permissões disponíveis"
-                                cabecario2="Permissões Grupo"
+                                cabecario1="Pessoas"
+                                cabecario2="Grupo"
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
                                 dados1={permsDoGrupo.filter((p) =>

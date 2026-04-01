@@ -20,11 +20,15 @@ from django.urls import path
 
 from .views.perms_view import PermissaoListView
 from .views.groups_view import GrupoListView, GrupoPermissoesView
+from .views.user_view import UserGruposView, UserListView
 from .views import csrf_token_view as views
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # paths para usuários (vai ter mudar td sobre usuários dps)
+    path("api/users/", UserListView.as_view()),
+    path("api/users/<int:pk>/", UserGruposView.as_view()),
     # paths relacionados a permissões e grupos de permissões
     path("api/permissoes/", PermissaoListView.as_view()),
     path("api/grupos/", GrupoListView.as_view()),
