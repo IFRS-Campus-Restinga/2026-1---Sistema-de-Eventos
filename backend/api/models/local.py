@@ -11,20 +11,21 @@ class Local(Base):
     endereco = models.CharField(max_length=150,
                             validators=[MinLengthValidator(10)],
                             verbose_name=_('Endereço'))
+    # fazer relação com espaço(no model espaço)
 
 
     def clean(self):
         errors = {}
 
-        # Nome não pode ser só número
+        #nome não pode ser só número
         if self.nome.isdigit():
             errors['nome'] = _('O nome não pode conter apenas números.')
 
-        # Endereço deve conter número
+        #endereço deve conter número
         if not any(char.isdigit() for char in self.endereco):
             errors['endereco'] = _('O endereço deve conter um número.')
 
-        # Evitar duplicidade
+        #evitar duplicidade
         if Local.objects.filter(
             nome__iexact=self.nome,
             endereco__iexact=self.endereco

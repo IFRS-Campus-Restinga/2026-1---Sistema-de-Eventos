@@ -29,3 +29,5 @@ class Evento(Base):
     tema = models.CharField(help_text="informe o tema do evento",
                             max_length=100,
                             validators=[MaxLengthValidator(100)])
+    
+    # futuramente, fazer relacionamento com local 
