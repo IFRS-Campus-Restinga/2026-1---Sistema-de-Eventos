@@ -24,6 +24,9 @@ cd backend
 
 ```bash
 python -m venv .venv
+# Windows
+.venv/Script/activate
+# Ou Linux
 source .venv/bin/activate
 ```
 
