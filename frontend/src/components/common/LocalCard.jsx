@@ -5,7 +5,7 @@ import Col from 'react-bootstrap/Col';
 import { MdBook } from 'react-icons/md';
 import Form from 'react-bootstrap/Form';
 
-export default function LocalCard({ corCard = '#00A44B', Icon }) {
+export default function LocalCard({ corCard = '#00A44B', Icon, nome, setNome, endereco, setEndereco }) {
     return (
         <Card corBorda={corCard}>
             {/* Esse componente está dividido em 3 linhas (Rows) */}
@@ -48,6 +48,8 @@ export default function LocalCard({ corCard = '#00A44B', Icon }) {
                             <Form.Control
                                 type="text"
                                 placeholder="Informe o nome do local"
+                                value={nome}
+                                onChange={(e) => setNome(e.target.value)}
                                 className="border-0 py-3"
                                 style={{
                                     backgroundColor: '#eeeeee',
@@ -70,6 +72,8 @@ export default function LocalCard({ corCard = '#00A44B', Icon }) {
                             <Form.Control
                                 type="text"
                                 placeholder="Informe o endereço do local"
+                                value={endereco}
+                                onChange={(e) => setEndereco(e.target.value)}
                                 className="border-0 py-3"
                                 style={{
                                     backgroundColor: '#eeeeee',

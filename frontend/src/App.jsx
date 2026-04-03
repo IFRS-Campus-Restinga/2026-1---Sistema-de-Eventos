@@ -4,7 +4,8 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import PermissoesGroups from './pages/PermissoesGrupos';
 import PessoasGrupos from './pages/PessoasGrupos';
-import AdicionarLocal from './pages/AdicionarLocal';
+import LocaisListar from './pages/LocaisListar';
+import LocalAdicionar from './pages/LocalAdicionar';
 
 function App() {
     return (
@@ -14,7 +15,9 @@ function App() {
                 <Route path="/permissoesGrupos" element={<PermissoesGroups />} />
                 <Route path="/usuarioGrupos" element={<PessoasGrupos />} />
 
-                <Route path="/adicionarLocal" element={<AdicionarLocal />} />
+                <Route path="/adicionarLocal" element={<LocalAdicionar />} />
+                <Route path="/listarLocais" element={<LocaisListar />} />
+
             </Routes>
         </div>
     );
