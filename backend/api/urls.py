@@ -1,5 +1,6 @@
 from django.urls import path
 from .views.local_views import LocalListView, LocalDetailView
+from .views.visao_geral_view import DashboardView
 
 from .views.perms_view import PermissaoListView
 from .views.groups_view import GrupoListView, GrupoPermissoesView
@@ -21,4 +22,6 @@ urlpatterns = [
     path("grupos/<int:pk>/", GrupoPermissoesView.as_view()),
     # endpoint pra pegar o csrf token, que o frontend vai usar pra autenticação
     path("csrf/", views.get_csrf_token),
+    path('dashboard/', DashboardView.as_view()),
 ]
+    

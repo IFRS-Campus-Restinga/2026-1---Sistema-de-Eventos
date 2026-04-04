@@ -7,6 +7,7 @@ import PessoasGrupos from './pages/PessoasGrupos';
 import PermissoesPessoas from './pages/PermissoesPessoas';
 import LocaisListar from './pages/LocaisListar';
 import LocalAdicionar from './pages/LocalAdicionar';
+import Dashboard from "./pages/Dashboard";
 
 function App() {
     return (
@@ -16,10 +17,9 @@ function App() {
                 <Route path="/permissoesGrupos" element={<PermissoesGroups />} />
                 <Route path="/usuarioGrupos" element={<PessoasGrupos />} />
                 <Route path="/permissoesPessoas" element={<PermissoesPessoas />} />
-
                 <Route path="/adicionarLocal" element={<LocalAdicionar />} />
                 <Route path="/listarLocais" element={<LocaisListar />} />
-
+                <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
         </div>
     );
