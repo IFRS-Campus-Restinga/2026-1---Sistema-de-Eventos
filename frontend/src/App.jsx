@@ -6,7 +6,8 @@ import PermissoesGroups from './pages/PermissoesGrupos';
 import PessoasGrupos from './pages/PessoasGrupos';
 import PermissoesPessoas from './pages/PermissoesPessoas';
 import LocaisEspacosListar from './pages/LocaisEspacosListar';
-import LocalAdicionar from './pages/LocalAdicionar';
+import LocalForm from './pages/LocalForm';
+import LocaisListar from './pages/LocaisListar';
 import Dashboard from "./pages/Dashboard";
 
 function App() {
@@ -17,8 +18,10 @@ function App() {
                 <Route path="/permissoesGrupos" element={<PermissoesGroups />} />
                 <Route path="/usuarioGrupos" element={<PessoasGrupos />} />
                 <Route path="/permissoesPessoas" element={<PermissoesPessoas />} />
-                <Route path="/adicionarLocal" element={<LocalAdicionar />} />
+                <Route path="/adicionarLocal" element={<LocalForm />} />
                 <Route path="/listarLocaisEspacos" element={<LocaisEspacosListar />} />
+                <Route path='/editarLocal/:id' element={<LocalForm />} />
+                <Route path="/listarLocais" element={<LocaisListar />} />
                 <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
         </div>

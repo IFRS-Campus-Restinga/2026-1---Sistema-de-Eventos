@@ -27,7 +27,7 @@ export default function NavBar() {
                             Permissões mock
                         </Nav.Link>
                         <Nav.Link href="listarLocaisEspacos" className="text-white">
-                            Listar Locais
+                            Listar Locais e Espaços
                         </Nav.Link>
                         {/*<Nav.Link href="#link" className="text-white">
                             Avaliações

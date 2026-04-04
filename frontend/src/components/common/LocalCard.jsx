@@ -5,7 +5,7 @@ import Col from 'react-bootstrap/Col';
 import { MdBook } from 'react-icons/md';
 import Form from 'react-bootstrap/Form';
 
-export default function LocalCard({ corCard = '#00A44B', Icon, nome, setNome, endereco, setEndereco }) {
+export default function LocalCard({ titulo, corCard = '#00A44B', Icon, nome, setNome, endereco, setEndereco }) {
     return (
         <Card corBorda={corCard}>
             {/* Esse componente está dividido em 3 linhas (Rows) */}
@@ -25,7 +25,7 @@ export default function LocalCard({ corCard = '#00A44B', Icon, nome, setNome, en
                             className="fw-bold ms-1 mb-0"
                             style={{ color: corCard }}
                         >
-                            Adicionar Local
+                            {titulo || 'Título do Card'}
                         </h3>
                     </Col>
                     <Col className="d-flex justify-content-center">
