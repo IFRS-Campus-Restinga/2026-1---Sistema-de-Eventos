@@ -7,7 +7,7 @@ import LocalCard from '../components/common/LocalCard';
 import Button from 'react-bootstrap/esm/Button';
 import { MdArrowBack, MdCheckCircle } from 'react-icons/md';
 import { useState, } from 'react';
-import { criarLocal } from '../services/localService';   // não usei o uselocais pq eu não soube implementar 
+import { atualizarLocal } from '../services/localService';   // não usei o uselocais pq eu não soube implementar 
 import { useNavigate } from 'react-router-dom';
 
 
@@ -24,15 +24,15 @@ export default function LocalAdicionar({ campus = 'Campus Restinga' }) {
         }
         try {
             const novoLocal = { nome, endereco };
-            await criarLocal(novoLocal);
-            alert('Local criado com sucesso!');
+            await atualizarLocal(novoLocal);
+            alert('Local atualizado com sucesso!');
             navigate('/#');
             // Limpar os campos após salvar
             setNome('');
             setEndereco('');
         } catch (erro) {
-            console.error('Erro ao criar local:', erro);
-            alert('Erro ao criar local. Por favor, tente novamente.');
+            console.error('Erro ao atualizar local:', erro);
+            alert('Erro ao atualizar local. Por favor, tente novamente.');
         }
     };
 
@@ -77,7 +77,7 @@ export default function LocalAdicionar({ campus = 'Campus Restinga' }) {
                                             size={20}
                                             className="me-2"
                                         />
-                                        Criar Local
+                                        Atualizar Local
                                     </Button>
                                 </Col>
                             </Row>

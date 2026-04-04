@@ -6,7 +6,7 @@ import Footer from '../components/footer/Footer';
 import { useLocais } from '../hooks/useLocais';
 import Card from '../components/common/Card';
 
-export default function LocaisListar() {
+export default function LocaisEspacosListar() {
     const { locais } = useLocais();
     const [idLocalSelecionado, setIdLocalSelecionado] = useState(null);     //pega o idlocal selecionado no dropdown 
     const localSelecionado = locais.find(local => String(local.id) === String(idLocalSelecionado));        //pega o objeto local selecionado a partir do id

@@ -26,10 +26,7 @@ export default function NavBar() {
                         <Nav.Link href="permissoesGrupos" className="text-white">
                             Permissões mock
                         </Nav.Link>
-                        <Nav.Link href="adicionarLocal" className="text-white">
-                            Adicionar Local
-                        </Nav.Link>
-                        <Nav.Link href="listarLocais" className="text-white">
+                        <Nav.Link href="listarLocaisEspacos" className="text-white">
                             Listar Locais
                         </Nav.Link>
                         {/*<Nav.Link href="#link" className="text-white">
