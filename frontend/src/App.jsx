@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import PermissoesGroups from './pages/PermissoesGrupos';
 import PessoasGrupos from './pages/PessoasGrupos';
 import PermissoesPessoas from './pages/PermissoesPessoas';
+import LocaisEspacosListar from './pages/LocaisEspacosListar';
+import LocalForm from './pages/LocalForm';
 import LocaisListar from './pages/LocaisListar';
 import LocalAdicionar from './pages/LocalAdicionar';
 import AdicionarEvento from './pages/AdicionarEvento'
