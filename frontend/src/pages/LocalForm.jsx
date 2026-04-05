@@ -93,11 +93,11 @@ export default function LocalForm({ campus = 'Campus Restinga' }) {
                                         size="lg"
                                         variant="secondary"
                                         className="fw-bold"
+                                        onClick={() => navigate('/listarLocais')}
                                     >
                                         <MdArrowBack
                                             size={20}
                                             className="me-2"
-                                            onClick={console.log('click em voltar')}
                                         />
                                         Voltar
                                     </Button>

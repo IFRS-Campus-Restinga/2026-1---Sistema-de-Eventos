@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Container, Row, Col, Button, ListGroup, Dropdown } from 'react-bootstrap';
 import { MdEdit, MdDelete, MdArrowBack, MdLocationOn, MdBook, MdAddCircle } from 'react-icons/md';
 import { Link } from 'react-router-dom';
@@ -6,11 +6,12 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { useLocais } from '../hooks/useLocais';
 import Card from '../components/common/Card';
+import { useNavigate } from 'react-router-dom';
 
 export default function LocaisListar() {
     const { locais } = useLocais();
     const [idLocalSelecionado, setIdLocalSelecionado] = useState(null);     //pega o idlocal selecionado no dropdown 
-    const localSelecionado = locais.find(local => String(local.id) === String(idLocalSelecionado));        //pega o objeto local selecionado a partir do id
+    const navigate = useNavigate();
 
     const handleSelect = (id) => {
         console.log('ID selecionado, captura do handleSelect:', id); // Para você debugar no console
@@ -61,8 +62,7 @@ export default function LocaisListar() {
                                         </div>
                                         <div className="d-flex gap-3">
                                             <MdEdit
-                                                as={Link} // Faz o botão se comportar como um Link do Router
-                                                to={`/editarLocal/${local.id}`} // Define a rota de destino
+                                                onClick={() => navigate(`/editarLocal/${local.id}`)} // Define a rota de destino
                                                 size={22}
                                                 className="text-secondary cursor-pointer"
                                                 style={{ cursor: 'pointer' }}
@@ -97,8 +97,7 @@ export default function LocaisListar() {
                     {/* Botão Voltar Inferior */}                  {/*implementar rota para voltar*/}
                     <div className="d-flex justify-content-end mt-4">
                         <Button
-                            as={Link} // Faz o botão se comportar como um Link do Router
-                            to="/" // Define a rota de destino
+                            onClick={() => navigate(`/`)} 
                             variant="secondary"
                             className="d-flex align-items-center gap-2 px-4 py-2">
                             <MdArrowBack /> Voltar
