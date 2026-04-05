@@ -11,6 +11,7 @@ import LocaisListar from './pages/LocaisListar';
 import LocalAdicionar from './pages/LocalAdicionar';
 import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
+import AdicionarEvento from './pages/AdicionarEvento';
 
 function App() {
     return (
@@ -37,6 +38,12 @@ function App() {
                     element={<LocaisEspacosListar />}
                 />
                 <Route path="/editarLocal/:id" element={<LocalForm />} />
+                <Route
+                    path="/permissoesPessoas"
+                    element={<PermissoesPessoas />}
+                />
+                <Route path="/adicionarLocal" element={<LocalAdicionar />} />
+                <Route path="/adicionarEvento" element={<AdicionarEvento />} />
                 <Route path="/listarLocais" element={<LocaisListar />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route

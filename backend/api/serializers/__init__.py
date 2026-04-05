@@ -6,3 +6,4 @@ from .groups_serializer import (
 )
 from .local_serializer import LocalSerializer
 from .users_serializer import UserSerializer
+from .evento_serializer import EventoSerializer
