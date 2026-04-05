@@ -5,18 +5,30 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import CriarEventoCard from '../components/common/criarEventoCard';
 import Button from 'react-bootstrap/esm/Button';
-import {criarEvento} from '../services/eventoService';
+import {criarEvento,buscarOpcoesFormulario} from '../services/eventoService';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 
 export default function CriarEvento(){
+    const navigate = useNavigate() ;
     const [nome, setNome] = useState("")
     const [descricao, setDescricao] = useState("")
     const [status, setStatus] = useState("")
     const [carga_horaria,setCargaHoraria] = useState(0)
     const [setor, setSetor] = useState("")
     const [tema, setTema] = useState("")
+    const [opcoes, setOpcoes] = useState({ status: [], setores: [] });
+    
+
+    useEffect(() => {
+        const carregarDados = async () => {
+            const dados = await buscarOpcoesFormulario();
+            console.log(dados)
+            setOpcoes(dados);
+        };
+        carregarDados();
+    }, []);
 
     const handleSalvar = async () =>{
         if(!nome || !descricao || !status || !carga_horaria || !setor || !tema){
@@ -25,13 +37,13 @@ export default function CriarEvento(){
         }
 
         try{
-            const novoEvento = {nome,descricao, status,carga_horaria,setor,tema}
+            const novoEvento = {nome,descricao, status_evento:status,carga_horaria,setor,tema}
             await criarEvento(novoEvento)
-            alert('Local criado com sucesso!');
-            navigate('/#');
+            alert('Evento criado com sucesso!');
+            navigate("/")
             setNome("")
             setDescricao("")
-            setCargaHoraria("")
+            setCargaHoraria(0)
             setStatus("")
             setTema("")
             setSetor("")
@@ -49,10 +61,14 @@ export default function CriarEvento(){
                     <Row className="mx-auto my-5 d-flex justify-content-center">
                         <Col className="">
                         {<CriarEventoCard
-                            nome={nome}
-                            setNome={setNome}
-                            descricao={descricao}
-                            setDescricao={setDescricao}
+                            nome={nome} setNome={setNome}
+                            descricao={descricao} setDescricao={setDescricao}
+                            status={status} setStatus={setStatus}
+                            setor={setor} setSetor={setSetor}
+                            tema={tema} setTema={setTema} // Correção aqui
+                            carga_horaria={carga_horaria} setCargaHoraria={setCargaHoraria} // Correção aqui
+                            opcoes={opcoes}
+                            handleSalvar={handleSalvar} 
                             />}
                         
                         </Col>

@@ -17,3 +17,8 @@ export const criarEvento = async (dados) => {
     });
     return response.data;
 };
+
+export const buscarOpcoesFormulario = async () => {
+    const response = await axios.get('http://localhost:8000/api/eventos/opcoes/');
+    return response.data;
+};

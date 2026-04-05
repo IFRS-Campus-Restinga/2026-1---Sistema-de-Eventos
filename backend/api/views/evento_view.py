@@ -3,12 +3,14 @@ from ..serializers.evento_serializer import EventoSerializer
 from ..models.evento import Evento
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 
 
 class EventoListView(APIView):
     queryset = Evento.objects.all()
     serializer_class = EventoSerializer
-
+    permission_classes = [AllowAny]
+    
     def get(self,request):
         eventos = Evento.objects.all()
         serializer = EventoSerializer(eventos, many=True)

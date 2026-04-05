@@ -4,7 +4,7 @@ import SecaoFormulario from './secaoFormulario';
 import { BsTrash } from 'react-icons/bs';
 
 
-export default function AdicionarEvento({nome,SetNome,descricao,setDescricao}) {
+export default function AdicionarEvento({nome,setNome,descricao,setDescricao,tema,setTema,status,setStatus,setor,setSetor,carga_horaria,setCargaHoraria,opcoes,handleSalvar}) {
   return (
     <div >
       {/* Navbar fictícia do IFRS aqui */}
@@ -17,26 +17,33 @@ export default function AdicionarEvento({nome,SetNome,descricao,setDescricao}) {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-bold">Nome do Evento</Form.Label>
-                  <Form.Control type="text" style={{ backgroundColor: '#eeeeee' }} />
+                  <Form.Control placeholder="Escreva o nome do evento" value={nome} onChange={(nome) => {setNome(nome.target.value)}} type="text" style={{ backgroundColor: '#eeeeee' }} />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-bold">Tema Principal</Form.Label>
-                  <Form.Control type="text" style={{ backgroundColor: '#eeeeee' }} />
+                  <Form.Control placeholder='informe o tema do evento' type="text" style={{ backgroundColor: '#eeeeee' }} value={tema} onChange={(tema)=>{setTema(tema.target.value)}}/>
                 </Form.Group>
               </Col>
             </Row>
             <Row>
                 <Col md={6}>
-                    <Form.Group>
-                        <Form.Label className="fw-bold">Local</Form.Label>
-                        <div className="d-flex gap-2">
-                            <Form.Select style={{ backgroundColor: '#eeeeee' }}>
-                                <option>Selecione um local</option>
-                            </Form.Select>
-                            <input type="button" value="Cadastrar Espaço" className="btn btn-success"/>
-                        </div>
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-bold">Setor Responsável</Form.Label>
+                        <Form.Select 
+                            value={setor} 
+                            onChange={(e) => setSetor(e.target.value)}
+                            style={{ backgroundColor: '#eeeeee', border: 'none' }}
+                        >
+                            <option value="">Selecione o setor</option>
+                            {/* Mapeia a lista de setores */}
+                            {opcoes.setores.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </Form.Select>
                     </Form.Group>
                 </Col>
             </Row><br />
@@ -54,7 +61,45 @@ export default function AdicionarEvento({nome,SetNome,descricao,setDescricao}) {
                         />
                     </Form.Group>
                 </Col>
+            </Row><br />
+            
+            <Row>
+                <Col md={6}>
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-bold">Status do Evento</Form.Label>
+                        <Form.Select 
+                            value={status} 
+                            onChange={(e) => setStatus(e.target.value)}
+                            style={{ backgroundColor: '#eeeeee', border: 'none' }}
+                            >
+                            <option value="">Selecione o status</option>
+                            {/* Mapeia a lista de status */}
+                            {opcoes.status.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                </Col>
+            </Row><br />
+            <Row>
+                <Col md={6}>
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-bold">Carga Horária (horas)</Form.Label>
+                        <Form.Control 
+                            type="number" 
+                            placeholder="Ex: 40"
+                            min={1}
+                            max={300} 
+                            value={carga_horaria} 
+                            onChange={(e) => setCargaHoraria(e.target.value)}
+                            style={{ backgroundColor: '#eeeeee', border: 'none', padding: '10px' }}
+                        />
+                    </Form.Group>
+                </Col>
             </Row>
+            
           </SecaoFormulario>
 
           
@@ -148,23 +193,13 @@ export default function AdicionarEvento({nome,SetNome,descricao,setDescricao}) {
                 </div>
             </Form.Group>
 
-            {/* BOTÕES DE RODAPÉ */}
-            <div className="d-flex justify-content-end gap-3 mt-5">
-                <Button 
-                    variant="secondary" 
-                    className="px-4 py-2 d-flex align-items-center"
-                    style={{ backgroundColor: '#6c757d', border: 'none', borderRadius: '8px' }}
-                >
-                    <span className="me-2">←</span> Voltar
-                </Button>
-                <input type="button" value="adicionar" className="btn btn-success"/>
-            </div>
+           
         </SecaoFormulario>
 
           {/* BOTÕES DE FINALIZAÇÃO */}
           <div className="d-flex justify-content-end gap-3 mt-5 mb-5">
             <Button variant="secondary" className="px-4">Voltar</Button>
-            <input type="button" value="adicionar" className="btn btn-success"/>
+            <input type="button" onClick={handleSalvar} value="Cadastrar Evento" className="btn btn-success"/>
           </div>
         </Form>
       </Container>
