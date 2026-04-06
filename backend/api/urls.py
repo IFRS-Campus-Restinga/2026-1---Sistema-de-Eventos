@@ -3,6 +3,7 @@ from django.urls import path
 from .views import csrf_token_view as views
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.evento_view import EventoListView
+from .views.evento_view import EventoUpdateView
 from .views.choices_evento_view import OpcoesFormularioView
 from .views.perms_view import PermissaoListView
 from .views.groups_view import GrupoListView, GrupoPermissoesView
@@ -34,4 +35,6 @@ urlpatterns = [
     # endpoint pra pegar o csrf token, que o frontend vai usar pra autenticação
     path("csrf/", views.get_csrf_token),
     path("dashboard/", DashboardView.as_view()),
+    path('eventos/<int:pk>/update/', EventoUpdateView.as_view()),
 ]
+

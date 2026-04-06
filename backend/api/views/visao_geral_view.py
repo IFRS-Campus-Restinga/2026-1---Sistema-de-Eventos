@@ -1,29 +1,32 @@
-from django.http import JsonResponse
-from django.views import View
-#from .models import Evento, Atracao, AvaliacaoSubmissao, Usuario
+from rest_framework.views import APIView
+from rest_framework.response import Response
+#from api.models import Evento, Atracao, AvaliacaoSubmissao
 
-class DashboardView(View):
+def get_cor_area(area):
+    cores = {
+        "CIENCIAS_EXATAS_E_DA_TERRA": "bg-green-600",
+        "CIENCIAS_HUMANAS": "bg-yellow-500",
+        "LINGUISTICA_LETRAS_ARTES": "bg-blue-500"
+    }
+    return cores.get(area, "bg-gray-500")
+
+
+class DashboardView(APIView):
     def get(self, request):
 
-        # 👤 Usuário
-        user = request.user if request.user.is_authenticated else Usuario.objects.first()
-
-        # 🎉 Evento atual
+        user = request.user
         evento = Evento.objects.first()
 
-        # 📄 Submissões (Atracoes do evento)
         atracoes = Atracao.objects.filter(evento=evento)
 
-        total_submissoes = atracoes.count()
+        total = atracoes.count()
 
-        # ❌ Sem avaliador
         avaliadas_ids = AvaliacaoSubmissao.objects.values_list('atracao_id', flat=True)
+
         sem_avaliador = atracoes.exclude(id__in=avaliadas_ids).count()
 
-        # 🚪 Desistências (ajuste conforme seu model)
         desistencias = atracoes.filter(status="CANCELADO").count()
 
-        # 📊 Áreas
         areas = []
         areas_db = atracoes.values_list('area_conhecimento', flat=True).distinct()
 
@@ -41,32 +44,26 @@ class DashboardView(View):
                 "cor": get_cor_area(area)
             })
 
-        # 📦 Resposta final
         data = {
             "usuario": {
-                "nome": user.nome if hasattr(user, 'nome') else user.username,
-                "iniciais": (user.nome[0] if hasattr(user, 'nome') else user.username[0]).upper()
+                "nome": user.username if user.is_authenticated else "Usuário",
+                "iniciais": user.username[0].upper() if user.is_authenticated else "U"
             },
             "evento": {
-                "nome": evento.nome
+                "nome": evento.nome if evento else "Evento"
             },
             "metricas": {
-                "totalSubmissoes": total_submissoes,
-                "crescimento": 0,
+                "totalSubmissoes": total,
                 "semAvaliador": sem_avaliador,
                 "desistencias": desistencias,
-                "taxaEvasao": int((desistencias / total_submissoes) * 100) if total_submissoes > 0 else 0
+                "taxaEvasao": int((desistencias / total) * 100) if total > 0 else 0
             },
             "areas": areas,
             "acoes": [
-                "Homologar e Definir Avaliadores",
-                "Editar Informações do Evento",
-                "Definir Locais",
-                "Enviar Emails",
-                "Emitir Certificados",
-                "Gerenciar Grupos",
-                "Adicionar Novo Evento"
+                "Homologar Avaliadores",
+                "Editar Evento",
+                "Definir Locais"
             ]
         }
 
-        return JsonResponse(data)
+        return Response(data)
