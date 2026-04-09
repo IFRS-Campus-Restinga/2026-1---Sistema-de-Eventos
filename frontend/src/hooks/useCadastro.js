@@ -3,6 +3,7 @@ import {
     salvarInformacoesComplementares,
     buscarOpcoesCadastro,
 } from '../services/cadastroService';
+import eArray from '../utils/eArray';
 
 export function useCadastro() {
     const [carregando, setCarregando] = useState(false);
@@ -14,7 +15,7 @@ export function useCadastro() {
             try {
                 const dados = await buscarOpcoesCadastro();
                 console.log('Dados que chegaram do Django:', dados);
-                setOpcoes(dados);
+                eArray(dados) ? setOpcoes(dados) : setOpcoes([]);
             } catch (e) {
                 console.error('Erro ao carregar opções do Django', e);
             }

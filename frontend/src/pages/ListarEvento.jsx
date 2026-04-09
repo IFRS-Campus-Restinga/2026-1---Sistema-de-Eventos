@@ -1,17 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Button, ListGroup, Badge, Spinner } from 'react-bootstrap';
-import { MdEvent, MdAddCircle, MdArrowBack, MdAccessTime, MdBusiness, MdInfoOutline } from 'react-icons/md';
+import {
+    Container,
+    Row,
+    Col,
+    Button,
+    ListGroup,
+    Badge,
+    Spinner,
+} from 'react-bootstrap';
+import {
+    MdEvent,
+    MdAddCircle,
+    MdArrowBack,
+    MdAccessTime,
+    MdBusiness,
+    MdInfoOutline,
+} from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import { listarEventos } from '../services/eventoService';
-
+import eArray from '../utils/eArray';
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
     const [carregando, setCarregando] = useState(true);
-    const [mensagem, setMensagem] = useState(""); // ✅ TASK 78
+    const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -21,7 +36,7 @@ export default function EventosListar() {
     const carregarEventos = async () => {
         try {
             const dados = await listarEventos();
-            setEventos(dados);
+            eArray(dados) ? setEventos(dados) : setEventos([]);
         } catch (error) {
             console.error('Erro ao buscar eventos:', error);
         } finally {
@@ -30,11 +45,12 @@ export default function EventosListar() {
     };
 
     const deletarEvento = async (id) => {
-        if (!window.confirm("Tem certeza que deseja excluir este evento?")) return;
+        if (!window.confirm('Tem certeza que deseja excluir este evento?'))
+            return;
 
         try {
             const response = await fetch(`${API_URL}/eventos/${id}/`, {
-                method: "DELETE",
+                method: 'DELETE',
             });
 
             const data = await response.json();
@@ -43,14 +59,13 @@ export default function EventosListar() {
                 setMensagem(data.msg);
 
                 // remove da lista sem recarregar
-                setEventos(prev => prev.filter(e => e.id !== id));
+                setEventos((prev) => prev.filter((e) => e.id !== id));
             } else {
-                setMensagem(data.erro || "Erro ao excluir evento");
+                setMensagem(data.erro || 'Erro ao excluir evento');
             }
-
         } catch (error) {
             console.error(error);
-            setMensagem("Erro na requisição");
+            setMensagem('Erro na requisição');
         }
     };
 
@@ -62,12 +77,14 @@ export default function EventosListar() {
                 <Container>
                     <Card corBorda="#00A44B">
                         <Container fluid className="mb-5 px-4">
-
                             {/* Título */}
                             <Row className="pt-5 pb-2">
                                 <Col className="d-flex align-items-center">
                                     <MdEvent color="#00A44B" size={35} />
-                                    <h3 className="fw-bold ms-2 mb-0" style={{ color: "#00A44B" }}>
+                                    <h3
+                                        className="fw-bold ms-2 mb-0"
+                                        style={{ color: '#00A44B' }}
+                                    >
                                         Eventos do Campus
                                     </h3>
                                 </Col>
@@ -84,8 +101,13 @@ export default function EventosListar() {
                             {/* Loading */}
                             {carregando ? (
                                 <div className="text-center py-5">
-                                    <Spinner animation="border" variant="success" />
-                                    <p className="mt-2 text-muted">Buscando eventos no sistema...</p>
+                                    <Spinner
+                                        animation="border"
+                                        variant="success"
+                                    />
+                                    <p className="mt-2 text-muted">
+                                        Buscando eventos no sistema...
+                                    </p>
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
@@ -94,7 +116,10 @@ export default function EventosListar() {
                                             <ListGroup.Item
                                                 key={evento.id || index}
                                                 className="d-flex justify-content-between align-items-center mb-3 border rounded shadow-sm p-3"
-                                                style={{ borderLeft: '5px solid #00A44B' }}
+                                                style={{
+                                                    borderLeft:
+                                                        '5px solid #00A44B',
+                                                }}
                                             >
                                                 {/* INFO */}
                                                 <div className="d-flex flex-column">
@@ -104,41 +129,64 @@ export default function EventosListar() {
 
                                                     <div className="d-flex flex-wrap gap-3 text-muted small">
                                                         <span className="d-flex align-items-center gap-1">
-                                                            <MdInfoOutline /> <strong>Tema:</strong> {evento.tema}
+                                                            <MdInfoOutline />{' '}
+                                                            <strong>
+                                                                Tema:
+                                                            </strong>{' '}
+                                                            {evento.tema}
                                                         </span>
 
                                                         <span className="d-flex align-items-center gap-1">
-                                                            <MdAccessTime /> <strong>Carga:</strong> {evento.carga_horaria}h
+                                                            <MdAccessTime />{' '}
+                                                            <strong>
+                                                                Carga:
+                                                            </strong>{' '}
+                                                            {
+                                                                evento.carga_horaria
+                                                            }
+                                                            h
                                                         </span>
 
                                                         <span className="d-flex align-items-center gap-1">
-                                                            <MdBusiness /> <strong>Setor:</strong> {evento.setor}
+                                                            <MdBusiness />{' '}
+                                                            <strong>
+                                                                Setor:
+                                                            </strong>{' '}
+                                                            {evento.setor}
                                                         </span>
                                                     </div>
                                                 </div>
 
                                                 {/* AÇÕES */}
                                                 <div className="text-end d-flex flex-column gap-2">
-
-                                                    <Badge pill bg="success" className="px-3 py-2">
-                                                        {evento.status_evento?.toUpperCase() || 'N/A'}
+                                                    <Badge
+                                                        pill
+                                                        bg="success"
+                                                        className="px-3 py-2"
+                                                    >
+                                                        {evento.status_evento?.toUpperCase() ||
+                                                            'N/A'}
                                                     </Badge>
 
                                                     <Button
                                                         variant="danger"
                                                         size="sm"
-                                                        onClick={() => deletarEvento(evento.id)}
+                                                        onClick={() =>
+                                                            deletarEvento(
+                                                                evento.id,
+                                                            )
+                                                        }
                                                     >
                                                         Excluir
                                                     </Button>
-
                                                 </div>
                                             </ListGroup.Item>
                                         ))
                                     ) : (
                                         <div className="text-center py-5 border rounded bg-white">
                                             <p className="text-muted mb-0">
-                                                Nenhum evento cadastrado até o momento.
+                                                Nenhum evento cadastrado até o
+                                                momento.
                                             </p>
                                         </div>
                                     )}
@@ -152,12 +200,14 @@ export default function EventosListar() {
                                     to="/adicionarEvento"
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                                    style={{ backgroundColor: '#00A44B', border: 'none' }}
+                                    style={{
+                                        backgroundColor: '#00A44B',
+                                        border: 'none',
+                                    }}
                                 >
                                     <MdAddCircle size={20} /> Novo Evento
                                 </Button>
                             </div>
-
                         </Container>
                     </Card>
 
@@ -171,7 +221,6 @@ export default function EventosListar() {
                             <MdArrowBack /> Voltar
                         </Button>
                     </div>
-
                 </Container>
             </main>
 

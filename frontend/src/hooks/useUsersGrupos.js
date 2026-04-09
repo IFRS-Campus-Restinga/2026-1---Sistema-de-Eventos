@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { pegarGrupo, atualizarUsuarios } from '../services/gruposService';
+import eArray from '../utils/eArray';
 
 export function useUsersGrupos(users) {
     const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -32,8 +33,12 @@ export function useUsersGrupos(users) {
     }, [selectedGroupId]);
 
     const [usersDoGrupo, usersNaoDoGrupo] = useMemo(() => {
-        const doGrupo = users.filter((u) => editingUsers.has(u.id));
-        const naoDoGrupo = users.filter((u) => !editingUsers.has(u.id));
+        const doGrupo = eArray(users)
+            ? users.filter((u) => editingUsers.has(u.id))
+            : [];
+        const naoDoGrupo = eArray(users)
+            ? users.filter((u) => !editingUsers.has(u.id))
+            : [];
         return [doGrupo, naoDoGrupo];
     }, [editingUsers, users]);
 

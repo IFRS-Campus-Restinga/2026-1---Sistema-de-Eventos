@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { pegarGrupo, atualizarPermissoes } from '../services/gruposService';
+import eArray from '../utils/eArray';
 
 export function useGroupPermissions(perms) {
     const [selectedGroupId, setSelectedGroupId] = useState('');
@@ -32,8 +33,12 @@ export function useGroupPermissions(perms) {
     }, [selectedGroupId]);
 
     const [permsDoGrupo, permsNaoDoGrupo] = useMemo(() => {
-        const doGrupo = perms.filter((p) => editingPermissions.has(p.id));
-        const naoDoGrupo = perms.filter((p) => !editingPermissions.has(p.id));
+        const doGrupo = eArray(perms)
+            ? perms.filter((p) => editingPermissions.has(p.id))
+            : [];
+        const naoDoGrupo = eArray(perms)
+            ? perms.filter((p) => !editingPermissions.has(p.id))
+            : [];
         return [doGrupo, naoDoGrupo];
     }, [editingPermissions, perms]);
 
