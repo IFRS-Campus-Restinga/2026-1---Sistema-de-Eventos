@@ -1,3 +1,4 @@
+# ruff: noqa: F403
 from .area_conhecimento import *
 from .nivel_ensino import *
 from .setor import *

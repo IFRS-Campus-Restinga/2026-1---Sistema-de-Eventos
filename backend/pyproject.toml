@@ -1,6 +1,7 @@
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+per-file-ignores = { "**/__init__.py" = ["F403"] }
 
 [tool.ruff.format]
 quote-style = "double"

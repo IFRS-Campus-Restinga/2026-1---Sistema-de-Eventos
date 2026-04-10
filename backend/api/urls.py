@@ -2,7 +2,15 @@ from django.urls import path
 
 from .views import csrf_token_view as views
 from .views.cadastro_complementar_view import CadastroComplementarView
+from .views.campo_formulario_view import (
+    CampoFormularioDetailView,
+    CampoFormularioListView,
+)
 from .views.choices_evento_view import OpcoesFormularioView
+from .views.criterio_avaliacao_view import (
+    CriterioAvaliacaoDetailView,
+    CriterioAvaliacaoListView,
+)
 from .views.evento_view import (
     EventoDeleteView,
     EventoDetailView,
@@ -11,7 +19,9 @@ from .views.evento_view import (
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.local_views import LocalDetailView, LocalListView
+from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
+from .views.tipo_campo_view import TipoCampoListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
 
@@ -39,5 +49,12 @@ urlpatterns = [
     path('eventos/<int:pk>/update/', EventoUpdateView.as_view()),
     path('eventos/<int:pk>/', EventoDetailView.as_view()),
     path('eventos/<int:pk>/', EventoDeleteView.as_view()),
+    path('modalidades/', ModalidadeListView.as_view()),
+    path("modalidades/<int:pk>/",ModalidadeDetailView.as_view()),
+    path('tipo_campo/', TipoCampoListView.as_view()),
+    path('campo_formulario/', CampoFormularioListView.as_view()),
+    path('campo_formulario/<int:pk>/', CampoFormularioDetailView.as_view()),
+    path('criterio_avaliacao/', CriterioAvaliacaoListView.as_view()),
+    path('criterio_avaliacao/<int:pk>/', CriterioAvaliacaoDetailView.as_view()),
 ]
 # fmt: on
