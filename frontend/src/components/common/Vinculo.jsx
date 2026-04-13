@@ -12,7 +12,7 @@ export default function Vinculo({
     onAcao1,
     onAcao2,
     selecionado,
-    renderItem = (item) => item.name || item.username,
+    renderItem = (item) => item.nome || item.name || item.username,
     // esse renderItem é só pq o user n tem "name", mas sim "username", 
     // então ele ta aq por isso, mas ele filtra se o item tem name ou username, 
     // ent ta sereno

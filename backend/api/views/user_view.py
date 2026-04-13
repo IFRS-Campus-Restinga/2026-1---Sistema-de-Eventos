@@ -1,6 +1,6 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from api.serializers.users_serializer import (
     UserSerializer,
     UserGrupoSerializer,
@@ -8,6 +8,8 @@ from api.serializers.users_serializer import (
     UserPermissoesSerializer,
     UserPermissoesUpdateSerializer,
 )
+
+User = get_user_model()
 
 
 class UserListView(generics.ListAPIView):

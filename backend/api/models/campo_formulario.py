@@ -25,7 +25,7 @@ class CampoFormulario(Base):
 
     obrigatorio = models.BooleanField(
         verbose_name=_("Obrigatório"),
-        help_text=_("Informe se o campo é obrisgatório"),
+        help_text=_("Informe se o campo é obrigatório"),
         default=True,
     )
 
@@ -42,15 +42,6 @@ class CampoFormulario(Base):
 
         if len(self.nome.strip()) <= 3:
             errors["nome"] = _("O nome deve ter pelo menos 3 caracteres.")
-
-        # if (
-        #     Modalidade.objects.filter(
-        #         nome__iexact=self.nome,
-        #     )
-        #     .exclude(pk=self.pk)
-        #     .exists()
-        # ):
-        #     errors["__all__"] = _("Já existe uma Modalidade com esse nome.")
 
         if errors:
             raise ValidationError(errors)

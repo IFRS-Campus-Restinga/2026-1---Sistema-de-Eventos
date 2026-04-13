@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "guardian",
     "api",
+    "eventos_session",
 ]
 
 # APARENTIMENTE tem q ter isso, fé fml
@@ -151,6 +152,15 @@ LOCALE_PATHS = [
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+AUTH_USER_MODEL = "eventos_session.Usuario"
+
+BASE_SYSTEM_URL = os.getenv("BASE_SYSTEM_URL", "http://localhost:8000")
+API_KEY = os.getenv("API_KEY", "your-api-key")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = 1
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True

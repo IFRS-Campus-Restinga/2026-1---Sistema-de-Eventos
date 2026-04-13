@@ -114,12 +114,12 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
                                 dados1={usersNaoDoGrupo.filter((u) =>
-                                    `${u.username}`
+                                    `${u.nome || u.username}`
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase())
                                 )}
                                 dados2={usersDoGrupo.filter((u) =>
-                                    `${u.username}`
+                                    `${u.nome || u.username}`
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase())
                                 )}

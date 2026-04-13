@@ -1,5 +1,6 @@
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import PermissoesGroups from './pages/PermissoesGrupos';
@@ -12,8 +13,25 @@ import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
 import AdicionarEvento from './pages/AdicionarEvento';
 import ListarEnvento from './pages/ListarEvento';
+import SessionTokenCallback from './pages/SessionTokenCallback';
+import Teste from './pages/Teste';
+import AdicionarModalidade from './pages/AdicionarModalidade';
 
 function App() {
+    useEffect(() => {
+        const { pathname, search, hash } = window.location;
+        if (!pathname.startsWith('//')) {
+            return;
+        }
+
+        const normalizedPathname = `/${pathname.replace(/^\/+/, '')}`;
+        window.history.replaceState(
+            {},
+            document.title,
+            `${normalizedPathname}${search}${hash}`
+        );
+    }, []);
+
     return (
         <div className="min-vh-100 d-flex flex-column">
             {/* prettier-ignore */}
@@ -30,6 +48,10 @@ function App() {
                 <Route path="/listarLocais" element={<LocaisListar />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/cadastroComplementar"  element={<CadastroComplementar />} />
+                <Route path="/session/token/" element={<SessionTokenCallback />} />
+                <Route path="/session/token/*" element={<SessionTokenCallback />} />
+                <Route path="/teste"  element={<Teste />} />
+                <Route path="/adicionarModalidade"  element={<AdicionarModalidade />} />
             </Routes>
         </div>
     );

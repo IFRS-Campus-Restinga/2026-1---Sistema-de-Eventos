@@ -3,7 +3,6 @@ import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import CriarEventoCard from '../components/common/criarEventoCard';
 import CustomFormCard from '../components/common/CustomFormCard';
 import { criarEvento } from '../services/eventoService';
 import { useState } from 'react';
@@ -49,7 +48,6 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
             };
             await criarEvento(novoEvento);
             alert('Local criado com sucesso!');
-            navigate('/#');
             setNome('');
             setDescricao('');
             setCargaHoraria('');
@@ -76,6 +74,13 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
                                 campos={[
                                     { titulo: 'Nome do Evento', tipo: 'text' },
                                     { titulo: 'Tema Principal', tipo: 'text' },
+                                    { titulo: 'Descrição', tipo: 'textarea' },
+                                    {
+                                        titulo: 'Carga Horária',
+                                        tipo: 'number',
+                                        max: 1000,
+                                        min: 0,
+                                    },
                                     [
                                         {
                                             titulo: 'Local',
@@ -95,7 +100,7 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
                                             to: '/adicionarLocal',
                                             variant: 'success',
                                             background: '#00A44B',
-                                            text: 'Cadastrar Espaço',
+                                            text: 'Cadastrar Local',
                                         },
                                     ],
                                 ]}
@@ -104,6 +109,32 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
                                 titulo="Controle de Prazos (Fases)"
                                 Icone={<FaRegClock size={30} />}
                                 corTexto="#00A44B"
+                                campos={[
+                                    {
+                                        tipo: 'fase',
+                                        name: 'fases',
+                                        opcoes: [
+                                            {
+                                                value: 'submissao',
+                                                text: 'Fase de Submissão',
+                                                descricao:
+                                                    'Permite que autores enviem novos trabalhos.',
+                                            },
+                                            {
+                                                value: 'avaliacao',
+                                                text: 'Fase de Avaliação',
+                                                descricao:
+                                                    'Avaliação dos trabalhos enviados.',
+                                            },
+                                            {
+                                                value: 'resultado',
+                                                text: 'Fase de Divulgação de Resultados',
+                                                descricao:
+                                                    'Divulgação dos resultados finais.',
+                                            },
+                                        ],
+                                    },
+                                ]}
                             />
                             <CustomFormCard
                                 titulo="Áreas de Conhecimento"
@@ -121,6 +152,10 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
                                             },
                                         ],
                                         opcoes: [
+                                            {
+                                                value: 1,
+                                                text: 'Ciências Exatas e da Terra',
+                                            },
                                             { value: 3, text: 'Engenharias' },
                                             {
                                                 value: 2,

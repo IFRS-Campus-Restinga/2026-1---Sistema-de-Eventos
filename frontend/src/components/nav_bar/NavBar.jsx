@@ -1,6 +1,7 @@
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
+import AuthButton from '../common/AuthButton';
 import IFLogo from '../common/IFLogo';
 export default function NavBar() {
     return (
@@ -40,7 +41,7 @@ export default function NavBar() {
                     </Nav>
                 </Navbar.Collapse>
                 <div className="d-flex align-items-center ms-auto pe-5">
-                    <Navbar.Text>Login</Navbar.Text>
+                    <AuthButton />
                 </div>
             </Container>
         </Navbar>

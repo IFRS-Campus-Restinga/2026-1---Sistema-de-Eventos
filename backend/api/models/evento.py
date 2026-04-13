@@ -1,12 +1,13 @@
-from django.db import models
 from django.core.validators import (
     MaxLengthValidator,
     MaxValueValidator,
     MinValueValidator,
 )
+from django.db import models
 from ..enumerations.status_evento import StatusEvento
 from ..enumerations.setor import Setor
 from .base import Base
+from .modalidade import Modalidade
 
 
 class Evento(Base):
@@ -50,6 +51,12 @@ class Evento(Base):
             ("coordenar_evento", "pode coordenar este evento"),
             ("disabilitar_evento", "pode desativar este evento"),
         ]
+
+    modalidades = models.ManyToManyField(
+        Modalidade,
+    )
+
+    # futuramente, fazer relacionamento com local
 
     def __str__(self):
         return f"{self.nome}"

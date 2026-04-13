@@ -1,11 +1,14 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User, Group, Permission
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username"]
+        fields = ["id", "username", "nome"]
 
 
 class UserGrupoSerializer(serializers.ModelSerializer):
@@ -13,7 +16,7 @@ class UserGrupoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "groups"]
+        fields = ["id", "username", "nome", "groups"]
 
     def get_groups(self, obj):
         from .groups_serializer import GrupoSerializer
@@ -29,7 +32,8 @@ class UserGrupoUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "group_id", "groups"]
+        fields = ["id", "username", "nome", "group_id", "groups"]
+        extra_kwargs = {"nome": {"read_only": True}}
 
     def get_groups(self, obj):
         from .groups_serializer import GrupoSerializer
@@ -50,7 +54,7 @@ class UserPermissoesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "permissions"]
+        fields = ["id", "username", "nome", "permissions"]
 
     def get_permissions(self, obj):
         from .perms_serializer import PermissaoSerializer
@@ -68,7 +72,8 @@ class UserPermissoesUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "permission_id", "permissions"]
+        fields = ["id", "username", "nome", "permission_id", "permissions"]
+        extra_kwargs = {"nome": {"read_only": True}}
 
     def get_permissions(self, obj):
         from .perms_serializer import PermissaoSerializer

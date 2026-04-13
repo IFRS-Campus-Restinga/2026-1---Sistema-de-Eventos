@@ -9,13 +9,24 @@ class ModalidadeSerializer(serializers.ModelSerializer):
     campos = CampoFormularioSerializer(
         many=True,
         source="campoformulario_set",
+        read_only=True,
     )
-    criterios = CriterioAvaliacaoSerializer(many=True, source="criterioavaliacao_set")
+    evento = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True,
+        source="evento_set",
+    )
+    criterios = CriterioAvaliacaoSerializer(
+        many=True,
+        source="criterioavaliacao_set",
+        read_only=True,
+    )
 
     class Meta:
         model = Modalidade
         fields = [
             "id",
+            "evento",
             "campos",
             "nome",
             "requer_avaliacao",

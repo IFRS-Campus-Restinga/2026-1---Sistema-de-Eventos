@@ -1,8 +1,10 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from api.enumerations.area_conhecimento import AreaConhecimento
 from api.enumerations.nivel_ensino import NivelEnsino
+
+User = get_user_model()
 
 
 class CadastroComplementarSerializer(serializers.Serializer):

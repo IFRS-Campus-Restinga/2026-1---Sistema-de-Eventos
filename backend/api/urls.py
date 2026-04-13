@@ -24,6 +24,7 @@ from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
 from .views.tipo_campo_view import TipoCampoListView
+from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
 
@@ -57,6 +58,7 @@ urlpatterns = [
     path('modalidades/', ModalidadeListView.as_view()),
     path("modalidades/<int:pk>/",ModalidadeDetailView.as_view()),
     path('tipo_campo/', TipoCampoListView.as_view()),
+    path('tipo_etapa/', TipoEtapaListView.as_view()),
     path('campo_formulario/', CampoFormularioListView.as_view()),
     path('campo_formulario/<int:pk>/', CampoFormularioDetailView.as_view()),
     path('criterio_avaliacao/', CriterioAvaliacaoListView.as_view()),
