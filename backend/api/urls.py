@@ -13,6 +13,7 @@ from .views.criterio_avaliacao_view import (
 )
 from .views.espaco_view import EspacoDetailView, EspacoListView
 from .views.evento_view import (
+    EventoCoordenadorView,
     EventoDeleteView,
     EventoDetailView,
     EventoListView,
@@ -51,7 +52,8 @@ urlpatterns = [
     path("dashboard/", DashboardView.as_view()),
     path('eventos/<int:pk>/update/', EventoUpdateView.as_view()),
     path('eventos/<int:pk>/', EventoDetailView.as_view()),
-    path('eventos/<int:pk>/', EventoDeleteView.as_view()),
+    path('eventos/<int:pk>/delete/', EventoDeleteView.as_view()),
+    path('eventos/<int:pk>/coordenador/', EventoCoordenadorView.as_view()),
     path('modalidades/', ModalidadeListView.as_view()),
     path("modalidades/<int:pk>/",ModalidadeDetailView.as_view()),
     path('tipo_campo/', TipoCampoListView.as_view()),

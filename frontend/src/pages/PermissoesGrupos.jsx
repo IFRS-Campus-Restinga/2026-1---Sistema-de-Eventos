@@ -96,18 +96,18 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                                 cabecario2="Permissões Grupo"
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
-                                dados1={permsDoGrupo.filter((p) =>
+                                dados1={permsNaoDoGrupo.filter((p) =>
                                     p.name
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase()),
                                 )}
-                                dados2={permsNaoDoGrupo.filter((p) =>
+                                dados2={permsDoGrupo.filter((p) =>
                                     p.name
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase()),
                                 )}
-                                onAcao1={handleAddPermission}
-                                onAcao2={handleRemovePermission}
+                                onAcao1={handleRemovePermission}
+                                onAcao2={handleAddPermission}
                                 save={handleSave}
                                 selecionado={selectedGroupId}
                             />
