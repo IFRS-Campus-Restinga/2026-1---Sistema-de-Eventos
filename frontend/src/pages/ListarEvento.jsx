@@ -21,6 +21,7 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import { listarEventos } from '../services/eventoService';
+import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 
 export default function EventosListar() {
@@ -167,6 +168,18 @@ export default function EventosListar() {
                                                         {evento.status_evento?.toUpperCase() ||
                                                             'N/A'}
                                                     </Badge>
+
+                                                    <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/atribuirCoordenador?eventoId=${evento.id}`,
+                                                            )
+                                                        }
+                                                    >
+                                                        Designar Coordenador de Evento
+                                                    </Button>
 
                                                     <Button
                                                         variant="danger"

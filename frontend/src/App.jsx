@@ -16,6 +16,7 @@ import ListarEnvento from './pages/ListarEvento';
 import SessionTokenCallback from './pages/SessionTokenCallback';
 import Teste from './pages/Teste';
 import AdicionarModalidade from './pages/AdicionarModalidade';
+import DefinirCoordenadorEvento from './pages/DefinirCoordenadorEvento';
 
 function App() {
     useEffect(() => {
@@ -52,6 +53,8 @@ function App() {
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
                 <Route path="/teste"  element={<Teste />} />
                 <Route path="/adicionarModalidade"  element={<AdicionarModalidade />} />
+                <Route path="/atribuirCoordenador"  element={<DefinirCoordenadorEvento />} />
+                
             </Routes>
         </div>
     );

@@ -82,7 +82,7 @@ class EventoDeleteView(APIView):
 
 
 class EventoCoordenadorView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdmin, PodeGerenciarEvento]
 
     def patch(self, request, pk):
         try:
