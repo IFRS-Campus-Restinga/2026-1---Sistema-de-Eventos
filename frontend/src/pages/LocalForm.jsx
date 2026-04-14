@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 import { atualizarLocal, criarLocal, pegarLocal } from '../services/localService';   // não usei o uselocais pq eu não soube implementar 
 import { useNavigate, useParams } from 'react-router-dom';
 
+import Alerta from '../components/common/Alerta'
+
 
 export default function LocalForm({ campus = 'Campus Restinga' }) {
     // Estados para os campos
@@ -39,7 +41,10 @@ export default function LocalForm({ campus = 'Campus Restinga' }) {
 
     const handleSalvar = async () => {
         if (!nome || !endereco) {
-            alert('Por favor, preencha todos os campos antes de salvar.');
+            //alert('Por favor, preencha todos os campos antes de salvar.');
+            //<Alerta mensagem={'Por favor, preencha todos os campos antes de salvar.'}/>
+            console.log('aqui')
+
             return;
         }
         try {

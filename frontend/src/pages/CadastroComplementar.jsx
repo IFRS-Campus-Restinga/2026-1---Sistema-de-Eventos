@@ -1,24 +1,35 @@
+// React
 import { useState } from 'react';
 import Container from 'react-bootstrap/esm/Container';
+
+// Bootstrap básicos
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Form from 'react-bootstrap/esm/Form';
 import Button from 'react-bootstrap/esm/Button';
+
+// Componentes do Projeto
+import NavBar from '../components/nav_bar/NavBar';
+import Footer from '../components/footer/Footer';
 import Select from '../components/common/Select';
+
+// Hooks
 import { useCsrf } from '../hooks/useCsrf';
-import { useCadastro } from '../hooks/useCadastro';
+import { useCadastroComplementar } from '../hooks/useCadastroComplementar';
+import Alerta from '../components/common/Alerta.jsx';
 
 // Mock para Informações do Usuário vindo do Hub de Sistemas
 const usuarioHub = {
-    id: 10293,
-    nome: 'Sandro',
-    email: 'sandro.aluno@ifrs.edu.br',
-    cpf: '123.456.789-00',
+    id: '125a2577-e89b-12d3-a456-426614174000',
+    nome: 'teste4',
+    email: 'teste4.aluno@ifrs.edu.br',
+    cpf: '452.452.897-00',
 };
 
-export default function CadastroComplementar() {
+export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
+    const { executarSalvamento, carregando, opcoes, notificacao } =
+        useCadastroComplementar();
     const { csrfToken } = useCsrf(); //Token CSRF
-    const { executarSalvamento, carregando, opcoes } = useCadastro(); // Hook para lidar com o processo de cadastro
 
     // Estados para guardar o que o usuário selecionou
     const [nivelSelecionado, setNivelSelecionado] = useState('');
@@ -26,7 +37,10 @@ export default function CadastroComplementar() {
 
     const clicarEmSalvar = () => {
         const dados = {
-            usuario_id: usuarioHub.id,
+            usuario_id_hub: usuarioHub.id,
+            nome_usuario_hub: usuarioHub.nome,
+            email_usuario_hub: usuarioHub.email,
+            cpf_usuario_hub: usuarioHub.cpf,
             nivel_ensino: nivelSelecionado,
             area_conhecimento: areaSelecionada,
             // TODO: Por hora apenas para preencher espaço não está de fato complementando o cadastro, depois a gente vê o que mais precisa ser enviado para o backend
@@ -35,41 +49,54 @@ export default function CadastroComplementar() {
     };
 
     return (
-        <main
-            className="d-flex align-items-center justify-content-center"
-            style={{ minHeight: '100vh', backgroundColor: '#059547' }} // Usando o mesmo verde da Home
-        >
-            <Container>
-                <Row className="justify-content-center">
-                    <Col xs={12} md={8} lg={6} xl={5}>
-                        <div className="bg-white p-4 rounded-4 shadow position-relative">
-                            {/* TODO: Botão de de Fechar X não sei a serventia, não sei se pode desvirtuar das telas, depois eu arrumo/}
-                            <button
-                                type="button"
-                                className="btn-close position-absolute top-0 end-0 m-3"
-                                aria-label="Fechar"
-                            ></button>
+        <div className="d-flex flex-column min-vh-100">
+            <NavBar />
 
-                            <h4 className="fw-bold text-center mb-4 mt-2">
-                                Complete seu Cadastro
-                            </h4>
+            {notificacao.mensagem && (
+                <Alerta
+                    mensagem={notificacao.mensagem}
+                    variacao={notificacao.variacao}
+                />
+            )}
 
-                            {/* Mensagem de boas vidas e aviso de cadastro complementar */}
-                            <div className="mb-4 text-center">
-                                <p className="mb-1 fs-5">
-                                    Olá, <strong>{usuarioHub.nome}</strong>!
-                                </p>
-                                <p className="text-muted small mb-0 px-3">
-                                    Identificamos o seu login pelo Hub de
-                                    Sistemas. Para continuar navegando e
-                                    participando dos eventos, precisamos apenas
-                                    de mais algumas informações.
-                                </p>
-                            </div>
+            <main className="d-flex flex-column flex-grow-1">
+                <Container className="d-flex flex-grow-1 align-items-center justify-content-center">
+                    <Col xs={16} sm={14} md={12} lg={10} xl={8}>
+                        <Row className="p-1 w-100 shadow-lg rounded overflow-hidden">
+                            <Col
+                                md={5}
+                                className="p-4 d-flex flex-column justify-content-between rounded"
+                                style={{
+                                    backgroundColor: '#059547',
+                                    color: 'white',
+                                }}
+                            >
+                                <Row className="justify-content-center">
+                                    <Row className="p-0">
+                                        <h4>Cadastro Complementar</h4>
+                                        <p>
+                                            Finalize seu cadastro para se
+                                            inscrever em atrações e eventos{' '}
+                                        </p>
+                                    </Row>
+                                </Row>
+                                <Row>
+                                    <h6>Sistema de Eventos</h6>
+                                    <p className="small fw-light">
+                                        O Sistema de Eventos é o seu portal
+                                        central para descobrir, se inscrever e
+                                        gerenciar sua participação nas
+                                        atividades do Campus. Aqui você garante
+                                        sua vaga e emite seus certificados em um
+                                        só lugar.
+                                    </p>
+                                </Row>
+                            </Col>
 
-                            <div>
+                            <Col md={7} className="bg-white p-4">
+                                <h3 className="mb-4">Finalize seu cadastro</h3>
+
                                 <Form>
-                                    {/* Select de Nível de Ensino */}
                                     <Form.Group
                                         className="mb-3 text-start"
                                         controlId="nivelEnsino"
@@ -77,6 +104,7 @@ export default function CadastroComplementar() {
                                         <Form.Label className="fw-bold small mb-1">
                                             Nível de Ensino
                                         </Form.Label>
+
                                         <Select
                                             textFundo="Selecione o Nível de Ensino"
                                             grupos={opcoes.niveis}
@@ -85,11 +113,10 @@ export default function CadastroComplementar() {
                                                 setNivelSelecionado(
                                                     e.target.value,
                                                 )
-                                            } // 2. Aqui ele altera o estado
+                                            }
                                         />
                                     </Form.Group>
 
-                                    {/* Select de Área do Conhecimento */}
                                     <Form.Group
                                         className="mb-4 text-start"
                                         controlId="areaConhecimento"
@@ -108,8 +135,6 @@ export default function CadastroComplementar() {
                                             } // 2. Aqui ele altera o estado
                                         />
                                     </Form.Group>
-
-                                    {/* Botão de Salvar */}
                                     <div className="d-flex justify-content-end">
                                         <Button
                                             variant="success"
@@ -123,11 +148,18 @@ export default function CadastroComplementar() {
                                         </Button>
                                     </div>
                                 </Form>
-                            </div>
-                        </div>
+                            </Col>
+                        </Row>
                     </Col>
-                </Row>
-            </Container>
-        </main>
+                </Container>
+            </main>
+
+            <Footer
+                telefone="(51) 3333-1234"
+                endereco="Rua Alberto Hoffmann, 285"
+                ano={2026}
+                campus={campus}
+            />
+        </div>
     );
 }
