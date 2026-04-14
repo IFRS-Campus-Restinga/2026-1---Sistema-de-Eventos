@@ -1,7 +1,7 @@
 import { API_URL } from '../config';
 import axios from 'axios';
 
-// Busca as listas de Níveis de Ensino e Áreas de Conhecimento do Django para Popular os Selects
+// Busca as listas de Níveis de Ensino e Áreas de Conhecimento do Django para Entregar ao Hook
 export const buscarOpcoesCadastro = async () => {
     try {
         // GET para a rota que devolve os Enums/Choices
@@ -34,7 +34,9 @@ export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
         );
         return response.data;
     } catch (erro) {
-        console.error('Erro ao salvar informações complementares:', erro);
+        // O ponto de interrogação (?) evita que o React quebre caso o response seja undefined (ex: servidor fora do ar)
+        console.error('Status do Erro:', erro.response?.status);
+        console.error('Mensagem do Django:', erro.response?.data);
         throw erro;
     }
 };
