@@ -5,6 +5,7 @@ export default function Alerta({
     mensagem,
     variacao = 'success',
     duracao = 5000,
+    reacao = null,
 }) {
     const [visivel, setVisivel] = useState(true);
 
@@ -21,7 +22,7 @@ export default function Alerta({
         }, duracao);
 
         return () => clearTimeout(temporizador);
-    }, [mensagem, duracao]);
+    }, [mensagem, duracao, reacao]);
 
     if (!visivel) return null;
 

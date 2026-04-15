@@ -2,16 +2,16 @@ import { API_URL } from '../config';
 import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
-export const pegarCampoFormulario = async () => {
-    const response = await axios.get(`${API_URL}/api/campo_formulario/`);
+export const pegarCriterioAvaliacao = async () => {
+    const response = await axios.get(`${API_URL}/api/criterio_avaliacao/`);
     return response.data;
 };
 
-export const criarCampoFormulario = async (dados) => {
+export const criarCriterioAvaliacao = async (dados) => {
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
     const response = await axios.post(
-        `${API_URL}/api/campo_formulario/`,
+        `${API_URL}/api/criterio_avaliacao/`,
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
@@ -20,7 +20,7 @@ export const criarCampoFormulario = async (dados) => {
     return response.data;
 };
 
-export const pegarOptionsCampoFormulario = async () => {
-    const response = await axios.options(`${API_URL}/api/campo_formulario/`);
+export const pegarOptionsCriteriovaliacao = async () => {
+    const response = await axios.options(`${API_URL}/api/criterio_avaliacao/`);
     return response.data;
 };

@@ -10,6 +10,7 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         many=True,
         source="campoformulario_set",
         read_only=True,
+        required=False,
     )
     evento = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -20,6 +21,7 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         many=True,
         source="criterioavaliacao_set",
         read_only=True,
+        required=False,
     )
 
     class Meta:
@@ -33,4 +35,5 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             "emite_certificado",
             "campos",
             "criterios",
+            "limite_vagas",
         ]

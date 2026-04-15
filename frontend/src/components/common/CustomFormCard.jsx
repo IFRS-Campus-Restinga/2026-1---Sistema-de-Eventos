@@ -16,6 +16,7 @@ export default function CustomFormCard({
     campos = [],
     add = false,
     addButtonText = '+ Adicionar Campos',
+    erros = {},
 }) {
     const [selecoes, setSelecoes] = useState({});
     const [entradasDatalist, setEntradasDatalist] = useState({});
@@ -30,119 +31,249 @@ export default function CustomFormCard({
     const [entradasDate, setEntradasDate] = useState({});
     const [instances, setInstances] = useState([0]);
 
+    function chamarAoAlterar(valor, id, obj) {
+        const chaveInst = String(id).split('-')[0];
+        const nomeCampo = obj?.name ?? obj?.titulo ?? `${obj?.tipo ?? 'campo'}`;
+        if (typeof obj?.onChange === 'function')
+            obj.onChange(valor, chaveInst, nomeCampo);
+    }
+
+    function obterErros(obj, id) {
+        const nome = obj?.name ?? obj?.titulo;
+        // checar erros em nível simples: erros[nome]
+        if (erros && erros[nome]) {
+            return Array.isArray(erros[nome]) ? erros[nome] : null;
+        }
+        // para grupos repetidos, verificar erros[campo][index]
+        try {
+            const chaveInst = String(id).split('-')[0];
+            const idx = Number(chaveInst);
+            if (!Number.isNaN(idx) && erros && typeof erros === 'object') {
+                if (erros && erros[idx] && erros[idx][nome])
+                    return erros[idx][nome];
+                // se erros for do formato { grupo: { idx: { campo: [...] } } }
+                if (
+                    erros &&
+                    Object.keys(erros).some((k) => !isNaN(Number(k)))
+                ) {
+                    if (erros[idx] && erros[idx][nome]) return erros[idx][nome];
+                }
+            }
+        } catch (e) {
+            return null;
+        }
+        return null;
+    }
+
     function identificarTipo(obj, id) {
         const tipo = obj?.tipo;
+        const fieldErrors = obterErros(obj, id);
+        const temErro = fieldErrors && fieldErrors.length > 0;
         if (tipo === 'text') {
             return (
-                <Form.Control
-                    type="text"
-                    placeholder={
-                        obj?.placeholder ||
-                        `Informe ${obj?.titulo || 'o campo'}`
-                    }
-                    value={entradasTexto[id] || ''}
-                    onChange={(e) =>
-                        setEntradasTexto((prev) => ({
-                            ...prev,
-                            [id]: e.target.value,
-                        }))
-                    }
-                    className="py-3"
-                    id={id}
-                />
+                <>
+                    <Form.Control
+                        type="text"
+                        placeholder={
+                            obj?.placeholder ||
+                            `Informe ${obj?.titulo || 'o campo'}`
+                        }
+                        value={
+                            id in entradasTexto
+                                ? entradasTexto[id]
+                                : obj?.preValue ?? ''
+                        }
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setEntradasTexto((prev) => ({
+                                ...prev,
+                                [id]: val,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                        className="py-3"
+                        isInvalid={temErro}
+                        id={id}
+                    />
+                    {temErro && (
+                        <Form.Control.Feedback type="invalid">
+                            {fieldErrors.join(', ')}
+                        </Form.Control.Feedback>
+                    )}
+                </>
             );
         } else if (tipo === 'textarea') {
             return (
-                <Form.Control
-                    as="textarea"
-                    rows={3}
-                    placeholder={
-                        obj?.placeholder ||
-                        `Informe ${obj?.titulo || 'o campo'}`
-                    }
-                    value={entradasTextArea[id] || ''}
-                    onChange={(e) =>
-                        setEntradasTextArea((prev) => ({
-                            ...prev,
-                            [id]: e.target.value,
-                        }))
-                    }
-                    className="py-3"
-                    id={id}
-                />
+                <>
+                    <Form.Control
+                        as="textarea"
+                        rows={3}
+                        placeholder={
+                            obj?.placeholder ||
+                            `Informe ${obj?.titulo || 'o campo'}`
+                        }
+                        value={
+                            id in entradasTextArea
+                                ? entradasTextArea[id]
+                                : obj?.preValue ?? ''
+                        }
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setEntradasTextArea((prev) => ({
+                                ...prev,
+                                [id]: val,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                        className="py-3"
+                        isInvalid={temErro}
+                        id={id}
+                    />
+                    {temErro && (
+                        <Form.Control.Feedback type="invalid">
+                            {fieldErrors.join(', ')}
+                        </Form.Control.Feedback>
+                    )}
+                </>
             );
         } else if (tipo === 'switch') {
             return (
-                <Form.Check
-                    type="switch"
-                    checked={!!switchValues[id]}
-                    onChange={(e) =>
-                        setSwitchValues((prev) => ({
-                            ...prev,
-                            [id]: e.target.checked,
-                        }))
-                    }
-                    id={id}
-                />
+                <>
+                    <Form.Check
+                        type="switch"
+                        checked={
+                            id in switchValues
+                                ? !!switchValues[id]
+                                : !!obj?.preValue
+                        }
+                        onChange={(e) => {
+                            const val = e.target.checked;
+                            setSwitchValues((prev) => ({
+                                ...prev,
+                                [id]: val,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                        id={id}
+                        isInvalid={temErro}
+                    />
+                    {temErro && (
+                        <div className="invalid-feedback d-block">
+                            {fieldErrors.join(', ')}
+                        </div>
+                    )}
+                </>
             );
         } else if (tipo === 'date') {
             return (
-                <Form.Control
-                    type="date"
-                    value={entradasDate[id] || ''}
-                    onChange={(e) =>
-                        setEntradasDate((prev) => ({
-                            ...prev,
-                            [id]: e.target.value,
-                        }))
-                    }
-                    className="py-3"
-                    id={id}
-                />
+                <>
+                    <Form.Control
+                        type="date"
+                        value={
+                            id in entradasDate
+                                ? entradasDate[id]
+                                : obj?.preValue ?? ''
+                        }
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setEntradasDate((prev) => ({
+                                ...prev,
+                                [id]: val,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                        className="py-3"
+                        isInvalid={temErro}
+                        id={id}
+                    />
+                    {temErro && (
+                        <Form.Control.Feedback type="invalid">
+                            {fieldErrors.join(', ')}
+                        </Form.Control.Feedback>
+                    )}
+                </>
             );
         } else if (tipo === 'number') {
             return (
-                <Form.Control
-                    type="number"
-                    max={obj?.max || 10000}
-                    min={obj?.min}
-                    placeholder={
-                        obj?.placeholder ||
-                        `Informe ${obj?.titulo || 'o campo'}`
-                    }
-                    value={entradasNumber[id] || ''}
-                    onChange={(e) =>
-                        setEntradasNumber((prev) => ({
-                            ...prev,
-                            [id]: e.target.value,
-                        }))
-                    }
-                    className="py-3"
-                    id={id}
-                />
+                <>
+                    <Form.Control
+                        type="number"
+                        max={obj?.max || 10000}
+                        min={obj?.min}
+                        placeholder={
+                            obj?.placeholder ||
+                            `Informe ${obj?.titulo || 'o campo'}`
+                        }
+                        value={
+                            id in entradasNumber
+                                ? entradasNumber[id]
+                                : obj?.preValue ?? ''
+                        }
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            const val = raw === '' ? '' : Number(raw);
+                            setEntradasNumber((prev) => ({
+                                ...prev,
+                                [id]: raw,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                        className="py-3"
+                        isInvalid={temErro}
+                        id={id}
+                    />
+                    {temErro && (
+                        <Form.Control.Feedback type="invalid">
+                            {fieldErrors.join(', ')}
+                        </Form.Control.Feedback>
+                    )}
+                </>
             );
         } else if (tipo === 'select') {
             return (
-                <Form.Select
-                    placeholder={
-                        obj?.placeholder ||
-                        `Selecione ${obj?.titulo || 'o campo'}`
-                    }
-                    aria-label="Default select example"
-                    defaultValue={'#'}
-                    className="py-3"
-                    id={id}
-                >
-                    {obj?.opcoes.map((opcao, i) => (
-                        <option
-                            key={i}
-                            value={opcao.value}
-                            disabled={opcao?.disabled}
+                <>
+                    <Form.Select
+                        placeholder={
+                            obj?.placeholder ||
+                            `Selecione ${obj?.titulo || 'o campo'}`
+                        }
+                        aria-label="Default select example"
+                        value={
+                            id in entradasTexto
+                                ? entradasTexto[id]
+                                : obj?.preValue ?? '#'
+                        }
+                        className="py-3"
+                        isInvalid={temErro}
+                        id={id}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setEntradasTexto((prev) => ({
+                                ...prev,
+                                [id]: val,
+                            }));
+                            chamarAoAlterar(val, id, obj);
+                        }}
+                    >
+                        {obj?.opcoes.map((opcao, i) => (
+                            <option
+                                key={i}
+                                value={opcao.value}
+                                disabled={opcao?.disabled}
+                            >
+                                {opcao.text}
+                            </option>
+                        ))}
+                    </Form.Select>
+                    {temErro && (
+                        <Form.Control.Feedback
+                            type="invalid"
+                            style={{ display: 'block' }}
                         >
-                            {opcao.text}
-                        </option>
-                    ))}
-                </Form.Select>
+                            {fieldErrors.join(', ')}
+                        </Form.Control.Feedback>
+                    )}
+                </>
             );
         } else if (tipo === 'button link') {
             return (
@@ -282,6 +413,11 @@ export default function CustomFormCard({
                                         )
                                     }
                                 />
+                                {temErro && (
+                                    <div className="invalid-feedback d-block">
+                                        {fieldErrors.join(', ')}
+                                    </div>
+                                )}
 
                                 {mostrarDatalist[key] &&
                                     (entradasDatalist[key]

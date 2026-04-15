@@ -15,7 +15,7 @@ import AdicionarEvento from './pages/AdicionarEvento';
 import ListarEnvento from './pages/ListarEvento';
 import SessionTokenCallback from './pages/SessionTokenCallback';
 import Teste from './pages/Teste';
-import AdicionarModalidade from './pages/AdicionarModalidade';
+import ModalidadeFormulario from './pages/ModalidadeFormulario';
 import DefinirCoordenadorEvento from './pages/DefinirCoordenadorEvento';
 
 function App() {
@@ -29,7 +29,7 @@ function App() {
         window.history.replaceState(
             {},
             document.title,
-            `${normalizedPathname}${search}${hash}`
+            `${normalizedPathname}${search}${hash}`,
         );
     }, []);
 
@@ -52,9 +52,9 @@ function App() {
                 <Route path="/session/token/" element={<SessionTokenCallback />} />
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
                 <Route path="/teste"  element={<Teste />} />
-                <Route path="/adicionarModalidade"  element={<AdicionarModalidade />} />
+                <Route path="/adicionarModalidade"  element={<ModalidadeFormulario />} />
                 <Route path="/atribuirCoordenador"  element={<DefinirCoordenadorEvento />} />
-                
+
             </Routes>
         </div>
     );

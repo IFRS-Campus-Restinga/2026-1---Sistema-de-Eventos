@@ -12,6 +12,9 @@ class ModalidadeListView(APIView):
     serializer_class = ModalidadeSerializer
     permission_classes = [AllowAny]
 
+    def get_serializer(self, *args, **kwargs):
+        return ModalidadeSerializer(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         modalidades = Modalidade.objects.all()
         serializer = ModalidadeSerializer(modalidades, many=True)
