@@ -5,7 +5,16 @@ import Col from 'react-bootstrap/Col';
 import { MdBook } from 'react-icons/md';
 import Form from 'react-bootstrap/Form';
 
-export default function LocalCard({ titulo, corCard = '#00A44B', Icon, nome, setNome, endereco, setEndereco }) {
+export default function LocalCard({
+    titulo,
+    corCard = '#00A44B',
+    Icon,
+    nome,
+    setNome,
+    endereco,
+    setEndereco,
+    erros,
+}) {
     return (
         <Card corBorda={corCard}>
             {/* Esse componente está dividido em 3 linhas (Rows) */}
@@ -50,12 +59,16 @@ export default function LocalCard({ titulo, corCard = '#00A44B', Icon, nome, set
                                 placeholder="Informe o nome do local"
                                 value={nome}
                                 onChange={(e) => setNome(e.target.value)}
+                                isInvalid={!!erros?.nome}
                                 className="border-0 py-3"
                                 style={{
                                     backgroundColor: '#eeeeee',
                                     borderRadius: '8px',
                                 }}
                             />
+                            <Form.Control.Feedback type="invalid">
+                                {erros?.nome}
+                            </Form.Control.Feedback>
                         </Form.Group>
                     </Col>
                 </Row>
@@ -74,12 +87,16 @@ export default function LocalCard({ titulo, corCard = '#00A44B', Icon, nome, set
                                 placeholder="Informe o endereço do local"
                                 value={endereco}
                                 onChange={(e) => setEndereco(e.target.value)}
+                                isInvalid={!!erros?.endereco}
                                 className="border-0 py-3"
                                 style={{
                                     backgroundColor: '#eeeeee',
                                     borderRadius: '8px',
                                 }}
                             />
+                            <Form.Control.Feedback type="invalid">
+                                {erros?.endereco}
+                            </Form.Control.Feedback>
                         </Form.Group>
                     </Col>
                 </Row>

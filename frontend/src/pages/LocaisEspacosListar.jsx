@@ -17,7 +17,7 @@ import {
 } from 'react-icons/md';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import { useLocais } from '../hooks/useLocais';
+import useLocais from '../hooks/useLocais';
 import Card from '../components/common/Card';
 import eArray from '../utils/eArray';
 
