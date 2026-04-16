@@ -28,7 +28,7 @@ class CriterioAvaliacao(Base):
         default=True,
     )
 
-    modalidade = models.ForeignKey(Modalidade, on_delete=models.RESTRICT)
+    modalidade = models.ForeignKey(Modalidade, on_delete=models.CASCADE)
 
     def clean(self):
         errors = {}

@@ -26,10 +26,16 @@ export async function pegarOptions(path) {
 
 function validarComSchema(schema, payload, method = 'POST') {
     const erros = {};
-    if (!schema || !schema.actions || !schema.actions[method]) {
+    const metodo = String(method || 'POST').toUpperCase();
+    const camposSchema =
+        schema?.actions?.[metodo] ||
+        schema?.actions?.POST ||
+        schema?.actions?.PUT ||
+        schema?.actions?.PATCH;
+
+    if (!camposSchema) {
         return { valido: true, erros: {} };
     }
-    const camposSchema = schema.actions[method];
 
     function adicionarErro(chave, mensagem) {
         if (!erros[chave]) erros[chave] = [];

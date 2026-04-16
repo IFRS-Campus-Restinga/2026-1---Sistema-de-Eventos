@@ -1,27 +1,42 @@
 import { Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import CustomFormCard from '../components/common/CustomFormCard';
+import CustomFormCard from '../components/custom-form-card/FormularioCustomizado';
 import NavBar from '../components/nav_bar/NavBar';
 import { LuPencil } from 'react-icons/lu';
 import { MdCheckCircle } from 'react-icons/md';
 import { MdArrowBack } from 'react-icons/md';
-import { useState } from 'react';
+import { MdDelete } from 'react-icons/md';
 import useFormularioDinamico from '../hooks/useFormularioDinamico';
 import { useModalidades } from '../hooks/useModalidades';
 import Alerta from '../components/common/Alerta';
 import { useTipoCampo } from '../hooks/useTipoCampo';
+import { pegarModalidade } from '../services/modalidadeService';
+import { pegarCampoFormulario } from '../services/campoFormularioService';
+import { pegarCriterioAvaliacao } from '../services/criterioAvaliacaoService';
 import eArray from '../utils/eArray';
 
 export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const modoEdicao = Boolean(id);
+
     const [titulo, setTitulo] = useState('');
     const [requerAvaliacao, setRequerAvaliacao] = useState(false);
     const [emiteCertificado, setEmiteCertificado] = useState(false);
     const [numeroVagas, setNumeroVagas] = useState(0);
-    const { submeterModalidade } = useModalidades();
+    const [carregandoEdicao, setCarregandoEdicao] = useState(false);
+    const [camposIniciais, setCamposIniciais] = useState([]);
+    const [criteriosIniciais, setCriteriosIniciais] = useState([]);
+    const {
+        submeterModalidade,
+        submeterAtualizacaoModalidade,
+        excluirModalidades,
+    } = useModalidades();
     const { tipoCampo } = useTipoCampo();
     const [erros, setErros] = useState({});
     const [alerta, setAlerta] = useState({
@@ -48,15 +63,82 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             reacao: (prev.reacao || 0) + 1,
         }));
 
+    useEffect(() => {
+        async function carregarDadosEdicao() {
+            if (!modoEdicao) return;
+
+            setCarregandoEdicao(true);
+            try {
+                const [modalidadeData, campoData, criterioData] =
+                    await Promise.all([
+                        pegarModalidade(id),
+                        pegarCampoFormulario(),
+                        pegarCriterioAvaliacao(),
+                    ]);
+
+                const campos = eArray(campoData)
+                    ? campoData
+                    : eArray(campoData?.results)
+                      ? campoData.results
+                      : [];
+
+                const criterios = eArray(criterioData)
+                    ? criterioData
+                    : eArray(criterioData?.results)
+                      ? criterioData.results
+                      : [];
+
+                setTitulo(modalidadeData?.nome || '');
+                setRequerAvaliacao(Boolean(modalidadeData?.requer_avaliacao));
+                setEmiteCertificado(Boolean(modalidadeData?.emite_certificado));
+                setNumeroVagas(Number(modalidadeData?.limite_vagas || 0));
+                setCamposIniciais(
+                    campos.filter(
+                        (campo) => Number(campo.modalidade) === Number(id),
+                    ),
+                );
+                setCriteriosIniciais(
+                    criterios.filter(
+                        (criterio) =>
+                            Number(criterio.modalidade) === Number(id),
+                    ),
+                );
+            } catch {
+                mostrarAlerta('Não foi possível carregar a modalidade.');
+            } finally {
+                setCarregandoEdicao(false);
+            }
+        }
+
+        carregarDadosEdicao();
+    }, [id, modoEdicao]);
+
     async function handleSubmeterModalidade() {
+        if (carregandoEdicao) return;
+
         const campos = formularioCampos.paraArray();
         const criterios = formularioCriterios.paraArray();
 
-        const res = await submeterModalidade({
-            ...basePayload(),
-            campos,
-            criterios,
-        });
+        let res;
+
+        try {
+            if (modoEdicao) {
+                res = await submeterAtualizacaoModalidade(id, {
+                    ...basePayload(),
+                    campos,
+                    criterios,
+                });
+            } else {
+                res = await submeterModalidade({
+                    ...basePayload(),
+                    campos,
+                    criterios,
+                });
+            }
+        } catch {
+            mostrarAlerta('Não foi possível salvar a modalidade.');
+            return;
+        }
 
         if (!res.valido) {
             setErros(res.erros || {});
@@ -64,7 +146,30 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             return;
         }
 
-        mostrarAlerta('Modalidade criada com sucesso.', 'success');
+        mostrarAlerta(
+            modoEdicao
+                ? 'Modalidade atualizada com sucesso.'
+                : 'Modalidade criada com sucesso.',
+            'success',
+        );
+    }
+
+    async function handleExcluirModalidade() {
+        if (!modoEdicao) return;
+
+        const confirmou = window.confirm(
+            'Tem certeza que deseja excluir esta modalidade?',
+        );
+
+        if (!confirmou) return;
+
+        try {
+            await excluirModalidades(id);
+            mostrarAlerta('Modalidade excluída com sucesso.', 'success');
+            navigate('/adicionarModalidade');
+        } catch {
+            mostrarAlerta('Não foi possível excluir a modalidade.');
+        }
     }
 
     return (
@@ -112,10 +217,15 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                             />
                             <CustomFormCard
                                 add
+                                iniciarSemGrupo
                                 titulo="Campos Customizado"
                                 Icone={<LuPencil size={30} />}
                                 corTexto="#00A44B"
                                 erros={erros.campos || {}}
+                                gruposIniciais={camposIniciais}
+                                aoRemoverGrupo={(chaveInst) =>
+                                    formularioCampos.removerInstancia(chaveInst)
+                                }
                                 campos={[
                                     {
                                         name: 'nome',
@@ -175,6 +285,12 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                     Icone={<LuPencil size={30} />}
                                     corTexto="#00A44B"
                                     erros={erros.criterios || {}}
+                                    gruposIniciais={criteriosIniciais}
+                                    aoRemoverGrupo={(chaveInst) =>
+                                        formularioCriterios.removerInstancia(
+                                            chaveInst,
+                                        )
+                                    }
                                     campos={[
                                         {
                                             name: 'nome',
@@ -219,22 +335,32 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                             <Button
                                 variant="secondary"
                                 className="border-0 p-2"
+                                onClick={() => navigate(-1)}
                             >
                                 <MdArrowBack size={20} className="me-2" />
-                                <Link className="text-decoration-none text-white">
-                                    Voltar
-                                </Link>
+                                Voltar
                             </Button>
+                            {modoEdicao && (
+                                <Button
+                                    variant="danger"
+                                    className="p-2"
+                                    onClick={handleExcluirModalidade}
+                                >
+                                    <MdDelete size={20} className="me-2" />
+                                    Excluir Modalidade
+                                </Button>
+                            )}
                             <Button
                                 variant="success"
                                 style={{ background: '#00A44B' }}
                                 className="p-2"
                                 onClick={handleSubmeterModalidade}
+                                disabled={carregandoEdicao}
                             >
                                 <MdCheckCircle size={20} className="me-2" />
-                                <Link className="text-decoration-none text-white">
-                                    Criar Modalidade
-                                </Link>
+                                {modoEdicao
+                                    ? 'Atualizar Modalidade'
+                                    : 'Criar Modalidade'}
                             </Button>
                         </Col>
                     </Row>

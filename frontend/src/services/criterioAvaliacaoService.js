@@ -20,6 +20,37 @@ export const criarCriterioAvaliacao = async (dados) => {
     return response.data;
 };
 
+export const atualizarCriterioAvaliacao = async (id, dados) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.put(
+        `${API_URL}/api/criterio_avaliacao/${id}/`,
+        dados,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+
+    return response.data;
+};
+
+export const deletarCriterioAvaliacao = async (id) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.delete(
+        `${API_URL}/api/criterio_avaliacao/${id}/`,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+
+    return response.data;
+};
+
 export const pegarOptionsCriteriovaliacao = async () => {
     const response = await axios.options(`${API_URL}/api/criterio_avaliacao/`);
     return response.data;

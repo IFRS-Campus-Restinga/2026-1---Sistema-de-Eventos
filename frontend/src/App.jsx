@@ -53,6 +53,7 @@ function App() {
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
                 <Route path="/teste"  element={<Teste />} />
                 <Route path="/adicionarModalidade"  element={<ModalidadeFormulario />} />
+                <Route path="/editarModalidade/:id"  element={<ModalidadeFormulario />} />
                 <Route path="/atribuirCoordenador"  element={<DefinirCoordenadorEvento />} />
 
             </Routes>

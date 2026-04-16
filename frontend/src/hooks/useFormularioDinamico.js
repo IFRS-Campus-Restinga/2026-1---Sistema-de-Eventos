@@ -18,5 +18,13 @@ export default function useFormularioDinamico(inicial = {}) {
         [instancias],
     );
 
-    return { instancias, aoAlterar, paraArray };
+    const removerInstancia = useCallback((chaveInst) => {
+        setInstancias((prev) => {
+            const proximo = { ...prev };
+            delete proximo[chaveInst];
+            return proximo;
+        });
+    }, []);
+
+    return { instancias, aoAlterar, paraArray, removerInstancia };
 }

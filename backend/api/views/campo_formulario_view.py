@@ -12,6 +12,9 @@ class CampoFormularioListView(APIView):
     serializer_class = CampoFormularioSerializer
     permission_classes = [AllowAny]
 
+    def get_serializer(self, *args, **kwargs):
+        return CampoFormularioSerializer(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         campos = CampoFormulario.objects.all()
         serializer = CampoFormularioSerializer(campos, many=True)

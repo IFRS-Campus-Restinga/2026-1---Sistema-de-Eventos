@@ -12,6 +12,9 @@ class CriterioAvaliacaoListView(APIView):
     serializer_class = CriterioAvaliacaoSerializer
     permission_classes = [AllowAny]
 
+    def get_serializer(self, *args, **kwargs):
+        return CriterioAvaliacaoSerializer(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         criterios = CriterioAvaliacao.objects.all()
         serializer = CriterioAvaliacaoSerializer(criterios, many=True)

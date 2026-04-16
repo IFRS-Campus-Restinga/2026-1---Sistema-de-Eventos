@@ -8,12 +8,47 @@ export const pegarModalidades = async () => {
     return response.data;
 };
 
+export const pegarModalidade = async (id) => {
+    if (!id) return null;
+
+    const response = await axios.get(`${API_URL}/api/modalidades/${id}/`);
+    return response.data;
+};
+
 export const criarModalidade = async (dados) => {
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
     const response = await axios.post(`${API_URL}/api/modalidades/`, dados, {
         headers: { 'X-CSRFToken': csrfToken },
     });
+    return response.data;
+};
+
+export const atualizarModalidade = async (id, dados) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.put(
+        `${API_URL}/api/modalidades/${id}/`,
+        dados,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+
+    return response.data;
+};
+
+export const deletarModalidade = async (id) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.delete(`${API_URL}/api/modalidades/${id}/`, {
+        headers: { 'X-CSRFToken': csrfToken },
+    });
+
     return response.data;
 };
 

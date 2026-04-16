@@ -3,28 +3,96 @@ import eArray from '../utils/eArray';
 import {
     pegarModalidades,
     criarModalidade,
+    atualizarModalidade,
+    deletarModalidade,
     validarModalidade,
     validarCampoFormulario,
     validarCriterioAvaliacao,
 } from '../services/modalidadeService';
-import { useCampoFormulario } from './useCampoFormulario';
-import { useCriterioAvaliacao } from './useCriterioAvalicao';
+import {
+    criarCampoFormulario,
+    atualizarCampoFormulario,
+    deletarCampoFormulario,
+    pegarCampoFormulario,
+} from '../services/campoFormularioService';
+import {
+    criarCriterioAvaliacao,
+    atualizarCriterioAvaliacao,
+    deletarCriterioAvaliacao,
+    pegarCriterioAvaliacao,
+} from '../services/criterioAvaliacaoService';
+
+const paraLista = (data) =>
+    eArray(data) ? data : eArray(data?.results) ? data.results : [];
+
+const removerErrosDeModalidade = (errosEntrada = {}) => {
+    const errosFiltrados = { ...errosEntrada };
+    delete errosFiltrados.modalidade;
+    delete errosFiltrados.modalidade_id;
+    return errosFiltrados;
+};
+
+const validarLista = async (lista, validador) => {
+    const errosPorIndice = {};
+
+    for (let i = 0; i < lista.length; i++) {
+        const resultado = await validador(lista[i]);
+        if (resultado.valido) continue;
+
+        const errosLimpos = removerErrosDeModalidade(resultado.erros || {});
+        if (Object.keys(errosLimpos).length > 0) {
+            errosPorIndice[i] = errosLimpos;
+        }
+    }
+
+    return errosPorIndice;
+};
+
+const limparCamposGerenciados = (item = {}) => {
+    const { id: _ID, modalidade: _MODALIDADE, ...restante } = item;
+    return restante;
+};
+
+const filtrarPorModalidade = (lista, modalidadeId) =>
+    lista.filter((item) => Number(item.modalidade) === Number(modalidadeId));
+
+const sincronizarListaRelacionada = async ({
+    existentes = [],
+    recebidos = [],
+    modalidadeId,
+    criar,
+    atualizar,
+    deletar,
+}) => {
+    const totalComum = Math.min(existentes.length, recebidos.length);
+
+    for (let i = 0; i < totalComum; i++) {
+        await atualizar(existentes[i].id, {
+            ...limparCamposGerenciados(recebidos[i]),
+            modalidade: modalidadeId,
+        });
+    }
+
+    for (let i = totalComum; i < recebidos.length; i++) {
+        await criar({
+            ...limparCamposGerenciados(recebidos[i]),
+            modalidade: modalidadeId,
+        });
+    }
+
+    for (let i = totalComum; i < existentes.length; i++) {
+        await deletar(existentes[i].id);
+    }
+};
 
 export const useModalidades = () => {
     const [modalidades, setModalidades] = useState([]);
-    const { criarCampoFormularios } = useCampoFormulario();
-    const { criarCriteriosAvaliacao } = useCriterioAvaliacao();
 
     useEffect(() => {
         async function buscarModalidades() {
             try {
                 const data = await pegarModalidades();
-                const listaModalidades = eArray(data)
-                    ? data
-                    : eArray(data?.results)
-                      ? data.results
-                      : [];
-                setModalidades(listaModalidades);
+                setModalidades(paraLista(data));
             } catch (erro) {
                 console.error('erro', erro);
                 setModalidades([]);
@@ -42,35 +110,23 @@ export const useModalidades = () => {
             const createdModalidade = await criarModalidade(payload);
             setModalidades((prev) => [createdModalidade, ...prev]);
 
-            // Cria cada campo vinculando à modalidade criada
-            if (eArray(campos) && campos.length) {
-                for (const campo of campos) {
-                    try {
-                        const campoPayload = {
-                            ...campo,
-                            modalidade: createdModalidade.id,
-                        };
-                        await criarCampoFormularios(campoPayload);
-                    } catch (errCampo) {
-                        console.error('Erro ao criar campo:', errCampo);
-                    }
-                }
-            }
+            await Promise.allSettled(
+                campos.map((campo) =>
+                    criarCampoFormulario({
+                        ...campo,
+                        modalidade: createdModalidade.id,
+                    }),
+                ),
+            );
 
-            // Cria cada criterio vinculando à modalidade criada
-            if (eArray(criterios) && criterios.length) {
-                for (const criterio of criterios) {
-                    try {
-                        const criterioPayload = {
-                            ...criterio,
-                            modalidade: createdModalidade.id,
-                        };
-                        await criarCriteriosAvaliacao(criterioPayload);
-                    } catch (errCriterio) {
-                        console.error('Erro ao criar criterio:', errCriterio);
-                    }
-                }
-            }
+            await Promise.allSettled(
+                criterios.map((criterio) =>
+                    criarCriterioAvaliacao({
+                        ...criterio,
+                        modalidade: createdModalidade.id,
+                    }),
+                ),
+            );
 
             return createdModalidade;
         } catch (erro) {
@@ -79,49 +135,156 @@ export const useModalidades = () => {
         }
     };
 
-    const submeterModalidade = async (payload) => {
+    const sincronizarRelacionadosModalidade = async (
+        modalidadeId,
+        campos = [],
+        criterios = [],
+    ) => {
+        const [todosCampos, todosCriterios] = await Promise.all([
+            pegarCampoFormulario(),
+            pegarCriterioAvaliacao(),
+        ]);
+
+        const camposAtuais = filtrarPorModalidade(
+            paraLista(todosCampos),
+            modalidadeId,
+        );
+        const criteriosAtuais = filtrarPorModalidade(
+            paraLista(todosCriterios),
+            modalidadeId,
+        );
+
+        await sincronizarListaRelacionada({
+            existentes: camposAtuais,
+            recebidos: campos,
+            modalidadeId,
+            criar: criarCampoFormulario,
+            atualizar: atualizarCampoFormulario,
+            deletar: deletarCampoFormulario,
+        });
+
+        await sincronizarListaRelacionada({
+            existentes: criteriosAtuais,
+            recebidos: criterios,
+            modalidadeId,
+            criar: criarCriterioAvaliacao,
+            atualizar: atualizarCriterioAvaliacao,
+            deletar: deletarCriterioAvaliacao,
+        });
+    };
+
+    const atualizarModalidades = async (id, dados) => {
+        try {
+            const { campos = [], criterios = [], ...payload } = dados || {};
+
+            const modalidadeAtualizada = await atualizarModalidade(id, payload);
+
+            await sincronizarRelacionadosModalidade(
+                Number(id),
+                campos,
+                payload.requer_avaliacao ? criterios : [],
+            );
+
+            setModalidades((prev) =>
+                prev.map((modalidade) =>
+                    modalidade.id === Number(id)
+                        ? modalidadeAtualizada
+                        : modalidade,
+                ),
+            );
+
+            return modalidadeAtualizada;
+        } catch (erro) {
+            console.log(erro);
+            throw erro;
+        }
+    };
+
+    const excluirModalidades = async (id) => {
+        try {
+            await deletarModalidade(id);
+            setModalidades((prev) =>
+                prev.filter((modalidade) => modalidade.id !== Number(id)),
+            );
+            return true;
+        } catch (erro) {
+            console.log(erro);
+            throw erro;
+        }
+    };
+
+    const validarPayloadModalidade = async (payload, method = 'POST') => {
         // payload: { ...modalidadeFields, campos: [], criterios: [] }
         const { campos = [], criterios = [], ...base } = payload || {};
+        const criteriosConsiderados = base.requer_avaliacao ? criterios : [];
 
-        // Valida modalidade
-        const resultado = await validarModalidade(base);
-        if (!resultado.valido) {
-            return { valido: false, erros: resultado.erros || {} };
-        }
-
-        // Valida campos filhos
+        // Valida tudo e agrega erros para exibir no formulario completo
         const erros = {};
-        let temErros = false;
 
-        if (eArray(campos) && campos.length) {
-            for (let i = 0; i < campos.length; i++) {
-                const res = await validarCampoFormulario(campos[i]);
-                if (!res.valido) {
-                    temErros = true;
-                    erros.campos = erros.campos || {};
-                    erros.campos[i] = res.erros || {};
-                }
-            }
+        const resultado = await validarModalidade(base, method);
+        if (!resultado.valido) {
+            Object.assign(erros, resultado.erros || {});
         }
 
-        if (eArray(criterios) && criterios.length) {
-            for (let i = 0; i < criterios.length; i++) {
-                const res = await validarCriterioAvaliacao(criterios[i]);
-                if (!res.valido) {
-                    temErros = true;
-                    erros.criterios = erros.criterios || {};
-                    erros.criterios[i] = res.erros || {};
-                }
-            }
+        const errosCampos = await validarLista(campos, validarCampoFormulario);
+        if (Object.keys(errosCampos).length > 0) {
+            erros.campos = errosCampos;
         }
 
-        if (temErros) {
+        const errosCriterios = await validarLista(
+            criteriosConsiderados,
+            validarCriterioAvaliacao,
+        );
+        if (Object.keys(errosCriterios).length > 0) {
+            erros.criterios = errosCriterios;
+        }
+
+        if (Object.keys(erros).length > 0) {
             return { valido: false, erros };
         }
 
+        return {
+            valido: true,
+            payloadNormalizado: {
+                ...base,
+                campos,
+                criterios: criteriosConsiderados,
+            },
+        };
+    };
+
+    const submeterModalidade = async (payload) => {
+        const validacao = await validarPayloadModalidade(payload, 'POST');
+
+        if (!validacao.valido) {
+            return validacao;
+        }
+
         // Se tudo válido, cria modalidade e itens
-        const created = await criarModalidades({ ...base, campos, criterios });
+        const created = await criarModalidades(validacao.payloadNormalizado);
         return { valido: true, modalidade: created };
     };
-    return { modalidades: modalidades, criarModalidades, submeterModalidade };
+
+    const submeterAtualizacaoModalidade = async (id, payload) => {
+        const validacao = await validarPayloadModalidade(payload, 'PUT');
+
+        if (!validacao.valido) {
+            return validacao;
+        }
+
+        const updated = await atualizarModalidades(
+            id,
+            validacao.payloadNormalizado,
+        );
+        return { valido: true, modalidade: updated };
+    };
+
+    return {
+        modalidades,
+        criarModalidades,
+        atualizarModalidades,
+        excluirModalidades,
+        submeterModalidade,
+        submeterAtualizacaoModalidade,
+    };
 };

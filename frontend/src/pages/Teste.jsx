@@ -3,7 +3,7 @@ import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import CustomFormCard from '../components/common/CustomFormCard';
+import CustomFormCard from '../components/custom-form-card/FormularioCustomizado';
 import { criarEvento } from '../services/eventoService';
 import { useState } from 'react';
 import { MdEdit } from 'react-icons/md';

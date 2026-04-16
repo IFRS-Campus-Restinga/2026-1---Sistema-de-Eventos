@@ -43,7 +43,7 @@ class Modalidade(Base):
     def clean(self):
         errors = {}
 
-        if len(self.nome.strip()) <= 3:
+        if len(self.nome.strip()) < 3:
             errors["nome"] = _("O nome deve ter pelo menos 3 caracteres.")
 
         if (
