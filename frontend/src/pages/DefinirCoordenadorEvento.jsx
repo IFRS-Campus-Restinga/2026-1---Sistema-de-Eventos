@@ -7,13 +7,15 @@ import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Alerta from '../components/common/Alerta';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { useEventos } from '../hooks/useEventos';
 import { useUsers } from '../hooks/useUsers';
 import { useCoordenadorEvento } from '../hooks/useCoordenadorEvento';
 
-export default function DefinirCoordenadorEvento({ campus = 'Campus Restinga' }) {
+export default function DefinirCoordenadorEvento({
+    campus = 'Campus Restinga',
+}) {
     const [searchParams] = useSearchParams();
     const eventoIdDaUrl = searchParams.get('eventoId') || '';
 
@@ -29,6 +31,8 @@ export default function DefinirCoordenadorEvento({ campus = 'Campus Restinga' })
     const eventoSelecionado = eventos.find(
         (evento) => String(evento.id) === String(selectedEventoId),
     );
+
+    const navegate = useNavigate();
 
     useEffect(() => {
         if (eventoIdDaUrl) {
@@ -59,10 +63,11 @@ export default function DefinirCoordenadorEvento({ campus = 'Campus Restinga' })
                             <h4 className="mb-3 text-success fw-bold">
                                 Evento:{' '}
                                 {eventoSelecionado?.nome ||
-                                (loadingEventos ? 'Carregando evento...' : 'Evento não encontrado')}
+                                    (loadingEventos
+                                        ? 'Carregando evento...'
+                                        : 'Evento não encontrado')}
                             </h4>
                             <Form>
-
                                 <Form.Group className="mb-3">
                                     <Form.Label className="fw-bold">
                                         Selecionar Coordenador
@@ -108,14 +113,10 @@ export default function DefinirCoordenadorEvento({ campus = 'Campus Restinga' })
 
                                     <Button
                                         variant="secondary"
-                                        className="fw-bold"
+                                        className="fw-bold text-white text-decoration-none"
+                                        onClick={() => navegate(-1)}
                                     >
-                                        <Link
-                                            to="/"
-                                            className="text-white text-decoration-none"
-                                        >
-                                            Voltar
-                                        </Link>
+                                        Voltar
                                     </Button>
                                 </div>
                             </Form>

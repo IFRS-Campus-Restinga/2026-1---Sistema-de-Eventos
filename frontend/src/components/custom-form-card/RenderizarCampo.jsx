@@ -177,15 +177,12 @@ export default function RenderizarCampo({
         return (
             <Button
                 variant={campo?.variant}
-                className="border-0 mt-2"
+                className="border-0 mt-2 text-decoration-none text-white"
                 style={{ background: campo?.background }}
+                as={Link}
+                to={campo?.to}
             >
-                <Link
-                    to={campo?.to}
-                    className="text-decoration-none text-white"
-                >
-                    {campo?.text}
-                </Link>
+                {campo?.text}
             </Button>
         );
     }

@@ -172,13 +172,19 @@ export default function EventosListar() {
                                                     <Button
                                                         variant="success"
                                                         size="sm"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/atribuirCoordenador?eventoId=${evento.id}`,
-                                                            )
-                                                        }
+                                                        as={Link}
+                                                        to={`/dashboard`}
                                                     >
-                                                        Designar Coordenador de Evento
+                                                        Dashboard
+                                                    </Button>
+                                                    <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        as={Link}
+                                                        to={`/atribuirCoordenador?eventoId=${evento.id}`}
+                                                    >
+                                                        Designar Coordenador de
+                                                        Evento
                                                     </Button>
 
                                                     <Button

@@ -10,6 +10,7 @@ import {
 import SecaoFormulario from './secaoFormulario';
 import { BsTrash } from 'react-icons/bs';
 import eArray from '../../utils/eArray';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdicionarEvento({
     nome,
@@ -27,6 +28,7 @@ export default function AdicionarEvento({
     opcoes,
     handleSalvar,
 }) {
+    const navigate = useNavigate();
     return (
         <div>
             {/* Navbar fictícia do IFRS aqui */}
@@ -390,7 +392,11 @@ export default function AdicionarEvento({
 
                     {/* BOTÕES DE FINALIZAÇÃO */}
                     <div className="d-flex justify-content-end gap-3 mt-5 mb-5">
-                        <Button variant="secondary" className="px-4">
+                        <Button
+                            variant="secondary"
+                            className="px-4"
+                            onClick={() => navigate(-1)}
+                        >
                             Voltar
                         </Button>
                         <input

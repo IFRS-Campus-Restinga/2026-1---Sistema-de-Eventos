@@ -12,7 +12,7 @@ import { AiFillBook } from 'react-icons/ai';
 import { LuBookCopy } from 'react-icons/lu';
 import { GiPaperClip } from 'react-icons/gi';
 import { Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MdCheckCircle } from 'react-icons/md';
 import { MdArrowBack } from 'react-icons/md';
 
@@ -24,41 +24,7 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
     const [setor, setSetor] = useState('');
     const [tema, setTema] = useState('');
 
-    const handleSalvar = async () => {
-        if (
-            !nome ||
-            !descricao ||
-            !status ||
-            !carga_horaria ||
-            !setor ||
-            !tema
-        ) {
-            alert('Por favor, preenche todos os campos');
-            return;
-        }
-
-        try {
-            const novoEvento = {
-                nome,
-                descricao,
-                status,
-                carga_horaria,
-                setor,
-                tema,
-            };
-            await criarEvento(novoEvento);
-            alert('Local criado com sucesso!');
-            setNome('');
-            setDescricao('');
-            setCargaHoraria('');
-            setStatus('');
-            setTema('');
-            setSetor('');
-        } catch (erro) {
-            console.error('Erro ao criar Evento:', erro);
-            alert('Erro ao criar evento. Por favor, tente novamente.');
-        }
-    };
+    const navegate = useNavigate();
 
     return (
         <>
@@ -205,21 +171,20 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
                             <Button
                                 variant="secondary"
                                 className="border-0 p-2"
+                                onClick={() => navegate(-1)}
                             >
                                 <MdArrowBack size={20} className="me-2" />
-                                <Link className="text-decoration-none text-white">
-                                    Voltar
-                                </Link>
+                                Voltar
                             </Button>
                             <Button
                                 variant="success"
                                 style={{ background: '#00A44B' }}
                                 className="p-2"
+                                as={Link}
+                                to="#"
                             >
                                 <MdCheckCircle size={20} className="me-2" />
-                                <Link className="text-decoration-none text-white">
-                                    Criar Evento
-                                </Link>
+                                Criar Evento
                             </Button>
                         </Col>
                     </Row>
