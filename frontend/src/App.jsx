@@ -9,6 +9,7 @@ import PermissoesPessoas from './pages/PermissoesPessoas';
 import LocaisEspacosListar from './pages/LocaisEspacosListar';
 import LocalForm from './pages/LocalForm';
 import LocaisListar from './pages/LocaisListar';
+import EspacoForm from './pages/EspacoForm';
 import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
 import AdicionarEvento from './pages/AdicionarEvento';
@@ -43,6 +44,8 @@ function App() {
                 <Route path="/adicionarLocal" element={<LocalForm />} />
                 <Route path="/listarLocaisEspacos" element={<LocaisEspacosListar />} />
                 <Route path="/editarLocal/:id" element={<LocalForm />} />
+                <Route path="/adicionarEspaco" element={<EspacoForm />} />
+                <Route path="/editarEspaco/:id" element={<EspacoForm />} />
                 <Route path="/permissoesPessoas" element={<PermissoesPessoas />} />
                 <Route path="/adicionarEvento" element={<AdicionarEvento/>}/>
                 <Route path="/ListarEventos" element={<ListarEnvento />} />

@@ -6,12 +6,12 @@ import {
     Button,
     ListGroup,
     Dropdown,
+    Table,
 } from 'react-bootstrap';
 import {
     MdEdit,
     MdDelete,
     MdArrowBack,
-    MdLocationOn,
     MdBook,
     MdAddCircle,
 } from 'react-icons/md';
@@ -20,18 +20,27 @@ import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import eArray from '../utils/eArray';
 import useLocais from '../hooks/useLocais';
-import { useEspacos } from '../hooks/useEspacos';
+import useEspacos from '../hooks/useEspacos';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 export default function LocaisEspacosListar() {
     const { locais } = useLocais();
-    const { espacos, idLocalSelecionado, setIdLocalSelecionado } = useEspacos();
+    const {
+        espacos,
+        idLocalSelecionado,
+        setIdLocalSelecionado,
+        loading,
+        error,
+    } = useEspacos();
 
     //const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
     const listaLocais = eArray(locais) ? locais : [];
     const localSelecionado = listaLocais.find(
         (local) => String(local.id) === String(idLocalSelecionado),
     ); //pega o objeto local selecionado a partir do id
-    const espacosExemplo = ['sala 401', 'sala 402', 'sala 403', 'auditório']; // Exemplo de espaços, substituir pelos dados reais do local selecionado
+    //const espacosExemplo = ['sala 401', 'sala 402', 'sala 403', 'auditório']; // Exemplo de espaços, substituir pelos dados reais do local selecionado
+
+    const navigate = useNavigate();
 
     const handleSelect = (id) => {
         console.log('ID selecionado, captura do handleSelect:', id); // Para você debugar no console
@@ -84,6 +93,7 @@ export default function LocaisEspacosListar() {
                             <MdAddCircle size={20} /> Adicionar Local
                         </Button>
                     </div>
+                    {loading && <p className="text-muted">Carregando...</p>}
                     {localSelecionado && (
                         <Card corBorda="#00A44B">
                             <Container fluid className="mb-5">
@@ -114,9 +124,9 @@ export default function LocaisEspacosListar() {
                                         {localSelecionado.nome}
                                     </h2>
                                 </Row>
-                                {/* EXCLUIR: Exemplo de lista de espaços */}
+                                {/*
                                 <ListGroup variant="flush" className="mb-3">
-                                    {espacosExemplo.map((espaco, index) => (
+                                    {espacos.map((espaco, index) => (
                                         <ListGroup.Item
                                             key={espaco.id}
                                             className="d-flex justify-content-between align-items-center mb-2 border rounded shadow-sm py-3"
@@ -126,7 +136,7 @@ export default function LocaisEspacosListar() {
                                                 <span className="me-2">
                                                     {index + 1}.
                                                 </span>
-                                                {espaco}
+                                                {espaco.nome}
                                             </div>
                                             <div className="d-flex gap-3">
                                                 <MdEdit
@@ -159,68 +169,122 @@ export default function LocaisEspacosListar() {
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>
-                                {/* Lista de Espaços */}{' '}
-                                {/*Utilizar o atributo que armazena a relaçao com espacos*/}
-                                <ListGroup variant="flush" className="mb-3">
-                                    {localSelecionado.espacos?.map(
-                                        (espaco, index) => (
-                                            <ListGroup.Item
-                                                key={espaco.id}
-                                                className="d-flex justify-content-between align-items-center mb-2 border rounded shadow-sm py-3"
+                                */}
+
+                                <Table
+                                    striped
+                                    bordered
+                                    hover
+                                    responsive
+                                    className="shadow-sm"
+                                    style={{ backgroundColor: '#fff' }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th
                                                 style={{
-                                                    backgroundColor: '#fff',
+                                                    width: '60px',
+                                                    color: '#016B3F',
+                                                }}
+                                            ></th>
+                                            <th style={{ color: '#016B3F' }}>
+                                                Nome do Espaço
+                                            </th>
+                                            <th style={{ color: '#016B3F' }}>
+                                                Capacidade
+                                            </th>
+                                            <th style={{ color: '#016B3F' }}>
+                                                Prédio / Bloco
+                                            </th>
+                                            <th
+                                                style={{
+                                                    width: '120px',
+                                                    textAlign: 'center',
+                                                    color: '#016B3F',
                                                 }}
                                             >
-                                                <div className="fs-5 text-muted">
-                                                    <span className="me-2">
-                                                        {index + 1}.
-                                                    </span>
+                                                Ações
+                                            </th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {espacos.map((espaco, index) => (
+                                            <tr key={espaco.id}>
+                                                <td>{index + 1}</td>
+
+                                                <td className="text-muted fs-5">
                                                     {espaco.nome}
-                                                </div>
-                                                <div className="d-flex gap-3">
-                                                    <MdEdit
-                                                        size={22}
-                                                        className="text-secondary cursor-pointer"
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                        }}
-                                                        onClick={() =>
-                                                            console.log(
-                                                                'Editar',
-                                                                espaco.id,
-                                                            )
-                                                        }
-                                                    />
-                                                    <MdDelete
-                                                        size={22}
-                                                        className="text-danger cursor-pointer"
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                        }}
-                                                        onClick={() =>
-                                                            console.log(
-                                                                'Deletar',
-                                                                espaco.id,
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-                                            </ListGroup.Item>
-                                        ),
-                                    )}
-                                </ListGroup>
-                                {/* Botão Adicionar Espaço */}{' '}
-                                {/*implementar rota para criar espaço*/}
+                                                </td>
+
+                                                <td className="text-muted fs-5">
+                                                    {espaco.capacidade}
+                                                </td>
+
+                                                <td className="text-muted fs-5">
+                                                    {espaco.predio_bloco}
+                                                </td>
+
+                                                <td>
+                                                    <div className="d-flex justify-content-center gap-3">
+                                                        <MdEdit
+                                                            size={22}
+                                                            className="text-secondary"
+                                                            style={{
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            onClick={() => {
+                                                                navigate(
+                                                                    `/editarEspaco/${espaco.id}`,
+                                                                    {
+                                                                        state: {
+                                                                            localId:
+                                                                                localSelecionado.id,
+                                                                        },
+                                                                    },
+                                                                );
+                                                                console.log(
+                                                                    'Editar',
+                                                                    espaco.id,
+                                                                );
+                                                            }}
+                                                        />
+
+                                                        <MdDelete
+                                                            size={22}
+                                                            className="text-danger"
+                                                            style={{
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            onClick={() =>
+                                                                console.log(
+                                                                    'Deletar',
+                                                                    espaco.id,
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+
                                 <Button
                                     variant="primary"
                                     size="sm"
                                     className="d-flex align-items-center gap-1 mt-2 px-3 py-2 shadow-sm"
-                                    onClick={() =>
+                                    onClick={() => {
                                         console.log(
                                             'Adicionar espaço ao local',
                                             localSelecionado.id,
-                                        )
-                                    }
+                                        );
+                                        navigate('/adicionarEspaco', {
+                                            state: {
+                                                localId: localSelecionado.id,
+                                            },
+                                        });
+                                    }}
                                 >
                                     <MdAddCircle size={18} /> Adicionar Espaço
                                 </Button>

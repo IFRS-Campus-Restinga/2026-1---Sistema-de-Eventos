@@ -2,9 +2,13 @@ import { API_URL } from '../config';
 import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
-export const pegarEspacos = async (localId) => {
+export const pegarEspacos = async (localId = Null) => {
     try {
-        const response = await axios.get(`${API_URL}/api/espacos/`);
+        let url = `${API_URL}/api/espacos/`;
+        if (localId) {
+            url += `?local=${localId}`;
+        }
+        const response = await axios.get(url);
         return response.data;
     } catch (erro) {
         console.error('Status do Erro:', erro.response?.status);
@@ -58,6 +62,22 @@ export const atualizarEspaco = async (id, dados) => {
             },
         );
 
+        return response.data;
+    } catch (erro) {
+        console.error('Status do Erro:', erro.response?.status);
+        console.error('Mensagem do Django:', erro.response?.data);
+        throw erro;
+    }
+};
+
+export const excluirEspaco = async (id) => {
+    if (!id) return null;
+    try {
+        const csrfData = await pegarTokenCsrf();
+        const csrfToken = csrfData?.csrfToken || '';
+        const response = await axios.delete(`${API_URL}/api/espacos/${id}/`, {
+            headers: { 'X-CSRFToken': csrfToken },
+        });
         return response.data;
     } catch (erro) {
         console.error('Status do Erro:', erro.response?.status);
