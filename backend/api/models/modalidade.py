@@ -32,6 +32,7 @@ class Modalidade(Base):
         verbose_name=_("Número de vagas"),
         help_text=_("Informe se há um limite de vagas"),
         validators=[MinValueValidator(0)],
+        default=0,
     )
 
     ativo = models.BooleanField(

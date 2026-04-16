@@ -6,7 +6,9 @@ from django.contrib.auth.models import User
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from ..serializers.evento_serializer import EventoSerializer
 from ..models.evento import Evento
-from api.permissions import IsAdmin, PodeGerenciarEvento
+
+# from api.permissions import IsAdmin, PodeGerenciarEvento
+from .perms_generic_view import PodeCoordenarEvento, PodeOrganizarEvento
 
 
 class EventoListView(APIView):
@@ -26,7 +28,7 @@ class EventoListView(APIView):
 
 
 class EventoDetailView(APIView):
-    permission_classes = [PodeGerenciarEvento]
+    permission_classes = [PodeCoordenarEvento]
 
     def get(self, request, pk):
         try:
@@ -42,7 +44,7 @@ class EventoDetailView(APIView):
 
 
 class EventoUpdateView(APIView):
-    permission_classes = [PodeGerenciarEvento]
+    permission_classes = [PodeCoordenarEvento]
 
     def put(self, request, pk):
         try:
@@ -62,7 +64,7 @@ class EventoUpdateView(APIView):
 
 
 class EventoDeleteView(APIView):
-    permission_classes = [PodeGerenciarEvento]
+    permission_classes = [PodeCoordenarEvento]
 
     def delete(self, request, pk):
         try:
@@ -82,15 +84,18 @@ class EventoDeleteView(APIView):
 
 
 class EventoCoordenadorView(APIView):
-    permission_classes = [IsAdmin, PodeGerenciarEvento]
+    permission_classes = [PodeCoordenarEvento]
 
     def patch(self, request, pk):
+
         try:
             evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
         except Evento.DoesNotExist:
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         user_id = request.data.get("user_id")
+
         if not user_id:
             return Response({"erro": "Campo user_id é obrigatório"}, status=400)
 
@@ -117,6 +122,51 @@ class EventoCoordenadorView(APIView):
                 "coordenador": {
                     "id": novo_coordenador.id,
                     "username": novo_coordenador.username,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class EventoOrganizadorView(APIView):
+    permission_classes = [PodeCoordenarEvento, PodeOrganizarEvento]
+
+    def patch(self, request, pk):
+
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        user_id = request.data.get("user_id")
+
+        if not user_id:
+            return Response({"erro": "Campo user_id é obrigatório"}, status=400)
+
+        try:
+            novo_organizador = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        # Regra simples: manter apenas um coordenador por evento.
+        atuais = get_users_with_perms(
+            evento,
+            only_with_perms_in=["coordenar_evento"],
+            with_group_users=False,
+        )
+        for user in atuais:
+            remove_perm("api.coordenar_evento", user, evento)
+
+        assign_perm("api.coordenar_evento", novo_organizador, evento)
+
+        return Response(
+            {
+                "msg": "Organizador definido com sucesso",
+                "evento_id": evento.id,
+                "organizador": {
+                    "id": novo_organizador.id,
+                    "username": novo_organizador.username,
                 },
             },
             status=status.HTTP_200_OK,

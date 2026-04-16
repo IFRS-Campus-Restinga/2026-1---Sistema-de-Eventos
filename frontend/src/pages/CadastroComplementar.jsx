@@ -19,12 +19,12 @@ import { useCadastroComplementar } from '../hooks/useCadastroComplementar';
 import Alerta from '../components/common/Alerta.jsx';
 
 // Mock para Informações do Usuário vindo do Hub de Sistemas
-const usuarioHub = {
-    id: '125a2577-e89b-12d3-a456-426614174000',
-    nome: 'teste4',
-    email: 'teste4.aluno@ifrs.edu.br',
-    cpf: '452.452.897-00',
-};
+    const usuarioHub = {
+        id: '125a2577-e89b-12d3-a456-426614174000',
+        nome: 'teste4',
+        email: 'teste4.aluno@ifrs.edu.br',
+        cpf: '452.452.897-00',
+    };
 
 export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
     const { executarSalvamento, carregando, opcoes, notificacao } =

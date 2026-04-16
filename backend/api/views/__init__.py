@@ -11,3 +11,4 @@ from .perms_view import *
 from .tipo_campo_view import *
 from .user_view import *
 from .visao_geral_view import *
+from .perms_generic_view import *
