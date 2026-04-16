@@ -13,7 +13,15 @@ class EspacoListView(APIView):
     permission_classes = [AllowAny]  # modificar! permissão para admin
 
     def get(self, request, *args, **kwargs):
-        espacos = Espaco.objects.all()
+        local_id = request.query_params.get("local")
+
+        espacos = Espaco.objects.filter(
+            ativo=True
+        )  # por causa da deleção lógica, para listar apenas os espaços ativos
+
+        if local_id and local_id.isdigit():
+            espacos = espacos.filter(local_id=int(local_id))
+
         serializer = EspacoSerializer(espacos, many=True)
         return Response(serializer.data)
 
@@ -58,9 +66,13 @@ class EspacoDetailView(APIView):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
+        # deleção lógica
         espaco = self.get_object(pk)
+
         if not espaco:
             return Response({"erro": "Espaço não encontrado"}, status=404)
 
-        espaco.delete()
-        return Response({"msg": "Deletado com sucesso"}, status=204)
+        espaco.ativo = False
+        espaco.save()
+
+        return Response({"message": "Removido com sucesso"}, status=200)

@@ -17,13 +17,16 @@ import {
 } from 'react-icons/md';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import useLocais from '../hooks/useLocais';
 import Card from '../components/common/Card';
 import eArray from '../utils/eArray';
+import useLocais from '../hooks/useLocais';
+import { useEspacos } from '../hooks/useEspacos';
 
 export default function LocaisEspacosListar() {
     const { locais } = useLocais();
-    const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
+    const { espacos, idLocalSelecionado, setIdLocalSelecionado } = useEspacos();
+
+    //const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
     const listaLocais = eArray(locais) ? locais : [];
     const localSelecionado = listaLocais.find(
         (local) => String(local.id) === String(idLocalSelecionado),

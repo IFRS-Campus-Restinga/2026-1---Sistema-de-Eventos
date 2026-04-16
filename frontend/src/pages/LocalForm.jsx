@@ -19,7 +19,6 @@ export default function LocalForm({ campus = 'Campus Restinga' }) {
         loading,
         error,
         message,
-        setMessage,
     } = useLocais();
 
     const { id } = useParams(); // Se houver ID, é edição. Se não, é criação.
