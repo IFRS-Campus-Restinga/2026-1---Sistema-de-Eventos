@@ -26,6 +26,8 @@ import { listarEventos, deletarEvento,atualizarEvento } from '../services/evento
 import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta'
+import ModalConfirmacao from '../components/common/ModalConfirmacaoExclusao';
+
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
@@ -33,6 +35,8 @@ export default function EventosListar() {
     const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
     const [alerta,setAlerta] = useState('')
     const [error, setError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -50,15 +54,27 @@ export default function EventosListar() {
         }
     };
 
-    const excluirEvento = async (id) => {
-        if (!window.confirm('Tem certeza que deseja excluir este evento?'))
-            return;
+    const confirmarExclusao = (evento) => {
+        setEventoParaExcluir(evento);
+        setShowModal(true);
+        
+    };
+
+    const excluirEvento = async () => {
+        if (!eventoParaExcluir?.id) return;
 
         try {
-            const data = await deletarEvento(id)
+            const data = await deletarEvento(eventoParaExcluir.id)
+            setShowModal(false);
+            setEventos((prev) => prev.filter((e) => e.id !== eventoParaExcluir.id));
             setAlerta('success');
-            setMensagem(data.msg);
-            setEventos((prev) => prev.filter((e) => e.id !== id));
+            setMensagem(data.msg || "Evento excluído!");
+
+        // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
+            setTimeout(() => {
+                setEventoParaExcluir(null);
+            }, 300);
+            
         
         } catch (error) {
             console.error("Erro na exclusão:", error);
@@ -217,9 +233,7 @@ export default function EventosListar() {
                                                         variant="danger"
                                                         size="sm"
                                                         onClick={() =>
-                                                            excluirEvento(
-                                                                evento.id
-                                                            )
+                                                            confirmarExclusao(evento)
                                                         }
                                                     >
                                                         <MdDelete size={22}/>
@@ -293,6 +307,13 @@ export default function EventosListar() {
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}
                 campus="Campus Restinga"
+            />
+            <ModalConfirmacao 
+                show={showModal}
+                handleClose={() => setShowModal(false)}
+                handleConfirm={excluirEvento}
+                titulo="Excluir Evento"
+                mensagem={`Deseja realmente excluir o evento "${eventoParaExcluir?.nome}"?`}
             />
         </div>
     );
