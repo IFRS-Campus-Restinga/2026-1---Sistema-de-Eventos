@@ -22,6 +22,7 @@ import eArray from '../utils/eArray';
 import useLocais from '../hooks/useLocais';
 import useEspacos from '../hooks/useEspacos';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function LocaisEspacosListar() {
     const { locais } = useLocais();
@@ -31,16 +32,18 @@ export default function LocaisEspacosListar() {
         setIdLocalSelecionado,
         loading,
         error,
+        excluirEspaco,
     } = useEspacos();
 
     //const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
+    const [idEspaco, setIdEspaco] = useState(null); //pega o id do espaco selecionado para excluir
     const listaLocais = eArray(locais) ? locais : [];
     const localSelecionado = listaLocais.find(
         (local) => String(local.id) === String(idLocalSelecionado),
     ); //pega o objeto local selecionado a partir do id
-    //const espacosExemplo = ['sala 401', 'sala 402', 'sala 403', 'auditório']; // Exemplo de espaços, substituir pelos dados reais do local selecionado
 
     const navigate = useNavigate();
+    const [mostrarModal, setMostrarModal] = useState(false); // mostra o modal de excluir
 
     const handleSelect = (id) => {
         console.log('ID selecionado, captura do handleSelect:', id); // Para você debugar no console
@@ -256,12 +259,18 @@ export default function LocaisEspacosListar() {
                                                             style={{
                                                                 cursor: 'pointer',
                                                             }}
-                                                            onClick={() =>
+                                                            onClick={() => {
+                                                                setIdEspaco(
+                                                                    espaco.id,
+                                                                );
+                                                                setMostrarModal(
+                                                                    true,
+                                                                );
                                                                 console.log(
                                                                     'Deletar',
                                                                     espaco.id,
-                                                                )
-                                                            }
+                                                                );
+                                                            }}
                                                         />
                                                     </div>
                                                 </td>
@@ -304,6 +313,17 @@ export default function LocaisEspacosListar() {
                     </div>
                 </Container>
             </main>
+            <ModalPopup
+                show={mostrarModal}
+                titulo="Aviso!"
+                tituloSecundario="Excluir Espaço"
+                onAcao={() => {
+                    excluirEspaco(idEspaco);
+                    setMostrarModal(false);
+                }}
+                onFechar={() => setMostrarModal(false)}
+                textoAcao="Excluir"
+            />
 
             <Footer
                 telefone="(51) 3333-1234"
