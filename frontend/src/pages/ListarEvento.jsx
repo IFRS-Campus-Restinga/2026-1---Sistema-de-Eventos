@@ -218,7 +218,7 @@ export default function EventosListar() {
                                                         size="sm"
                                                         onClick={() =>
                                                             excluirEvento(
-                                                                evento.id,
+                                                                evento.id
                                                             )
                                                         }
                                                     >

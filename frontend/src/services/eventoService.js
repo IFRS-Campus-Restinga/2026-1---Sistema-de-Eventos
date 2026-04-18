@@ -35,7 +35,7 @@ export const deletarEvento = async (eventoId) => {
             headers: {
                 'X-CSRFToken': csrfToken,
             },
-            withCredentials: true,
+            
         },
     );
 

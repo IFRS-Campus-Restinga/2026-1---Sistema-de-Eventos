@@ -78,7 +78,7 @@ class EventoUpdateView(APIView):
 
 
 class EventoDeleteView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [AllowAny]
 
     def delete(self, request, pk):
         try:

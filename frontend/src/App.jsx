@@ -47,7 +47,6 @@ function App() {
             {/* prettier-ignore */}
             <Routes>
                 <Route path="/" element={<Home />} />
-<<<<<<< HEAD
                 <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
                 <Route path="/usuarioGrupos" element={protegido(<PessoasGrupos />, ADMIN_GROUPS)} />
                 <Route path="/adicionarLocal" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
@@ -56,12 +55,13 @@ function App() {
                 <Route path="/adicionarEspaco" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
                 <Route path="/editarEspaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
                 <Route path="/permissoesPessoas" element={protegido(<PermissoesPessoas />, ADMIN_GROUPS)} />
-                <Route path="/adicionarEvento" element={protegido(<AdicionarEvento />, ADMIN_GROUPS)} />
-                <Route path="/ListarEventos" element={protegido(<ListarEnvento />, ADMIN_GROUPS)} />
+                {/*<Route path="/adicionarEvento" element={protegido(<AdicionarEvento />, ADMIN_GROUPS)} />*/}
+                {/*<Route path="/ListarEventos" element={protegido(<ListarEnvento />, ADMIN_GROUPS)} />*/}
+                <Route path="/adicionarEvento" element={<AdicionarEvento />} />
+                <Route path="/ListarEventos" element={<ListarEnvento />} />
                 <Route path="/listarLocais" element={protegido(<LocaisListar />, ADMIN_GROUPS)} />
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/cadastroComplementar" element={<CadastroComplementar />} />
-=======
                 <Route path="/permissoesGrupos" element={<PermissoesGroups />} />
                 <Route path="/usuarioGrupos" element={<PessoasGrupos />} />
                 <Route path="/adicionarLocal" element={<LocalForm />} />
@@ -76,7 +76,6 @@ function App() {
                 <Route path="/listarLocais" element={<LocaisListar />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/cadastroComplementar"  element={<CadastroComplementar />} />
->>>>>>> 75c3644 (Minhas alterações na edição de eventos)
                 <Route path="/session/token/" element={<SessionTokenCallback />} />
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
                 <Route path="/session/auth" element={<SessionTokenCallback />} />
