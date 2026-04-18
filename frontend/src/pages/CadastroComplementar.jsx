@@ -7,6 +7,7 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Form from 'react-bootstrap/esm/Form';
 import Button from 'react-bootstrap/esm/Button';
+import { Spinner } from 'react-bootstrap';
 
 // Componentes do Projeto
 import NavBar from '../components/nav_bar/NavBar';
@@ -18,17 +19,17 @@ import { useCsrf } from '../hooks/useCsrf';
 import { useCadastroComplementar } from '../hooks/useCadastroComplementar';
 import Alerta from '../components/common/Alerta.jsx';
 
-// Mock para Informações do Usuário vindo do Hub de Sistemas
-    const usuarioHub = {
-        id: '125a2577-e89b-12d3-a456-426614174000',
-        nome: 'teste4',
-        email: 'teste4.aluno@ifrs.edu.br',
-        cpf: '452.452.897-00',
-    };
-
+//Recebimento de informações do Hub de Sistemas
 export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
-    const { executarSalvamento, carregando, opcoes, notificacao } =
-        useCadastroComplementar();
+    const {
+        executarSalvamento,
+        carregando,
+        opcoes,
+        notificacao,
+        usuarioHub,
+        carregandoUsuario,
+    } = useCadastroComplementar();
+
     const { csrfToken } = useCsrf(); //Token CSRF
 
     // Estados para guardar o que o usuário selecionou
@@ -36,14 +37,12 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
     const [areaSelecionada, setAreaSelecionada] = useState('');
 
     const clicarEmSalvar = () => {
+        if (!usuarioHub) return;
+
         const dados = {
-            usuario_id_hub: usuarioHub.id,
-            nome_usuario_hub: usuarioHub.nome,
-            email_usuario_hub: usuarioHub.email,
-            cpf_usuario_hub: usuarioHub.cpf,
+            // A linha usuario_id_hub foi removida! O payload ficou mais enxuto.
             nivel_ensino: nivelSelecionado,
             area_conhecimento: areaSelecionada,
-            // TODO: Por hora apenas para preencher espaço não está de fato complementando o cadastro, depois a gente vê o que mais precisa ser enviado para o backend
         };
         executarSalvamento(dados, csrfToken);
     };
@@ -51,7 +50,6 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
     return (
         <div className="d-flex flex-column min-vh-100">
             <NavBar />
-
             {notificacao.mensagem && (
                 <Alerta
                     mensagem={notificacao.mensagem}
@@ -76,7 +74,7 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                         <h4>Cadastro Complementar</h4>
                                         <p>
                                             Finalize seu cadastro para se
-                                            inscrever em atrações e eventos{' '}
+                                            inscrever em atrações e eventos
                                         </p>
                                     </Row>
                                 </Row>
@@ -96,58 +94,79 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                             <Col md={7} className="bg-white p-4">
                                 <h3 className="mb-4">Finalize seu cadastro</h3>
 
-                                <Form>
-                                    <Form.Group
-                                        className="mb-3 text-start"
-                                        controlId="nivelEnsino"
-                                    >
-                                        <Form.Label className="fw-bold small mb-1">
-                                            Nível de Ensino
-                                        </Form.Label>
-
-                                        <Select
-                                            textFundo="Selecione o Nível de Ensino"
-                                            grupos={opcoes.niveis}
-                                            value={nivelSelecionado} // 1. Aqui ele lê o estado
-                                            onChange={(e) =>
-                                                setNivelSelecionado(
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                    </Form.Group>
-
-                                    <Form.Group
-                                        className="mb-4 text-start"
-                                        controlId="areaConhecimento"
-                                    >
-                                        <Form.Label className="fw-bold small mb-1">
-                                            Área do conhecimento
-                                        </Form.Label>
-                                        <Select
-                                            textFundo="Selecione a Área"
-                                            grupos={opcoes.areas}
-                                            value={areaSelecionada} // 1. Aqui ele lê o estado
-                                            onChange={(e) =>
-                                                setAreaSelecionada(
-                                                    e.target.value,
-                                                )
-                                            } // 2. Aqui ele altera o estado
-                                        />
-                                    </Form.Group>
-                                    <div className="d-flex justify-content-end">
-                                        <Button
+                                {carregandoUsuario ? (
+                                    <div className="d-flex justify-content-center align-items-center h-50">
+                                        <Spinner
+                                            animation="border"
                                             variant="success"
-                                            className="fw-bold px-4"
-                                            onClick={clicarEmSalvar}
-                                            disabled={carregando}
-                                        >
-                                            {carregando
-                                                ? 'Salvando...'
-                                                : 'Salvar'}
-                                        </Button>
+                                        />
+                                        <span className="ms-3">
+                                            Carregando...
+                                        </span>
                                     </div>
-                                </Form>
+                                ) : !usuarioHub ? (
+                                    <Alerta
+                                        mensagem="Sessão inválida. Por favor, realize o login novamente no Hub."
+                                        variacao="danger"
+                                    />
+                                ) : (
+                                    <Form>
+                                        <Form.Group
+                                            className="mb-3 text-start"
+                                            controlId="nivelEnsino"
+                                        >
+                                            <Form.Label className="fw-bold small mb-1">
+                                                Nível de Ensino
+                                            </Form.Label>
+                                            <Select
+                                                textFundo="Selecione o Nível de Ensino"
+                                                grupos={opcoes.niveis}
+                                                value={nivelSelecionado}
+                                                onChange={(e) =>
+                                                    setNivelSelecionado(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group
+                                            className="mb-4 text-start"
+                                            controlId="areaConhecimento"
+                                        >
+                                            <Form.Label className="fw-bold small mb-1">
+                                                Área do conhecimento
+                                            </Form.Label>
+                                            <Select
+                                                textFundo="Selecione a Área"
+                                                grupos={opcoes.areas}
+                                                value={areaSelecionada}
+                                                onChange={(e) =>
+                                                    setAreaSelecionada(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </Form.Group>
+
+                                        <div className="d-flex justify-content-end">
+                                            <Button
+                                                variant="success"
+                                                className="fw-bold px-4"
+                                                onClick={clicarEmSalvar}
+                                                disabled={
+                                                    carregando ||
+                                                    !nivelSelecionado ||
+                                                    !areaSelecionada
+                                                }
+                                            >
+                                                {carregando
+                                                    ? 'Salvando...'
+                                                    : 'Salvar'}
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                )}
                             </Col>
                         </Row>
                     </Col>

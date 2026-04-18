@@ -4,25 +4,28 @@ import {
     buscarOpcoesCadastro,
 } from '../services/cadastroComplementarService';
 
+// função de autenticação
+import { checkSession } from '../services/authService';
+
 export function useCadastroComplementar() {
     const [carregando, setCarregando] = useState(false);
-    const [opcoes, setOpcoes] = useState({ niveis: [], areas: [] }); // Onde guardaremos os Enums
+    const [opcoes, setOpcoes] = useState({ niveis: [], areas: [] });
     const [notificacao, setNotificacao] = useState({
         mensagem: '',
         variacao: '',
     });
 
-    // Busca os enums para preencher as opções do Select
-    useEffect(() => {
-        async function carregarEnums() {
-            try {
-                const dados = await buscarOpcoesCadastro();
-                console.log('Enuns vindo do Django:', dados);
+    const [usuarioHub, setUsuarioHub] = useState(null);
+    const [carregandoUsuario, setCarregandoUsuario] = useState(true);
 
-                // Verifica se o objeto retornou e se as propriedades existem.
-                // Se sim, salva o objeto. Se não, salva o formato inicial vazio.
-                if (dados && dados.areas && dados.niveis) {
-                    setOpcoes(dados);
+    useEffect(() => {
+        async function inicializarDados() {
+            setCarregandoUsuario(true);
+
+            try {
+                const dadosOpcoes = await buscarOpcoesCadastro();
+                if (dadosOpcoes && dadosOpcoes.areas && dadosOpcoes.niveis) {
+                    setOpcoes(dadosOpcoes);
                 } else {
                     setOpcoes({ niveis: [], areas: [] });
                 }
@@ -30,29 +33,65 @@ export function useCadastroComplementar() {
                 console.error('Erro ao carregar opções do Django', e);
                 setOpcoes({ niveis: [], areas: [] });
             }
+
+            try {
+                // autenticação
+                const authResult = await checkSession();
+
+                if (authResult.authenticated && authResult.user) {
+                    const { user } = authResult;
+
+                    setUsuarioHub({
+                        id: user.id,
+                        nome:
+                            user.first_name ||
+                            user.display_name ||
+                            user.username ||
+                            'Usuário',
+                        email: user.email,
+                        cpf: user.cpf,
+                    });
+                } else {
+                    // Se o checkSession veriricar que não está autenticado, anulamos o estado
+                    setUsuarioHub(null);
+                }
+            } catch (e) {
+                console.error('Erro ao verificar sessão do usuário', e);
+                setUsuarioHub(null);
+            } finally {
+                setCarregandoUsuario(false);
+            }
         }
-        carregarEnums();
+
+        inicializarDados();
     }, []);
 
     const executarSalvamento = async (dados, token) => {
         setCarregando(true);
-        // Limpa notificação anterior antes de começar
         setNotificacao({ mensagem: '', variacao: '' });
 
         try {
             await salvarInformacoesComplementares(dados, token);
-            // Substituímos o alert por:
             setNotificacao({
-                mensagem: 'Salvo com sucesso!',
+                mensagem: 'Perfil Criado com Sucesso!',
                 variacao: 'success',
             });
         } catch (e) {
-            // Substituímos o alert por:
-            setNotificacao({ mensagem: 'Erro ao salvar.', variacao: 'danger' });
+            setNotificacao({
+                mensagem: 'Erro ao Criar Perfil.',
+                variacao: 'danger',
+            });
         } finally {
             setCarregando(false);
         }
     };
 
-    return { executarSalvamento, carregando, opcoes, notificacao };
+    return {
+        executarSalvamento,
+        carregando,
+        opcoes,
+        notificacao,
+        usuarioHub,
+        carregandoUsuario,
+    };
 }
