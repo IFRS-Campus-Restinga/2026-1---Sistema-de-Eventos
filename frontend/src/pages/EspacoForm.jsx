@@ -36,14 +36,64 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
         }
     }, [localId]);
 
+    // carrega se for edição
+    useEffect(() => {
+        if (editando && id) {
+            async function carregar() {
+                const data = await buscarEspaco(id);
+
+                if (data) {
+                    setNome(data.nome);
+                    setCapacidade(data.capacidade);
+                    setPredioBloco(data.predio_bloco);
+                    setRecursosDisponiveis(data.recursos_disponiveis);
+                    setAtivo(data.ativo);
+                }
+            }
+            carregar();
+        }
+    }, [id]);
+
+    const validar = () => {
+        const novosErros = {};
+
+        if (!nome || nome.length < 3) {
+            novosErros.nome = 'Nome deve ter pelo menos 3 caracteres';
+        }
+
+        if (!isNaN(nome)) {
+            novosErros.nome = 'Nome não pode ser apenas números';
+        }
+
+        if (!capacidade || capacidade <= 0) {
+            novosErros.capacidade = 'Capacidade deve ser maior que zero';
+        }
+
+        if (!predioBloco || predioBloco.length < 3) {
+            novosErros.predioBloco =
+                'Prédio/Bloco deve ter pelo menos 3 caracteres';
+        }
+
+        if (!localId) {
+            novosErros.local = 'Local é obrigatório';
+        }
+
+        setErrors(novosErros);
+
+        return Object.keys(novosErros).length === 0;
+    };
+
     const handleSalvar = async () => {
+        if (!validar()) return;
+
         const dados = {
+            id,
             nome,
-            capacidade,
+            capacidade: Number(capacidade),
             predio_bloco: predioBloco,
             recursos_disponiveis: recursosDisponiveis,
             ativo,
-            local: localId, // 🔥 AQUI
+            local: localId,
         };
 
         await handleSave(dados);
@@ -63,7 +113,8 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
                                 className="fw-bold ms-1 mb-0"
                                 style={{ color: '#00A44B' }}
                             >
-                                {localSelecionado?.nome}
+                                {localSelecionado?.nome ||
+                                    'Carregando local...'}
                             </h1>
                             {
                                 <EspacoCard
@@ -105,7 +156,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
                                         Voltar
                                     </Button>
                                     <Button
-                                        //onClick={handleSalvar}
+                                        onClick={handleSalvar}
                                         size="lg"
                                         variant="success"
                                         className="fw-bold"

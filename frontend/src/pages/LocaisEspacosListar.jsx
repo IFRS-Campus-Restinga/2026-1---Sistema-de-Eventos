@@ -239,7 +239,7 @@ export default function LocaisEspacosListar() {
                                                                     {
                                                                         state: {
                                                                             localId:
-                                                                                localSelecionado.id,
+                                                                                idLocalSelecionado,
                                                                         },
                                                                     },
                                                                 );
@@ -281,7 +281,7 @@ export default function LocaisEspacosListar() {
                                         );
                                         navigate('/adicionarEspaco', {
                                             state: {
-                                                localId: localSelecionado.id,
+                                                localId: idLocalSelecionado,
                                             },
                                         });
                                     }}
