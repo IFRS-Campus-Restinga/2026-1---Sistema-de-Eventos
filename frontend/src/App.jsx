@@ -19,6 +19,8 @@ import Teste from './pages/Teste';
 import ModalidadeFormulario from './pages/ModalidadeFormulario';
 import ModalidadesListar from './pages/ModalidadesListar';
 import DefinirCoordenadorEvento from './pages/DefinirCoordenadorEvento';
+import ProtectedRoute from './components/common/ProtectedRoute';
+
 
 function App() {
     useEffect(() => {
@@ -49,7 +51,10 @@ function App() {
                 <Route path="/editarEspaco/:id" element={<EspacoForm />} />
                 <Route path="/permissoesPessoas" element={<PermissoesPessoas />} />
                 <Route path="/adicionarEvento" element={<AdicionarEvento/>}/>
-                <Route path="/ListarEventos" element={<ListarEnvento />} />
+                <Route
+                    path="/ListarEventos"
+                    element={<ProtectedRoute><ListarEnvento /></ProtectedRoute>}
+                />
                 <Route path="/listarLocais" element={<LocaisListar />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/cadastroComplementar"  element={<CadastroComplementar />} />

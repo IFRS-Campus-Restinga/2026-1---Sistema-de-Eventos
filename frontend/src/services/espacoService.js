@@ -8,7 +8,9 @@ export const pegarEspacos = async (localId = Null) => {
         if (localId) {
             url += `?local=${localId}`;
         }
-        const response = await axios.get(url);
+        const response = await axios.get(url, {
+            withCredentials: true,
+        });
         return response.data;
     } catch (erro) {
         console.error('Status do Erro:', erro.response?.status);
@@ -21,7 +23,9 @@ export const pegarEspaco = async (id) => {
     if (!id) return null;
 
     try {
-        const response = await axios.get(`${API_URL}/api/espacos/${id}/`);
+        const response = await axios.get(`${API_URL}/api/espacos/${id}/`, {
+            withCredentials: true,
+        });
         return response.data;
     } catch (erro) {
         console.error('Status do Erro:', erro.response?.status);

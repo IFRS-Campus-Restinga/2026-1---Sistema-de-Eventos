@@ -3,13 +3,17 @@ import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
 export const pegarGrupos = async () => {
-    const response = await axios.get(`${API_URL}/api/grupos/`);
+    const response = await axios.get(`${API_URL}/api/grupos/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
 export const pegarGrupo = async (id) => {
     if (!id) return null;
-    const response = await axios.get(`${API_URL}/api/grupos/${id}/`);
+    const response = await axios.get(`${API_URL}/api/grupos/${id}/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
