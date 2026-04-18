@@ -11,9 +11,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useEventos } from '../hooks/useEventos';
 import { useUsers } from '../hooks/useUsers';
-import { useCoordenadorEvento } from '../hooks/useCoordenadorEvento';
+import { useOrganizadorEvento } from '../hooks/useOrganizadorEvento';
 
-export default function DefinirCoordenadorEvento({
+export default function DefinirOrganizadorEvento({
     campus = 'Campus Restinga',
 }) {
     const [searchParams] = useSearchParams();
@@ -22,12 +22,12 @@ export default function DefinirCoordenadorEvento({
     const { eventos, loading: loadingEventos } = useEventos();
     const { users, loading: loadingUsers } = useUsers();
     const {
-        handleDefinirCoordenador,
-        carregarCoordenadores,
-        coordenadores,
+        handleDefinirOrganizador,
+        carregarOrganizadores,
+        organizadores,
         loading,
         message,
-    } = useCoordenadorEvento();
+    } = useOrganizadorEvento();
 
     const [selectedEventoId, setSelectedEventoId] = useState('');
     const [selectedUserId, setSelectedUserId] = useState('');
@@ -46,11 +46,11 @@ export default function DefinirCoordenadorEvento({
     }, [eventoIdDaUrl]);
 
     useEffect(() => {
-        carregarCoordenadores(selectedEventoId);
+        carregarOrganizadores(selectedEventoId);
     }, [selectedEventoId]);
 
     const handleSubmit = async () => {
-        await handleDefinirCoordenador(selectedEventoId, selectedUserId);
+        await handleDefinirOrganizador(selectedEventoId, selectedUserId);
         setSelectedUserId('');
     };
 
@@ -62,7 +62,7 @@ export default function DefinirCoordenadorEvento({
                     <Row>
                         <Col className="text-center my-5">
                             <h1 className="fw-bold text-success">
-                                Definir Coordenador de Evento
+                                Definir Organizadores do Evento
                             </h1>
                         </Col>
                     </Row>
@@ -79,7 +79,7 @@ export default function DefinirCoordenadorEvento({
                             <Form>
                                 <Form.Group className="mb-3">
                                     <Form.Label className="fw-bold">
-                                        Selecionar Coordenador
+                                        Selecionar Organizador
                                     </Form.Label>
                                     <Form.Select
                                         value={selectedUserId}
@@ -117,7 +117,7 @@ export default function DefinirCoordenadorEvento({
                                     >
                                         {loading
                                             ? 'Definindo...'
-                                            : 'Definir Coordenador'}
+                                            : 'Definir Organizador'}
                                     </Button>
 
                                     <Button
@@ -132,12 +132,12 @@ export default function DefinirCoordenadorEvento({
 
                             <div className="mt-4">
                                 <h5 className="fw-bold text-success">
-                                    Coordenadores deste evento
+                                    Organizadores deste evento
                                 </h5>
 
-                                {coordenadores.length === 0 ? (
+                                {organizadores.length === 0 ? (
                                     <p className="text-muted mb-0">
-                                        Nenhum coordenador atribuído.
+                                        Nenhum organizador atribuído.
                                     </p>
                                 ) : (
                                     <div className="table-responsive">
@@ -150,12 +150,12 @@ export default function DefinirCoordenadorEvento({
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {coordenadores.map((coordenador) => (
-                                                    <tr key={coordenador.id}>
-                                                        <td>{coordenador.id}</td>
-                                                        <td>{coordenador.username}</td>
+                                                {organizadores.map((organizador) => (
+                                                    <tr key={organizador.id}>
+                                                        <td>{organizador.id}</td>
+                                                        <td>{organizador.username}</td>
                                                         <td>
-                                                            {coordenador.email || '-'}
+                                                            {organizador.email || '-'}
                                                         </td>
                                                     </tr>
                                                 ))}

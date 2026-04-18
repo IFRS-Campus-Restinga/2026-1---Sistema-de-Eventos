@@ -19,9 +19,10 @@ export const pegarUser = async (id) => {
 
 export const atualizarGrupos = async (id, idGroups) => {
     if (!id) return null;
-    // obter token CSRF e enviar no cabeçalho da requisição
+
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
+
     const response = await axios.patch(
         `${API_URL}/api/users/${id}/`,
         {
@@ -34,14 +35,16 @@ export const atualizarGrupos = async (id, idGroups) => {
             withCredentials: true,
         },
     );
+
     return response.data;
 };
 
 export const atualizarPermissoesUsers = async (id, idPerms) => {
     if (!id) return null;
-    // obter token CSRF e enviar no cabeçalho da requisição
+
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
+
     const response = await axios.patch(
         `${API_URL}/api/users/${id}/`,
         {
@@ -54,5 +57,6 @@ export const atualizarPermissoesUsers = async (id, idPerms) => {
             withCredentials: true,
         },
     );
+
     return response.data;
 };
