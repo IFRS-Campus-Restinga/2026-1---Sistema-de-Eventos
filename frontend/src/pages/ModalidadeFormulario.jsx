@@ -19,11 +19,13 @@ import { pegarModalidade } from '../services/modalidadeService';
 import { pegarCampoFormulario } from '../services/campoFormularioService';
 import { pegarCriterioAvaliacao } from '../services/criterioAvaliacaoService';
 import eArray from '../utils/eArray';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
     const { id } = useParams();
     const modoEdicao = Boolean(id);
+    const [mostrarModal, setMostrarModal] = useState(false);
 
     const [titulo, setTitulo] = useState('');
     const [requerAvaliacao, setRequerAvaliacao] = useState(false);
@@ -160,16 +162,12 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     async function handleExcluirModalidade() {
         if (!modoEdicao) return;
 
-        const confirmou = window.confirm(
-            'Tem certeza que deseja excluir esta modalidade?',
-        );
-
-        if (!confirmou) return;
-
         try {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
-            navigate('/adicionarModalidade');
+            setTimeout(() => {
+                navigate('/listarModalidades');
+            }, 1000);
         } catch {
             mostrarAlerta('Não foi possível excluir a modalidade.');
         }
@@ -347,7 +345,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                 <Button
                                     variant="danger"
                                     className="p-2"
-                                    onClick={handleExcluirModalidade}
+                                    onClick={() => setMostrarModal(true)}
                                 >
                                     <MdDelete size={20} className="me-2" />
                                     Excluir Modalidade
@@ -369,6 +367,17 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                     </Row>
                 </Container>
             </main>
+            <ModalPopup
+                show={mostrarModal}
+                titulo="Aviso!"
+                tituloSecundario="Excluir Modalidade"
+                onAcao={() => {
+                    handleExcluirModalidade();
+                    setMostrarModal(false);
+                }}
+                onFechar={() => setMostrarModal(false)}
+                textoAcao="Excluir"
+            />
             {alerta.mensagem && (
                 <Alerta
                     mensagem={alerta.mensagem}

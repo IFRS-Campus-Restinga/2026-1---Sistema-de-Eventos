@@ -5,7 +5,7 @@ import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import EventoCard from '../components/common/EventoCard';
+import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
 import { MdOutlineSearch } from 'react-icons/md';
 
@@ -20,7 +20,11 @@ export default function Home({ campus = 'Campus Restinga' }) {
         }
 
         setLoginAlert(alertState);
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname,
+        );
     }, [location.state]);
 
     return (
@@ -55,17 +59,18 @@ export default function Home({ campus = 'Campus Restinga' }) {
                             className="mx-auto d-flex flex-column align-items-center my-5 gap-3"
                         >
                             {/* Exemplo de card: Faça um map para gerar outros com dados reais*/}
-                            {<EventoCard
-                                titulo="Mostra"
-                                data="De 20/09 a 22/09"
-                                faseAtual="Inscrições abertas"
-                                corFase="#106D47"
-                                descricao={
-                                    'A XIV Mostra Científica conecta estudantes, pesquisadores e comunidade para compartilhar inovação, tecnologia e saberes. Submeta seu trabalho e faça parte.'
-                                }
-                                textoBotao="Ver Detalhes"
-                                icon={MdOutlineSearch}
-                            />
+                            {
+                                <EventoCard
+                                    titulo="Mostra"
+                                    data="De 20/09 a 22/09"
+                                    faseAtual="Inscrições abertas"
+                                    corFase="#106D47"
+                                    descricao={
+                                        'A XIV Mostra Científica conecta estudantes, pesquisadores e comunidade para compartilhar inovação, tecnologia e saberes. Submeta seu trabalho e faça parte.'
+                                    }
+                                    textoBotao="Ver Detalhes"
+                                    icon={MdOutlineSearch}
+                                />
                             }
                         </Col>
                     </Row>

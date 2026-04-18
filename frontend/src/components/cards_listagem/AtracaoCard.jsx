@@ -1,10 +1,10 @@
 import React from 'react';
 import Button from 'react-bootstrap/Button';
-import Card from './Card';
+import Card from '../common/Card';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import Tag from './Tag';
+import Tag from '../common/Tag';
 import { RiTeamFill } from 'react-icons/ri';
 import { TbMapPinFilled } from 'react-icons/tb';
 
