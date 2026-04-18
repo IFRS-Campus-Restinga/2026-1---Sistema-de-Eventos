@@ -1,8 +1,9 @@
-from .base import Base
-from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinLengthValidator
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+from .base import Base
 
 
 class Local(Base):

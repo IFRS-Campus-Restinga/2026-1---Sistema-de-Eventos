@@ -1,12 +1,14 @@
 from django.contrib import admin
+
 from .models import (
+    CampoFormulario,
+    CriterioAvaliacao,
+    Espaco,
     Evento,
     Local,
     Modalidade,
-    CampoFormulario,
-    CriterioAvaliacao,
     Resposta,
-    Espaco
+    Sessao,
 )
 
 admin.site.register(Evento)
@@ -16,5 +18,6 @@ admin.site.register(CampoFormulario)
 admin.site.register(CriterioAvaliacao)
 admin.site.register(Resposta)
 admin.site.register(Espaco)
+admin.site.register(Sessao)
 
 # Register your models here.
