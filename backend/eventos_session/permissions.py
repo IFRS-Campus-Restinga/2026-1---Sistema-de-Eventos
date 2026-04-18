@@ -4,16 +4,16 @@ from eventos_session.services.token_service import TokenService, TokenValidation
 
 
 class HasValidSessionToken(BasePermission):
-    """Permite acesso apenas quando houver Bearer token válido da sessão customizada."""
+    """Permite acesso apenas quando houver token válido via cookie HttpOnly da sessão customizada."""
 
     message = "Token de acesso inválido ou ausente"
 
     def has_permission(self, request, view):
-        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
-        if not auth_header.startswith("Bearer "):
-            return False
+        # Fluxo atual: somente cookie HttpOnly.
+        token = request.COOKIES.get("access_token")
 
-        token = auth_header.split(" ", 1)[1]
+        if not token:
+            return False
 
         try:
             request.session_payload = TokenService.decode_token(token)

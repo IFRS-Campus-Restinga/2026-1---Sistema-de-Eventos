@@ -13,21 +13,8 @@ export const criarEvento = async (dados) => {
 
     const response = await axios.post(`${API_URL}/api/eventos/`, dados, {
         headers: { 'X-CSRFToken': csrfToken },
-    });
-    return response.data;
-};
-
-export const deletarEvento = async (id) => {
-    const csrfData = await pegarTokenCsrf();
-    const csrfToken = csrfData?.csrfToken || '';
-
-    const response = await axios.delete(`${API_URL}/api/eventos/${id}/delete/`, {
-        headers: { 
-            'X-CSRFToken': csrfToken 
-        },
         withCredentials: true,
     });
-
     return response.data;
 };
 
@@ -36,12 +23,30 @@ export const buscarOpcoesFormulario = async () => {
     return response.data;
 };
 
+export const deletarEvento = async (eventoId) => {
+    if (!eventoId) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.delete(
+        `${API_URL}/api/eventos/${eventoId}/delete/`,
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
 export const definirCoordenadorEvento = async (eventoId, userId) => {
     if (!eventoId || !userId) return null;
 
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
-    const accessToken = localStorage.getItem('access_token');
 
     const response = await axios.patch(
         `${API_URL}/api/eventos/${eventoId}/coordenador/`,
@@ -49,10 +54,53 @@ export const definirCoordenadorEvento = async (eventoId, userId) => {
         {
             headers: {
                 'X-CSRFToken': csrfToken,
-                ...(accessToken
-                    ? { Authorization: `Bearer ${accessToken}` }
-                    : {}),
             },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const listarCoordenadoresEvento = async (eventoId) => {
+    if (!eventoId) return { coordenadores: [] };
+
+    const response = await axios.get(
+        `${API_URL}/api/eventos/${eventoId}/coordenador/`,
+        {
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const definirOrganizadorEvento = async (eventoId, userId) => {
+    if (!eventoId || !userId) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.patch(
+        `${API_URL}/api/eventos/${eventoId}/organizador/`,
+        { user_id: userId },
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const listarOrganizadoresEvento = async (eventoId) => {
+    if (!eventoId) return { organizadores: [] };
+
+    const response = await axios.get(
+        `${API_URL}/api/eventos/${eventoId}/organizador/`,
+        {
             withCredentials: true,
         },
     );

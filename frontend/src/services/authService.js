@@ -1,19 +1,21 @@
 import { BACKEND_BASE_URL, HUB_BASE_URL } from '../config';
 
-function setToken(name, value) {
-    localStorage.setItem(name, value);
-}
+// [TEMP-FALLBACK] Funções removidas: setToken, getToken, removeToken (eram localStorage)
+// Tokens agora são armazenados em HttpOnly cookies no servidor
 
-function getToken(name) {
-    return localStorage.getItem(name);
-}
-
-function removeToken(name) {
-    localStorage.removeItem(name);
-}
-
-export function redirectToLogin() {
-    window.location.href = `${HUB_BASE_URL}/session/`;
+export async function redirectToLogin() {
+    let systemId = '';
+    try {
+        const response = await fetch(`${BACKEND_BASE_URL}/session/system-id/`);
+        if (response.ok) {
+            const data = await response.json();
+            systemId = data.system || '';
+        }
+    } catch {
+        // Redireciona mesmo sem o system ID se o backend estiver indisponível.
+    }
+    const params = systemId ? `?system=${encodeURIComponent(systemId)}` : '';
+    window.location.href = `${HUB_BASE_URL}/session/${params}`;
 }
 
 export async function handleAuthCallback(userId) {
@@ -26,7 +28,7 @@ export async function handleAuthCallback(userId) {
         headers: {
             'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        credentials: 'include',  // Importante: permitir leitura/escrita de cookies
         body: JSON.stringify({ user: userId }),
     });
 
@@ -36,29 +38,21 @@ export async function handleAuthCallback(userId) {
         throw new Error(data.message || 'Falha ao autenticar com o backend local.');
     }
 
-    if (!data.access_token || !data.refresh_token) {
-        throw new Error('Resposta de autenticação sem tokens.');
+    // [TEMP-FALLBACK] Tokens agora vêm como HttpOnly cookies, não em JSON
+    // Validar que ao menos user_id está presente na resposta
+    if (!data.id) {
+        throw new Error('Resposta de autenticação sem informações do usuário.');
     }
-
-    setToken('access_token', data.access_token);
-    setToken('refresh_token', data.refresh_token);
 
     return data;
 }
 
 export async function getCurrentUser() {
-    const accessToken = getToken('access_token');
-    if (!accessToken) {
-        return null;
-    }
-
     try {
         const response = await fetch(`${BACKEND_BASE_URL}/session/me/`, {
             method: 'GET',
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-            credentials: 'include',
+            // [TEMP-FALLBACK] Não precisa mais de Authorization header com token em localStorage
+            credentials: 'include',  // Permite enviar cookies automaticamente
         });
 
         if (!response.ok) {
@@ -72,32 +66,23 @@ export async function getCurrentUser() {
 }
 
 export async function refreshToken() {
-    const refreshTokenValue = getToken('refresh_token');
-    if (!refreshTokenValue) {
-        return null;
-    }
-
     try {
         const response = await fetch(`${BACKEND_BASE_URL}/session/tokens/refresh/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${refreshTokenValue}`,
             },
-            credentials: 'include',
-            body: JSON.stringify({ refresh_token: refreshTokenValue }),
+            // [TEMP-FALLBACK] Não precisa mais enviar token em Authorization header
+            credentials: 'include',  // Permite enviar refresh_token cookie e receber novo access_token cookie
+            body: JSON.stringify({}),  // Body vazio, token vem do cookie
         });
 
         if (!response.ok) {
             return null;
         }
 
-        const data = await response.json();
-        if (data.access_token) {
-            setToken('access_token', data.access_token);
-        }
-
-        return data;
+        // Token novo foi enviado como cookie automaticamente pelo servidor
+        return response.json();
     } catch {
         return null;
     }
@@ -127,15 +112,12 @@ export async function checkSession() {
 }
 
 export async function logout() {
-    removeToken('access_token');
-    removeToken('refresh_token');
-
     try {
         await fetch(`${BACKEND_BASE_URL}/session/logout/`, {
             method: 'POST',
-            credentials: 'include',
+            credentials: 'include',  // Permite enviar cookies e receber delete-cookie
         });
     } catch {
-        // Ignora erro de rede no logout porque os tokens locais já foram limpos.
+        // Ignora erro de rede no logout porque os cookies já serão deletados pelo servidor
     }
 }

@@ -6,6 +6,7 @@ class Usuario(AbstractUser):
     email = models.EmailField("email address", unique=True, max_length=254, blank=True, null=True)
     nome = models.CharField(max_length=255)
     cpf = models.CharField(max_length=11, unique=True, blank=True, null=True)
+    matricula = models.CharField(max_length=10, unique=True, blank=True, null=True)
     hub_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     access_profile = models.CharField(max_length=30, null=True, blank=True)
 
@@ -18,7 +19,7 @@ class Usuario(AbstractUser):
         verbose_name="user permissions",
     )
 
-    REQUIRED_FIELDS = ["email", "nome", "cpf"]
+    REQUIRED_FIELDS = []
 
     class Meta:
         db_table = "users_user"

@@ -2,7 +2,7 @@ import os
 import django
 
 
-GROUP_NAMES = ["Administrador", "Coordenador"]
+GROUP_NAMES = ["Administrador", "Coordenador", "Organizador"]
 
 LOCAIS_DATA = [
     {"nome": "Campus Restinga", "endereco": "Rua Alberto Hoffmann, 285"},

@@ -17,9 +17,27 @@ export default function SessionTokenCallback() {
             }
 
             try {
-                await handleAuthCallback(userId);
+                const data = await handleAuthCallback(userId);
+                const foiCadastro =
+                    data.created === true ||
+                    data.created === 'true' ||
+                    data.created === 1 ||
+                    data.created === '1';
+
+                const mensagem = foiCadastro
+                    ? 'Usuário cadastrado com sucesso no sistema.'
+                    : 'Login confirmado.';
+
                 setStatus('Autenticação concluída. Redirecionando...');
-                navigate('/', { replace: true });
+                navigate('/', {
+                    replace: true,
+                    state: {
+                        loginAlert: {
+                            mensagem,
+                            variacao: foiCadastro ? 'success' : 'info',
+                        },
+                    },
+                });
             } catch (error) {
                 setStatus(error.message || 'Falha ao autenticar.');
             }

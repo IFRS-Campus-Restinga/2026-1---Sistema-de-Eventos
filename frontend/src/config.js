@@ -18,3 +18,5 @@ const apiBaseFromEnv = import.meta.env.VITE_API_URL;
 export const API_URL = removeTrailingApiSegment(
     removeTrailingSlash(apiBaseFromEnv || BACKEND_BASE_URL),
 );
+
+

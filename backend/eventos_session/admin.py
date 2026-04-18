@@ -37,7 +37,7 @@ class UsuarioAdmin(UserAdmin):
 	filter_horizontal = ("user_permissions",)
 	fieldsets = (
 		(None, {"fields": ("username", "password")}),
-		("Informacoes pessoais", {"fields": ("nome", "email", "cpf", "hub_id", "access_profile", "first_name", "last_name")}),
+		("Informacoes pessoais", {"fields": ("nome", "email", "cpf", "matricula", "hub_id", "access_profile", "first_name", "last_name")}),
 		("Status", {"fields": ("is_active", "is_staff", "is_superuser")}),
 		("Permissoes", {"fields": ("user_permissions",)}),
 		("Datas importantes", {"fields": ("last_login", "date_joined")}),
@@ -47,12 +47,12 @@ class UsuarioAdmin(UserAdmin):
 			None,
 			{
 				"classes": ("wide",),
-				"fields": ("username", "nome", "email", "cpf", "hub_id", "access_profile", "password1", "password2"),
+				"fields": ("username", "nome", "email", "cpf", "matricula", "hub_id", "access_profile", "password1", "password2"),
 			},
 		),
 	)
-	list_display = ("username", "nome", "email", "access_profile", "is_staff", "is_superuser")
-	search_fields = ("username", "nome", "email", "cpf", "hub_id")
+	list_display = ("username", "nome", "email", "matricula", "access_profile", "is_staff", "is_superuser")
+	search_fields = ("username", "nome", "email", "cpf", "matricula", "hub_id")
 
 	def save_related(self, request, form, formsets, change):
 		super().save_related(request, form, formsets, change)

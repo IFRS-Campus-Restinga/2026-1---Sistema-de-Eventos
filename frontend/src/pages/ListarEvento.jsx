@@ -22,7 +22,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { listarEventos,deletarEvento } from '../services/eventoService';
+import { listarEventos, deletarEvento } from '../services/eventoService';
 import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta'

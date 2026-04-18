@@ -34,7 +34,7 @@ ALLOWED_HOSTS = ["*"]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "eventos_session.authentication.CookieJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -58,8 +58,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "guardian",
-    "api",
     "eventos_session",
+    "api",
 ]
 
 # APARENTIMENTE tem q ter isso, fé fml
@@ -156,8 +156,9 @@ STATIC_URL = "static/"
 AUTH_USER_MODEL = "eventos_session.Usuario"
 
 BASE_SYSTEM_URL = os.getenv("BASE_SYSTEM_URL", "http://localhost:8000")
-API_KEY = os.getenv("API_KEY", "your-api-key")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
+SYSTEM_ID = os.getenv("SYSTEM_ID", "")
+API_KEY = os.getenv("API_KEY", "")
+JWT_SECRET_KEY = SECRET_KEY
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = 1

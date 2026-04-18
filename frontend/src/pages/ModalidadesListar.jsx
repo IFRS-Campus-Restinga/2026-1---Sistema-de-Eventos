@@ -8,10 +8,13 @@ import { Button } from 'react-bootstrap';
 import { MdArrowBack } from 'react-icons/md';
 import { useModalidades } from '../hooks/useModalidades';
 import Alerta from '../components/common/Alerta';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
     const { modalidades, excluirModalidades } = useModalidades();
+    const [mostrarModal, setMostrarModal] = useState(false);
+    const [idSelecionado, setIdSelecionado] = useState(null);
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
@@ -27,12 +30,6 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
         }));
 
     async function handleExcluirModalidade(id) {
-        const confirmou = window.confirm(
-            'Tem certeza que deseja excluir esta modalidade?',
-        );
-
-        if (!confirmou) return;
-
         try {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
@@ -55,7 +52,10 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                         textoAdicionar="Adicionar Modalidade"
                         rotaAdicionar="/adicionarModalidade"
                         rotaEditarBase="/editarModalidade"
-                        onDeletar={(id) => handleExcluirModalidade(id)}
+                        onDeletar={(id) => {
+                            setMostrarModal(true);
+                            setIdSelecionado(id);
+                        }}
                         paginacao={3}
                     />
                     <div className="d-flex justify-content-end mt-4">
@@ -69,6 +69,17 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                     </div>
                 </Container>
             </main>
+            <ModalPopup
+                show={mostrarModal}
+                titulo="Aviso!"
+                tituloSecundario="Excluir Modalidade"
+                onAcao={() => {
+                    handleExcluirModalidade(idSelecionado);
+                    setMostrarModal(false);
+                }}
+                onFechar={() => setMostrarModal(false)}
+                textoAcao="Excluir"
+            />
             {alerta.mensagem && (
                 <Alerta
                     mensagem={alerta.mensagem}

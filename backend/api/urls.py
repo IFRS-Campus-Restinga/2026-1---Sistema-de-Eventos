@@ -17,6 +17,7 @@ from .views.evento_view import (
     EventoDeleteView,
     EventoDetailView,
     EventoListView,
+    EventoOrganizadorView,
     EventoUpdateView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
@@ -56,6 +57,7 @@ urlpatterns = [
     path('eventos/<int:pk>/delete/', EventoDeleteView.as_view()),
     # path pra colocar um coordenador no evento
     path('eventos/<int:pk>/coordenador/', EventoCoordenadorView.as_view()),
+    path('eventos/<int:pk>/organizador/', EventoOrganizadorView.as_view()),
     path('modalidades/', ModalidadeListView.as_view()),
     path("modalidades/<int:pk>/",ModalidadeDetailView.as_view()),
     path('tipo_campo/', TipoCampoListView.as_view()),

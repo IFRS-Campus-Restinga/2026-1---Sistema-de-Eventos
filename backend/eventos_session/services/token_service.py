@@ -154,21 +154,34 @@ def split_name_from_username(username: str | None) -> tuple[str, str]:
 
 
 def is_technical_username(value: str | None) -> bool:
+    """Retorna True apenas para usernames gerados automaticamente (hub_<uuid>)."""
     text = str(value or "").strip().lower()
-    return text.startswith("hub_") or "@" not in text
+    return text.startswith("hub_")
 
 
 def build_hub_auth_cookies(request_cookies: dict | None) -> dict:
-    """Extrai apenas cookies de autenticacao reutilizaveis no Hub."""
-    if not request_cookies:
-        return {}
+    """Extrai cookies de autenticacao reutilizaveis no Hub.
 
+    Quando nao ha cookies de usuario (fluxo ?system=<api_key>), usa a
+    api_key do sistema como credencial via cookie 'system', conforme
+    suportado pelo Hub para autenticacao server-to-server.
+    """
     allowed = ("access_token", "refresh_token", "sessionid", "csrftoken")
-    return {
-        name: value
-        for name, value in ((k, request_cookies.get(k)) for k in allowed)
-        if value
-    }
+    cookies = {}
+
+    if request_cookies:
+        cookies = {
+            name: value
+            for name, value in ((k, request_cookies.get(k)) for k in allowed)
+            if value
+        }
+
+    if not cookies:
+        api_key = str(get_setting("API_KEY", "")).strip()
+        if api_key:
+            cookies = {"system": api_key}
+
+    return cookies
 
 
 class ExternalUserService:
@@ -213,7 +226,7 @@ class ExternalUserService:
         try:
             response = requests.get(
                 url,
-                params={"fields": "cpf"},
+                params={"fields": "cpf,registration"},
                 cookies=cookies,
                 timeout=10,
             )
@@ -227,7 +240,20 @@ class ExternalUserService:
                 find_cpf_candidate(payload),
                 find_valid_cpf_anywhere(payload),
             )
-            return {"cpf": cpf}
+            matricula = ExternalUserService._pick_first_non_empty(
+                payload.get("registration"),
+                payload.get("matricula"),
+            )
+            logger.warning(
+                "[Hub additional_infos] CPF=%s, matricula=%s para user_id=%s",
+                cpf,
+                matricula,
+                external_user_id,
+            )
+            return {
+                "cpf": cpf,
+                "matricula": matricula,
+            }
         except requests.RequestException as exc:
             logger.warning(
                 "Falha ao buscar additional_infos para external_user_id=%s: %s",
@@ -265,17 +291,32 @@ class ExternalUserService:
         try:
             identity_response = requests.get(
                 url,
-                params={"fields": "id,username,email,nome,cpf"},
+                params={"fields": "id,username,email,nome,cpf,registration,access_profile"},
                 cookies=hub_cookies,
                 timeout=10,
             )
             identity_response.raise_for_status()
-            identity_data = ExternalUserService._extract_user_payload(identity_response.json())
+            raw_response_json = identity_response.json()
+            logger.warning(
+                "[Hub get_user_data] STATUS=%s URL=%s raw_json for %s: %s",
+                identity_response.status_code,
+                url,
+                external_user_id,
+                raw_response_json,
+            )
+            identity_data = ExternalUserService._extract_user_payload(raw_response_json)
+            logger.warning(
+                "[Hub get_user_data] after extract for %s: %s",
+                external_user_id,
+                identity_data,
+            )
 
             raw_username = str(identity_data.get("username") or "").strip()
+            raw_nome = str(identity_data.get("nome") or "").strip()
             technical = f"hub_{external_user_id}"
             username = raw_username or technical
-            display_name = username
+            # Prefere o campo 'nome' do Hub como display_name se disponível
+            display_name = raw_nome or raw_username or technical
 
             if is_technical_username(display_name):
                 display_name = (
@@ -325,6 +366,8 @@ class ExternalUserService:
                 "username": username,
                 "display_name": display_name,
                 "email": str(identity_data.get("email") or "").strip(),
+                "nome": raw_nome,
+                "access_profile": str(identity_data.get("access_profile") or "").strip(),
                 "cpf": ExternalUserService._pick_first_non_empty(
                     additional_info.get("cpf"),
                     identity_data.get("cpf"),
@@ -334,6 +377,7 @@ class ExternalUserService:
                 ),
                 "groups": group_names,
             }
+
         except requests.RequestException:
             technical = f"hub_{external_user_id}"
             return {
@@ -550,26 +594,36 @@ class TokenService:
                 "Falha ao consultar dados do usuário no Hub (/api/users/get/<id>/)."
             )
 
+        # complete_data complementa os dados básicos mas não é bloqueante —
+        # no fluxo ?system= o Hub não aceita /get/data/ com credencial de sistema.
         if not complete_data:
-            raise TokenValidationError(
-                "Falha ao consultar dados completos no Hub (/api/users/get/data/)."
-            )
-
-        if not additional_info:
-            raise TokenValidationError(
-                "Falha ao consultar dados adicionais no Hub (/api/users/additional_infos/get/<id>/)."
-            )
+            complete_data = {}
         
         technical = f"hub_{external_user_id}"
         username = external_data.get("username", technical)
         display_name = external_data.get("display_name", username)
-        first_name, last_name = split_name_from_username(username)
+        first_name, last_name = split_name_from_username(display_name if not is_technical_username(display_name) else username)
         email = (complete_data.get("email") or external_data.get("email") or "").strip()
         email = email or None
         cpf = normalize_cpf_or_none(
             additional_info.get("cpf")
             or complete_data.get("cpf")
             or external_data.get("cpf")
+        )
+        nome = (
+            external_data.get("nome")
+            or complete_data.get("nome")
+            or display_name
+        ).strip()[:255]
+        access_profile = (
+            external_data.get("access_profile")
+            or complete_data.get("access_profile")
+            or ""
+        )
+        matricula = additional_info.get("matricula") or None
+        logger.warning(
+            "[pair_token] matricula from additional_info: %s",
+            matricula,
         )
 
         # O usuário local é apenas um vínculo técnico estável com o id externo.
@@ -580,10 +634,11 @@ class TokenService:
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "nome": display_name[:255],  # Campo obrigatório do modelo personalizado
+            "nome": nome,
             "cpf": cpf,
-            "hub_id": external_user_id,  # ID do HUB
-            "access_profile": "",
+            "matricula": matricula,
+            "hub_id": external_user_id,
+            "access_profile": access_profile,
         }
 
         # Atualiza com dados completos se disponíveis
@@ -625,6 +680,7 @@ class TokenService:
             user.email = user_defaults["email"]
             user.nome = user_defaults["nome"]
             user.cpf = user_defaults["cpf"]
+            user.matricula = user_defaults["matricula"]
             user.access_profile = user_defaults["access_profile"]
             user.save()
         else:
@@ -641,17 +697,18 @@ class TokenService:
         if not created:
             user.first_name = first_name
             user.last_name = last_name
-            user.email = (complete_data.get("email") or external_data.get("email") or user.email or "").strip() or None
-            if complete_data:
-                user.nome = complete_data.get("nome", user.nome)[:255]
-                user.access_profile = complete_data.get("access_profile", user.access_profile)
-            user.cpf = normalize_cpf_or_none(complete_data.get("cpf") or external_data.get("cpf"))
+            user.email = email
+            user.nome = nome
+            user.cpf = cpf
+            user.matricula = matricula
+            user.access_profile = access_profile
             user.save()
 
         # Preserva último nome amigável conhecido e evita sobrescrever por id técnico.
-        if not is_technical_username(display_name):
-            user.nome = display_name[:255]
-            user.save(update_fields=["nome"])
+        if not is_technical_username(nome):
+            if user.nome != nome:
+                user.nome = nome
+                user.save(update_fields=["nome"])
         elif user.nome and not is_technical_username(user.nome):
             display_name = user.nome
 
@@ -696,6 +753,8 @@ class TokenService:
             "last_name": user.last_name,
             "email": user.email,
             "cpf": user.cpf,
+            "matricula": user.matricula,
+            "created": created,
             "groups": metadata["groups"],
             "group": metadata["groups"][0] if metadata["groups"] else "user",
         }

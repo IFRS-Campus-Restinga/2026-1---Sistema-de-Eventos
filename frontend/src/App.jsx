@@ -55,6 +55,8 @@ function App() {
                 <Route path="/cadastroComplementar"  element={<CadastroComplementar />} />
                 <Route path="/session/token/" element={<SessionTokenCallback />} />
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
+                <Route path="/session/auth" element={<SessionTokenCallback />} />
+                <Route path="/session/auth/*" element={<SessionTokenCallback />} />
                 <Route path="/teste"  element={<Teste />} />
                 <Route path="/listarModalidades"  element={<ModalidadesListar />} />
                 <Route path="/adicionarModalidade"  element={<ModalidadeFormulario />} />

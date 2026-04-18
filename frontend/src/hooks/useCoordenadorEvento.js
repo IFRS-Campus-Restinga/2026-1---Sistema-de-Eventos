@@ -1,9 +1,28 @@
 import { useState } from 'react';
-import { definirCoordenadorEvento } from '../services/eventoService';
+import {
+    definirCoordenadorEvento,
+    listarCoordenadoresEvento,
+} from '../services/eventoService';
 
 export function useCoordenadorEvento() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [coordenadores, setCoordenadores] = useState([]);
+
+    const carregarCoordenadores = async (eventoId) => {
+        if (!eventoId) {
+            setCoordenadores([]);
+            return;
+        }
+
+        try {
+            const response = await listarCoordenadoresEvento(eventoId);
+            setCoordenadores(response?.coordenadores || []);
+        } catch (erro) {
+            console.error('erro ao listar coordenadores:', erro);
+            setCoordenadores([]);
+        }
+    };
 
     const handleDefinirCoordenador = async (eventoId, userId) => {
         if (!eventoId || !userId) {
@@ -17,6 +36,7 @@ export function useCoordenadorEvento() {
         setLoading(true);
         try {
             const response = await definirCoordenadorEvento(eventoId, userId);
+            setCoordenadores(response?.coordenadores || []);
             setMessage({
                 type: 'success',
                 text: `${response.coordenador.username} agora é coordenador`,
@@ -33,6 +53,8 @@ export function useCoordenadorEvento() {
     };
 
     return { handleDefinirCoordenador, 
+        carregarCoordenadores,
+        coordenadores,
         loading, 
         message, 
         setMessage };
