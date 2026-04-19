@@ -98,7 +98,7 @@ export default function DefinirCoordenadorEvento({
                                                 key={user.id}
                                                 value={user.id}
                                             >
-                                                {user.username}
+                                                {user.nome}
                                             </option>
                                         ))}
                                     </Form.Select>

@@ -3,7 +3,7 @@ import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import EspacoCard from '../components/common/EspacoCard';
+import EspacoCard from '../components/cards_listagem/EspacoCard';
 import Button from 'react-bootstrap/esm/Button';
 import { MdArrowBack, MdCheckCircle } from 'react-icons/md';
 import { useState, useEffect } from 'react';

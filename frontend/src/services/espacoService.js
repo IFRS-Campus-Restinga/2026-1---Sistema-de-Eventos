@@ -2,7 +2,7 @@ import { API_URL } from '../config';
 import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
-export const pegarEspacos = async (localId = Null) => {
+export const pegarEspacos = async (localId = null) => {
     try {
         let url = `${API_URL}/api/espacos/`;
         if (localId) {
@@ -41,6 +41,7 @@ export const criarEspaco = async (dados) => {
 
         const response = await axios.post(`${API_URL}/api/espacos/`, dados, {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         });
 
         return response.data;
@@ -63,6 +64,7 @@ export const atualizarEspaco = async (id, dados) => {
             dados,
             {
                 headers: { 'X-CSRFToken': csrfToken },
+                withCredentials: true,
             },
         );
 
@@ -81,6 +83,7 @@ export const excluirEspaco = async (id) => {
         const csrfToken = csrfData?.csrfToken || '';
         const response = await axios.delete(`${API_URL}/api/espacos/${id}/`, {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         });
         return response.data;
     } catch (erro) {
