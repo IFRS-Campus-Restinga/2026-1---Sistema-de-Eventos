@@ -16,6 +16,7 @@ export default function RenderizarCampo({
     estadoFase,
 }) {
     const temErro = eArray(erro) && erro.length > 0;
+    const desativado = !!campo?.desativado;
 
     function atualizarValor(valor) {
         setValores((anterior) => ({ ...anterior, [id]: valor }));
@@ -36,6 +37,7 @@ export default function RenderizarCampo({
                     value={valorAtual ?? ''}
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
+                    disabled={desativado}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -61,6 +63,7 @@ export default function RenderizarCampo({
                     value={valorAtual ?? ''}
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
+                    disabled={desativado}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -82,6 +85,7 @@ export default function RenderizarCampo({
                     onChange={(e) => atualizarValor(e.target.checked)}
                     id={id}
                     isInvalid={temErro}
+                    disabled={desativado}
                 />
                 {temErro && (
                     <div className="invalid-feedback d-block">
@@ -100,6 +104,7 @@ export default function RenderizarCampo({
                     value={valorAtual ?? ''}
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
+                    disabled={desativado}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -129,6 +134,7 @@ export default function RenderizarCampo({
                         atualizarValor(bruto === '' ? '' : Number(bruto));
                     }}
                     className="py-3"
+                    disabled={desativado}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -147,6 +153,7 @@ export default function RenderizarCampo({
                 <Form.Select
                     value={valorAtual ?? '#'}
                     className="py-3"
+                    disabled={desativado}
                     isInvalid={temErro}
                     id={id}
                     onChange={(e) => atualizarValor(e.target.value)}
@@ -178,6 +185,7 @@ export default function RenderizarCampo({
             <Button
                 variant={campo?.variant}
                 className="border-0 mt-2 text-decoration-none text-white"
+                disabled={desativado}
                 style={{ background: campo?.background }}
                 as={Link}
                 to={campo?.to}
@@ -195,9 +203,11 @@ export default function RenderizarCampo({
                     campo?.placeholder || `Envie ${campo?.titulo || 'arquivos'}`
                 }
                 onChange={(e) =>
+                    !desativado &&
                     atualizarValor(e.target.files && e.target.files[0])
                 }
                 className="py-3"
+                disabled={desativado}
                 id={id}
             />
         );
@@ -215,6 +225,7 @@ export default function RenderizarCampo({
                 setEntradasDatalist={estadoDatalist.setEntradasDatalist}
                 mostrarDatalist={estadoDatalist.mostrarDatalist}
                 setMostrarDatalist={estadoDatalist.setMostrarDatalist}
+                desativado={desativado}
             />
         );
     }
@@ -228,6 +239,7 @@ export default function RenderizarCampo({
                 setFases={estadoFase.setFases}
                 mostrarOpcoes={estadoFase.mostrarOpcoes}
                 setMostrarOpcoes={estadoFase.setMostrarOpcoes}
+                desativado={desativado}
             />
         );
     }

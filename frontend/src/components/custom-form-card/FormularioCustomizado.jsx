@@ -200,6 +200,9 @@ export default function CustomFormCard({
                                     return (
                                         <div key={i}>
                                             {lista.map((campo, idxCampo) => {
+                                                if (campo?.visivel === false)
+                                                    return null;
+
                                                 const id = `${chaveInstancia}-${campo.tipo}-${i}-${idxCampo}`;
                                                 const erro = obterErrosCampo(
                                                     erros,

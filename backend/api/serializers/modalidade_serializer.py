@@ -32,6 +32,8 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             "campos",
             "nome",
             "requer_avaliacao",
+            "requer_avaliacao_submissao",
+            "limite_avaliadores",
             "emite_certificado",
             "campos",
             "criterios",

@@ -17,21 +17,27 @@ import {
     MdAccessTime,
     MdBusiness,
     MdInfoOutline,
+    MdLocationOn
 } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { listarEventos, deletarEvento } from '../services/eventoService';
+import { listarEventos, deletarEvento,atualizarEvento } from '../services/eventoService';
 import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta'
+import ModalPopup from '../components/common/ModalPopup'
+
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
     const [alerta,setAlerta] = useState('')
+    const [error, setError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -49,15 +55,27 @@ export default function EventosListar() {
         }
     };
 
-    const excluirEvento = async (id) => {
-        if (!window.confirm('Tem certeza que deseja excluir este evento?'))
-            return;
+    const confirmarExclusao = (evento) => {
+        setEventoParaExcluir(evento);
+        setShowModal(true);
+        
+    };
+
+    const excluirEvento = async () => {
+        if (!eventoParaExcluir?.id) return;
 
         try {
-            const data = await deletarEvento(id)
+            const data = await deletarEvento(eventoParaExcluir.id)
+            setShowModal(false);
+            setEventos((prev) => prev.filter((e) => e.id !== eventoParaExcluir.id));
             setAlerta('success');
-            setMensagem(data.msg);
-            setEventos((prev) => prev.filter((e) => e.id !== id));
+            setMensagem(data.msg || "Evento excluído!");
+
+        // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
+            setTimeout(() => {
+                setEventoParaExcluir(null);
+            }, 300);
+            
         
         } catch (error) {
             console.error("Erro na exclusão:", error);
@@ -66,6 +84,31 @@ export default function EventosListar() {
             setMensagem(erroMsg);
         }
     };
+
+    const editarEvento = async (id, dados) => {
+            setMensagem("")
+            try {
+                const eventoAtualizado = await atualizarEvento(id, dados);
+    
+                // atualiza lista
+                setEventos((prev) =>
+                    prev.map((evento) =>
+                        evento.id === id ? eventoAtualizado : evento,
+                    ),
+                );
+    
+                setMensagem('evento atualizado com sucesso!');
+                return true;
+            } catch (erro) {
+                console.error('Erro ao atualizar local:', erro);
+    
+                setError(erro.response?.data || 'Erro ao atualizar local');
+                return false;
+            } finally {
+                setLoading(false);
+            }
+        };
+    
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -146,6 +189,14 @@ export default function EventosListar() {
                                                             </strong>{' '}
                                                             {evento.setor}
                                                         </span>
+
+                                                        <span className="d-flex align-items-center gap-1">
+                                                            <MdLocationOn />{' '}
+                                                            <strong>
+                                                                Local:
+                                                            </strong>{' '}
+                                                            {evento.local?.nome || "Carregando..."}
+                                                        </span>
                                                     </div>
                                                 </div>
 
@@ -177,17 +228,33 @@ export default function EventosListar() {
                                                         Designar Coordenador de
                                                         Evento
                                                     </Button>
-
+                                                    
+                                                    <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        as={Link}
+                                                        to={`/atribuirOrganizador?eventoId=${evento.id}`}
+                                                    >
+                                                        Designar Organizador de
+                                                        Evento
+                                                    </Button>
                                                     <Button
                                                         variant="danger"
                                                         size="sm"
                                                         onClick={() =>
-                                                            excluirEvento(
-                                                                evento.id,
-                                                            )
+                                                            confirmarExclusao(evento)
                                                         }
                                                     >
                                                         <MdDelete size={22}/>
+                                                    </Button>
+
+                                                    <Button
+                                                    variant='warning'
+                                                    size='sm'
+                                                    onClick={()=>
+                                                        navigate(`/editarEvento/${evento.id}`)
+                                                    }>
+                                                       <MdEdit size={22}/> 
                                                     </Button>
                                                 </div>
                                             </ListGroup.Item>
@@ -221,17 +288,7 @@ export default function EventosListar() {
                         </Container>
                     </Card>
 
-                    {/* Voltar */}
-                    <div className="d-flex justify-content-end mt-4">
-                        <Button
-                            onClick={() => navigate(-1)}
-                            variant="outline-secondary"
-                            className="d-flex align-items-center gap-2 px-4 py-2"
-                        >
-                            <MdArrowBack /> Voltar
-                        </Button>
-                        
-                    </div>
+                    
                     {mensagem &&(
                         <div>
                             <Alerta
@@ -249,6 +306,18 @@ export default function EventosListar() {
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}
                 campus="Campus Restinga"
+            />
+            <ModalPopup
+                show={showModal}
+                titulo={`${eventoParaExcluir?.nome}` || 'Excluir Evento'}
+                tituloSecundario=''
+                texto='Quer realmente excluir o evento?'
+                textoFechar='Voltar'
+                onFechar={()=> setShowModal(false)}
+                textoAcao='excluir'
+                onAcao={excluirEvento}
+                variante='danger'
+
             />
         </div>
     );

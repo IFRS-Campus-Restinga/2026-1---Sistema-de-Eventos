@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from api.enumerations import AreaConhecimento, NivelEnsino
+from api.enumerations import AreaConhecimentoEscolha, NivelEnsino
 
 from .base import Base
 
@@ -16,7 +16,7 @@ class Perfil(Base):
     )
 
     area_conhecimento = models.CharField(
-        max_length=50, choices=AreaConhecimento.choices, blank=True, null=True
+        max_length=50, choices=AreaConhecimentoEscolha.choices, blank=True, null=True
     )
 
     class Meta:

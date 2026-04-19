@@ -10,6 +10,7 @@ export default function CampoFase({
     setFases,
     mostrarOpcoes,
     setMostrarOpcoes,
+    desativado,
 }) {
     const chave = campo?.name || campo?.list || id;
     const preFases = campo?.fases || [];
@@ -62,12 +63,14 @@ export default function CampoFase({
                                 className="fw-bold"
                                 checked={!!fase.ativo}
                                 onChange={(e) =>
+                                    !desativado &&
                                     atualizarFase(
                                         idx,
                                         'ativo',
                                         e.target.checked,
                                     )
                                 }
+                                disabled={desativado}
                             />
                             <small className="text-muted">
                                 {fase?.descricao || campo?.descricao || ''}
@@ -79,21 +82,26 @@ export default function CampoFase({
                                 type="date"
                                 value={fase.inicio || ''}
                                 onChange={(e) =>
+                                    !desativado &&
                                     atualizarFase(idx, 'inicio', e.target.value)
                                 }
+                                disabled={desativado}
                             />
                             <span>ate</span>
                             <Form.Control
                                 type="date"
                                 value={fase.fim || ''}
                                 onChange={(e) =>
+                                    !desativado &&
                                     atualizarFase(idx, 'fim', e.target.value)
                                 }
+                                disabled={desativado}
                             />
                             <Button
                                 variant="link"
                                 className="btn btn-link text-danger"
-                                onClick={() => removerFase(idx)}
+                                onClick={() => !desativado && removerFase(idx)}
+                                disabled={desativado}
                             >
                                 <BsTrash size={18} />
                             </Button>
@@ -107,11 +115,13 @@ export default function CampoFase({
                     variant="primary"
                     size="sm"
                     onClick={() =>
+                        !desativado &&
                         setMostrarOpcoes((anterior) => ({
                             ...anterior,
                             [chave]: !anterior[chave],
                         }))
                     }
+                    disabled={desativado}
                 >
                     + Adicionar Fase
                 </Button>
@@ -124,12 +134,14 @@ export default function CampoFase({
                                 type="button"
                                 className="list-group-item list-group-item-action"
                                 onClick={() => {
+                                    if (desativado) return;
                                     adicionarFase(opcao);
                                     setMostrarOpcoes((anterior) => ({
                                         ...anterior,
                                         [chave]: false,
                                     }));
                                 }}
+                                disabled={desativado}
                             >
                                 {opcao?.text ??
                                     opcao?.label ??

@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .perms_generic_view import IsAdmin
+from rest_framework.permissions import AllowAny #provisório, apenas para eu conseguir mapear no form de evento
 
 from ..models.local import Local
 from ..serializers import LocalSerializer
@@ -12,7 +13,8 @@ from ..serializers import LocalSerializer
 class LocalListView(APIView):
     queryset = Local.objects.all()
     serializer_class = LocalSerializer
-    permission_classes = [IsAdmin]  # modificado
+    #permission_classes = [IsAdmin]  # modificado
+    permission_classes = [AllowAny] #provisório
 
     def get(self, request, *args, **kwargs):
         locals = Local.objects.all()

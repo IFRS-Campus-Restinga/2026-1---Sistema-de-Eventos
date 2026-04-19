@@ -23,6 +23,11 @@ class Modalidade(Base):
         help_text=_("Informe se a Modalidade requer avaliação"),
     )
 
+    requer_avaliacao_submissao = models.BooleanField(
+        verbose_name=_("Requer Avaliação de Submissão"),
+        help_text=_("Informe se a Modalidade requer avaliação de submissão"),
+    )
+
     emite_certificado = models.BooleanField(
         verbose_name=_("Emite certificado"),
         help_text=_("Informe se a Modalidade emite certificado"),
@@ -35,6 +40,13 @@ class Modalidade(Base):
         default=0,
     )
 
+    limite_avaliadores = models.IntegerField(
+        verbose_name=_("Número de avaliadores"),
+        help_text=_("Informe se há um limite de avaliadores"),
+        validators=[MinValueValidator(0)],
+        default=2,
+    )
+
     ativo = models.BooleanField(
         verbose_name=_("Ativo"),
         help_text=_("Informe se a Modalidade está ativa"),
@@ -43,6 +55,13 @@ class Modalidade(Base):
 
     def clean(self):
         errors = {}
+
+        if ((not self.requer_avaliacao) or (not self.requer_avaliacao_submissao)) and (
+            self.limite_avaliadores and self.limite_avaliadores > 0
+        ):
+            errors["limite_avaliadores"] = _(
+                "Não pode haver limite de avaliadores se não há avaliação."
+            )
 
         if len(self.nome.strip()) < 3:
             errors["nome"] = _("O nome deve ter pelo menos 3 caracteres.")

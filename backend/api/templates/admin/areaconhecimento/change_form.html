@@ -1,0 +1,22 @@
+{% extends "admin/change_form.html" %}
+
+{% block form_top %}
+    <div style="background-color: #e8f4f8; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #059547;">
+        <h3 style="margin-top: 0; color: #059547;">📚 Áreas de Conhecimento Disponíveis:</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+            <div>
+                <strong>1.</strong> Ciências Exatas e da Terra<br>
+                <strong>2.</strong> Ciências Biológicas<br>
+                <strong>3.</strong> Engenharias<br>
+                <strong>4.</strong> Ciências da Saúde
+            </div>
+            <div>
+                <strong>5.</strong> Ciências Agrárias<br>
+                <strong>6.</strong> Ciências Sociais Aplicadas<br>
+                <strong>7.</strong> Ciências Humanas<br>
+                <strong>8.</strong> Linguística Letras e Artes
+            </div>
+        </div>
+    </div>
+{{ block.super }}
+{% endblock %}

@@ -10,10 +10,20 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-from datetime import timedelta
-from dotenv import load_dotenv
 import os
+from datetime import timedelta
+from pathlib import Path
+
+from django.conf import settings
+from django.conf.urls.static import static
+from dotenv import load_dotenv
+
+urlpatterns = (
+    [
+        # suas rotas
+    ]
+    + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+)
 
 load_dotenv()
 
@@ -81,6 +91,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "backend.urls"
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 
 TEMPLATES = [
     {

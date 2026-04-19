@@ -6,6 +6,8 @@ export default function Select({
     value = '',
     textFundo = '',
     onChange = () => {},
+    isInvalid,
+    mensagemErro,
 }) {
     itens = !Array.isArray(itens) ? [] : itens;
     return (
@@ -14,14 +16,22 @@ export default function Select({
                 className={className}
                 value={value}
                 onChange={onChange}
+                isInvalid={isInvalid}
             >
                 <option value="">{textFundo}</option>
                 {itens.map((item) => (
                     <option key={item?.id} value={item?.id}>
-                        {item.name ? item.name : item.username}
+                        {item.nome
+                            ? item.nome
+                            : item.name
+                              ? item.name
+                              : item.username}
                     </option>
                 ))}
             </Form.Select>
+            <Form.Control.Feedback type="invalid">
+                {mensagemErro}
+            </Form.Control.Feedback>
         </>
     );
 }

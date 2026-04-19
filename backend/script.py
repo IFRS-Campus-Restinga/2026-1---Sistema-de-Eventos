@@ -40,13 +40,17 @@ MODALIDADES_DATA = [
     {
         "nome": "Palestra",
         "requer_avaliacao": False,
+        "requer_avaliacao_submissao": False,
         "emite_certificado": True,
+        "limite_avaliadores": 0,
         "ativo": True,
     },
     {
         "nome": "Oficina",
         "requer_avaliacao": True,
+        "requer_avaliacao_submissao": True,
         "emite_certificado": True,
+        "limite_avaliadores": 2,
         "ativo": True,
     },
 ]
@@ -60,6 +64,7 @@ EVENTOS_DATA = [
         "setor": "ENSINO",
         "tema": "Inovação e Tecnologia",
         "modalidades_nomes": ["Palestra", "Oficina"],
+        "local_nome": "Campus Restinga", #
     },
     {
         "nome": "Mostra de Extensão",
@@ -69,6 +74,7 @@ EVENTOS_DATA = [
         "setor": "EXTENSAO",
         "tema": "Integração com a Comunidade",
         "modalidades_nomes": ["Palestra"],
+        "local_nome": "Campus Restinga", #
     },
 ]
 
@@ -184,11 +190,16 @@ def seed_modalidades():
 def seed_eventos():
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
+    from api.models.local import Local
 
     created = []
     existing = []
 
     for item in EVENTOS_DATA:
+        local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
+        if not local:
+             raise RuntimeError(f"Local '{item['local_nome']}' não encontrado para o evento.")
+        
         modalidades = list(
             Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
         )
@@ -210,6 +221,7 @@ def seed_eventos():
             carga_horaria=item["carga_horaria"],
             setor=item["setor"],
             tema=item["tema"],
+            local=local,
         )
         evento.full_clean()
         evento.save()
@@ -221,6 +233,39 @@ def seed_eventos():
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
 
 
+def seed_admin_user():
+    """Cria um superusuário padrão 'admin' com senha 'admin' e o adiciona ao grupo 'Administrador'."""
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    User = get_user_model()
+    username = "admin"
+    password = "admin"
+    group_name = "Administrador"
+
+    user = User.objects.filter(username=username).first()
+    if user:
+        print(f"Superusuário '{username}' já existe.")
+    else:
+        # email obrigatório pode variar; usar email genérico
+        try:
+            User.objects.create_superuser(
+                username=username, email="admin@example.com", password=password
+            )
+            print(f"Superusuário '{username}' criado com sucesso.")
+        except TypeError:
+            # alguns projetos usam campos personalizados (ex.: sem email)
+            user = User.objects.create_superuser(username=username, password=password)
+            print(f"Superusuário '{username}' criado (compatibilidade sem email).")
+
+    # garantir que o grupo exista e adicionar o usuário
+    group, _ = Group.objects.get_or_create(name=group_name)
+    user = User.objects.get(username=username)
+    user.groups.add(group)
+    user.save()
+    print(f"Usuário '{username}' adicionado ao grupo '{group_name}'.")
+
+
 if __name__ == "__main__":
     setup_django()
     seed_groups()
@@ -228,3 +273,4 @@ if __name__ == "__main__":
     seed_espacos()
     seed_modalidades()
     seed_eventos()
+    seed_admin_user()

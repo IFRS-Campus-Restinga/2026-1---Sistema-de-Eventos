@@ -23,6 +23,7 @@ export default function DefinirCoordenadorEvento({
     const { users, loading: loadingUsers } = useUsers();
     const {
         handleDefinirCoordenador,
+        handleRemoverCoordenador,
         carregarCoordenadores,
         coordenadores,
         loading,
@@ -144,18 +145,32 @@ export default function DefinirCoordenadorEvento({
                                         <table className="table table-striped table-bordered align-middle">
                                             <thead className="table-success">
                                                 <tr>
-                                                    <th>ID</th>
                                                     <th>Usuário</th>
                                                     <th>Email</th>
+                                                    <th>Ações</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {coordenadores.map((coordenador) => (
                                                     <tr key={coordenador.id}>
-                                                        <td>{coordenador.id}</td>
                                                         <td>{coordenador.username}</td>
                                                         <td>
                                                             {coordenador.email || '-'}
+                                                        </td>
+                                                        <td>
+                                                            <Button
+                                                                variant="outline-danger"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    handleRemoverCoordenador(
+                                                                        selectedEventoId,
+                                                                        coordenador.id,
+                                                                    )
+                                                                }
+                                                                disabled={loading}
+                                                            >
+                                                                Retirar
+                                                            </Button>
                                                         </td>
                                                     </tr>
                                                 ))}

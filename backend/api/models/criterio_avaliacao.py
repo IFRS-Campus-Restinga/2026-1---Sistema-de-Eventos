@@ -39,14 +39,19 @@ class CriterioAvaliacao(Base):
         if len(self.descricao.strip()) <= 3:
             errors["descricao"] = _("A descrição deve ter pelo menos 3 caracteres.")
 
-        # if (
-        #     Modalidade.objects.filter(
-        #         nome__iexact=self.nome,
-        #     )
-        #     .exclude(pk=self.pk)
-        #     .exists()
-        # ):
-        #     errors["__all__"] = _("Já existe uma Modalidade com esse nome.")
+        # Verifica se a modalidade vinculada requer avaliação
+        modalidade = getattr(self, "modalidade", None)
+        if modalidade is None and getattr(self, "modalidade_id", None):
+            modalidade = Modalidade.objects.filter(pk=self.modalidade_id).first()
+
+        if (
+            modalidade
+            and not modalidade.requer_avaliacao
+            or not modalidade.requer_avaliacao_submissao
+        ):
+            errors["modalidade"] = _(
+                "Não é possível vincular um critério a uma modalidade que não requer avaliação."
+            )
 
         if errors:
             raise ValidationError(errors)

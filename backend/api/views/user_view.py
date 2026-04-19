@@ -8,7 +8,7 @@ from api.serializers.users_serializer import (
     UserPermissoesSerializer,
     UserPermissoesUpdateSerializer,
 )
-from .perms_generic_view import IsAdmin
+from .perms_generic_view import IsAdmin, PodeCoordenarEvento
 
 
 User = get_user_model()
@@ -17,7 +17,8 @@ User = get_user_model()
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAdmin]
+    # Coordenadores também precisam dessa lista para atribuir os organizadores
+    permission_classes = [PodeCoordenarEvento]
 
 
 class UserGruposView(generics.RetrieveUpdateAPIView):

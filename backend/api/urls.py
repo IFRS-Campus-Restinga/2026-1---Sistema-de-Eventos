@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import csrf_token_view as views
+from .views.arquivo_view import ArquivoListView
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
@@ -26,6 +27,7 @@ from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
+from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
 
@@ -36,7 +38,7 @@ urlpatterns = [
     # paths relacionados a local
     path("locais/", LocalListView.as_view()),
     path("eventos/", EventoListView.as_view()),
-    path("eventos/opcoes/",OpcoesFormularioView.as_view()),
+    path("eventos/opcoes/", OpcoesFormularioView.as_view()),
     path("locais/<int:pk>/", LocalDetailView.as_view()),
     path("espacos/", EspacoListView.as_view()),
     path("espacos/<int:pk>/", EspacoDetailView.as_view()),
@@ -66,5 +68,10 @@ urlpatterns = [
     path('campo_formulario/<int:pk>/', CampoFormularioDetailView.as_view()),
     path('criterio_avaliacao/', CriterioAvaliacaoListView.as_view()),
     path('criterio_avaliacao/<int:pk>/', CriterioAvaliacaoDetailView.as_view()),
+    # paths relacionados a arquivos
+    path("arquivos/", ArquivoListView.as_view()),
+    # paths relacionados a cronogramas
+    path("cronogramas/", CronogramaListView.as_view()),
+    path("cronogramas/<int:pk>/", CronogramaDetailView.as_view()),
 ]
 # fmt: on

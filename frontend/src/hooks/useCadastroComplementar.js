@@ -3,8 +3,6 @@ import {
     salvarInformacoesComplementares,
     buscarOpcoesCadastro,
 } from '../services/cadastroComplementarService';
-
-// função de autenticação
 import { checkSession } from '../services/authService';
 
 export function useCadastroComplementar() {
@@ -14,6 +12,8 @@ export function useCadastroComplementar() {
         mensagem: '',
         variacao: '',
     });
+
+    const [erroValidacao, setErroValidacao] = useState('');
 
     const [usuarioHub, setUsuarioHub] = useState(null);
     const [carregandoUsuario, setCarregandoUsuario] = useState(true);
@@ -30,17 +30,15 @@ export function useCadastroComplementar() {
                     setOpcoes({ niveis: [], areas: [] });
                 }
             } catch (e) {
-                console.error('Erro ao carregar opções do Django', e);
+                console.error('Erro ao carregar níveis/areas', e);
                 setOpcoes({ niveis: [], areas: [] });
             }
 
             try {
-                // autenticação
                 const authResult = await checkSession();
 
                 if (authResult.authenticated && authResult.user) {
                     const { user } = authResult;
-
                     setUsuarioHub({
                         id: user.id,
                         nome:
@@ -52,7 +50,6 @@ export function useCadastroComplementar() {
                         cpf: user.cpf,
                     });
                 } else {
-                    // Se o checkSession veriricar que não está autenticado, anulamos o estado
                     setUsuarioHub(null);
                 }
             } catch (e) {
@@ -93,5 +90,7 @@ export function useCadastroComplementar() {
         notificacao,
         usuarioHub,
         carregandoUsuario,
+        erroValidacao,
+        setErroValidacao,
     };
 }

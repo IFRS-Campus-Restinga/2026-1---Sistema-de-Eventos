@@ -13,6 +13,7 @@ export default function CampoDatalist({
     setEntradasDatalist,
     mostrarDatalist,
     setMostrarDatalist,
+    desativado,
 }) {
     const chave = campo?.list;
     const preSelecionadas = campo?.areas || [];
@@ -36,6 +37,7 @@ export default function CampoDatalist({
         : opcoesFiltradas;
 
     function adicionar(opcao) {
+        if (desativado) return;
         setSelecoes((anterior) => {
             const atuais =
                 chave in anterior ? anterior[chave] : preSelecionadas;
@@ -48,6 +50,7 @@ export default function CampoDatalist({
     }
 
     function remover(valor) {
+        if (desativado) return;
         setSelecoes((anterior) => {
             const atuais =
                 chave in anterior ? anterior[chave] : preSelecionadas;
@@ -98,6 +101,7 @@ export default function CampoDatalist({
                                 [chave]: e.target.value,
                             }))
                         }
+                        disabled={desativado}
                         onFocus={() =>
                             setMostrarDatalist((anterior) => ({
                                 ...anterior,
@@ -137,16 +141,27 @@ export default function CampoDatalist({
                                     key={idx}
                                     type="button"
                                     className="list-group-item list-group-item-action"
-                                    onMouseDown={() => {
-                                        setEntradasDatalist((anterior) => ({
-                                            ...anterior,
-                                            [chave]: opcao.text ?? opcao.value,
-                                        }));
-                                        setMostrarDatalist((anterior) => ({
-                                            ...anterior,
-                                            [chave]: false,
-                                        }));
-                                    }}
+                                    onMouseDown={
+                                        desativado
+                                            ? undefined
+                                            : () => {
+                                                  setEntradasDatalist(
+                                                      (anterior) => ({
+                                                          ...anterior,
+                                                          [chave]:
+                                                              opcao.text ??
+                                                              opcao.value,
+                                                      }),
+                                                  );
+                                                  setMostrarDatalist(
+                                                      (anterior) => ({
+                                                          ...anterior,
+                                                          [chave]: false,
+                                                      }),
+                                                  );
+                                              }
+                                    }
+                                    disabled={desativado}
                                 >
                                     {opcao.text ?? opcao.value}
                                 </button>
@@ -158,6 +173,7 @@ export default function CampoDatalist({
                 <Button
                     className="btn btn-success"
                     onClick={() => {
+                        if (desativado) return;
                         const encontrado = opcoesFiltradas.find(
                             (o) =>
                                 String(o.text || o.value).toLowerCase() ===
@@ -167,6 +183,7 @@ export default function CampoDatalist({
                         );
                         if (encontrado) adicionar(encontrado);
                     }}
+                    disabled={desativado}
                 >
                     Adicionar
                 </Button>

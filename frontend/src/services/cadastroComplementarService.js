@@ -1,7 +1,6 @@
 import { API_URL } from '../config';
 import axios from 'axios';
 
-// GET para popoular Selects do fomulário, Enuns(Nível de Ensino e Área do Conhecimento)
 export const buscarOpcoesCadastro = async () => {
     try {
         const response = await axios.get(
@@ -18,12 +17,8 @@ export const buscarOpcoesCadastro = async () => {
     }
 };
 
-// POST com Token
 export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
     try {
-        // Acessamos o token de acesso do localStorage para autenticar a requisição
-        const accessToken = localStorage.getItem('access_token');
-
         const response = await axios.post(
             `${API_URL}/api/usuarios/cadastro-complementar/`,
             dados,
@@ -31,8 +26,6 @@ export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
                 withCredentials: true,
                 headers: {
                     'X-CSRFToken': tokenCsrf,
-                    // Autorização do token no request
-                    Authorization: `Bearer ${accessToken}`,
                 },
             },
         );

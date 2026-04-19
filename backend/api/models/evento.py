@@ -4,10 +4,12 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.contrib import admin
 from ..enumerations.status_evento import StatusEvento
 from ..enumerations.setor import Setor
 from .base import Base
 from .modalidade import Modalidade
+from .local import Local
 from django.core.exceptions import ValidationError
 
 
@@ -46,6 +48,7 @@ class Evento(Base):
         max_length=100,
         validators=[MaxLengthValidator(100)],
     )
+    local = models.ForeignKey(Local, on_delete=models.CASCADE, null=False,blank=False)
 
     # futuramente, fazer relacionamento com local
     class Meta:
@@ -79,6 +82,15 @@ class Evento(Base):
             errors["setor"] = "Este campo não pode estar em branco"
         elif self.status_evento == "" or not self.status_evento.strip():
             errors["status_evento"] = "Este campo não pode estar em branco"
+        if not hasattr(self, 'local') or self.local is None:
+            errors["local"] = "Você deve selecionar um local para o evento."
+        
 
         if errors:
             raise ValidationError(errors)
+
+
+class EventoAdmin(admin.ModelAdmin):
+    list_display = ("id", "nome", "status_evento", "setor", "carga_horaria")
+    list_filter = ("status_evento", "setor")
+    search_fields = ("nome", "tema")

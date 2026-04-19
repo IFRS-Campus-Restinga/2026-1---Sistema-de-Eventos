@@ -1,25 +1,19 @@
-// React
 import { useState } from 'react';
 import Container from 'react-bootstrap/esm/Container';
-
-// Bootstrap básicos
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Form from 'react-bootstrap/esm/Form';
 import Button from 'react-bootstrap/esm/Button';
 import { Spinner } from 'react-bootstrap';
 
-// Componentes do Projeto
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Select from '../components/common/Select';
-
-// Hooks
-import { useCsrf } from '../hooks/useCsrf';
-import { useCadastroComplementar } from '../hooks/useCadastroComplementar';
 import Alerta from '../components/common/Alerta.jsx';
 
-//Recebimento de informações do Hub de Sistemas
+import { useCsrf } from '../hooks/useCsrf';
+import { useCadastroComplementar } from '../hooks/useCadastroComplementar';
+
 export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
     const {
         executarSalvamento,
@@ -28,19 +22,69 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
         notificacao,
         usuarioHub,
         carregandoUsuario,
+        erroValidacao,
+        setErroValidacao,
     } = useCadastroComplementar();
 
-    const { csrfToken } = useCsrf(); //Token CSRF
+    const { csrfToken } = useCsrf();
 
-    // Estados para guardar o que o usuário selecionou
     const [nivelSelecionado, setNivelSelecionado] = useState('');
     const [areaSelecionada, setAreaSelecionada] = useState('');
+    const [errosIndividuais, setErrosIndividuais] = useState({});
 
     const clicarEmSalvar = () => {
         if (!usuarioHub) return;
 
+        const camposFaltantes = [];
+        const errosLocais = {};
+
+        if (!nivelSelecionado) {
+            camposFaltantes.push('o Nível de Ensino');
+            errosLocais.nivel = 'Campo obrigatório';
+        } else if (
+            !opcoes.niveis.some(
+                (n) => String(n.id) === String(nivelSelecionado),
+            )
+        ) {
+            errosLocais.nivel = 'Opção inválida';
+        }
+
+        if (!areaSelecionada) {
+            camposFaltantes.push('a Área de Conhecimento');
+            errosLocais.area = 'Campo obrigatório';
+        } else if (
+            !opcoes.areas.some((a) => String(a.id) === String(areaSelecionada))
+        ) {
+            errosLocais.area = 'Opção inválida';
+        }
+
+        setErrosIndividuais(errosLocais);
+
+        if (camposFaltantes.length > 0) {
+            const mensagem = `Por favor, selecione ${camposFaltantes.join(
+                ' e ',
+            )}.`;
+            setErroValidacao('');
+            setTimeout(() => setErroValidacao(mensagem), 50);
+            return;
+        }
+
+        if (errosLocais.nivel || errosLocais.area) {
+            setErroValidacao('');
+            setTimeout(
+                () =>
+                    setErroValidacao(
+                        'Opção selecionada inválida. Por favor, recarregue a página.',
+                    ),
+                50,
+            );
+            return;
+        }
+
+        setErroValidacao('');
+        setErrosIndividuais({});
+
         const dados = {
-            // A linha usuario_id_hub foi removida! O payload ficou mais enxuto.
             nivel_ensino: nivelSelecionado,
             area_conhecimento: areaSelecionada,
         };
@@ -50,6 +94,7 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
     return (
         <div className="d-flex flex-column min-vh-100">
             <NavBar />
+
             {notificacao.mensagem && (
                 <Alerta
                     mensagem={notificacao.mensagem}
@@ -78,6 +123,7 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                         </p>
                                     </Row>
                                 </Row>
+
                                 <Row>
                                     <h6>Sistema de Eventos</h6>
                                     <p className="small fw-light">
@@ -110,62 +156,101 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                         variacao="danger"
                                     />
                                 ) : (
-                                    <Form>
-                                        <Form.Group
-                                            className="mb-3 text-start"
-                                            controlId="nivelEnsino"
-                                        >
-                                            <Form.Label className="fw-bold small mb-1">
-                                                Nível de Ensino
-                                            </Form.Label>
-                                            <Select
-                                                textFundo="Selecione o Nível de Ensino"
-                                                grupos={opcoes.niveis}
-                                                value={nivelSelecionado}
-                                                onChange={(e) =>
-                                                    setNivelSelecionado(
-                                                        e.target.value,
-                                                    )
-                                                }
+                                    <>
+                                        {erroValidacao && (
+                                            <Alerta
+                                                mensagem={erroValidacao}
+                                                variacao="warning"
                                             />
-                                        </Form.Group>
+                                        )}
 
-                                        <Form.Group
-                                            className="mb-4 text-start"
-                                            controlId="areaConhecimento"
-                                        >
-                                            <Form.Label className="fw-bold small mb-1">
-                                                Área do conhecimento
-                                            </Form.Label>
-                                            <Select
-                                                textFundo="Selecione a Área"
-                                                grupos={opcoes.areas}
-                                                value={areaSelecionada}
-                                                onChange={(e) =>
-                                                    setAreaSelecionada(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </Form.Group>
-
-                                        <div className="d-flex justify-content-end">
-                                            <Button
-                                                variant="success"
-                                                className="fw-bold px-4"
-                                                onClick={clicarEmSalvar}
-                                                disabled={
-                                                    carregando ||
-                                                    !nivelSelecionado ||
-                                                    !areaSelecionada
-                                                }
+                                        <Form>
+                                            <Form.Group
+                                                className={`text-start ${
+                                                    errosIndividuais.nivel
+                                                        ? 'mb-3'
+                                                        : 'mb-3 pb-4'
+                                                }`}
+                                                controlId="nivelEnsino"
                                             >
-                                                {carregando
-                                                    ? 'Salvando...'
-                                                    : 'Salvar'}
-                                            </Button>
-                                        </div>
-                                    </Form>
+                                                <Form.Label className="fw-bold small mb-1">
+                                                    Nível de Ensino
+                                                </Form.Label>
+                                                <Select
+                                                    textFundo="Selecione o Nível de Ensino"
+                                                    grupos={opcoes.niveis}
+                                                    value={nivelSelecionado}
+                                                    onChange={(e) => {
+                                                        setNivelSelecionado(
+                                                            e.target.value,
+                                                        );
+                                                        setErroValidacao('');
+                                                        setErrosIndividuais(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                nivel: '',
+                                                            }),
+                                                        );
+                                                    }}
+                                                    isInvalid={
+                                                        !!errosIndividuais.nivel
+                                                    }
+                                                    mensagemErro={
+                                                        errosIndividuais.nivel
+                                                    }
+                                                />
+                                            </Form.Group>
+
+                                            <Form.Group
+                                                className={`text-start ${
+                                                    errosIndividuais.area
+                                                        ? 'mb-4'
+                                                        : 'mb-4 pb-4'
+                                                }`}
+                                                controlId="areaConhecimento"
+                                            >
+                                                <Form.Label className="fw-bold small mb-1">
+                                                    Área do conhecimento
+                                                </Form.Label>
+                                                <Select
+                                                    textFundo="Selecione a Área"
+                                                    grupos={opcoes.areas}
+                                                    value={areaSelecionada}
+                                                    onChange={(e) => {
+                                                        setAreaSelecionada(
+                                                            e.target.value,
+                                                        );
+                                                        setErroValidacao('');
+                                                        setErrosIndividuais(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                area: '',
+                                                            }),
+                                                        );
+                                                    }}
+                                                    isInvalid={
+                                                        !!errosIndividuais.area
+                                                    }
+                                                    mensagemErro={
+                                                        errosIndividuais.area
+                                                    }
+                                                />
+                                            </Form.Group>
+
+                                            <div className="d-flex justify-content-end">
+                                                <Button
+                                                    variant="success"
+                                                    className="fw-bold px-4"
+                                                    onClick={clicarEmSalvar}
+                                                    disabled={carregando}
+                                                >
+                                                    {carregando
+                                                        ? 'Salvando...'
+                                                        : 'Salvar'}
+                                                </Button>
+                                            </div>
+                                        </Form>
+                                    </>
                                 )}
                             </Col>
                         </Row>

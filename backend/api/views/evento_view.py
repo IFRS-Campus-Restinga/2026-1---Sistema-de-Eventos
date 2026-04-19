@@ -8,7 +8,7 @@ from ..serializers.evento_serializer import EventoSerializer
 from ..models.evento import Evento
 
 # from api.permissions import IsAdmin, PodeGerenciarEvento
-from .perms_generic_view import PodeCoordenarEvento
+from .perms_generic_view import PodeCoordenarEvento, PodeGerenciarEquipeEvento
 
 
 def _serializar_usuarios(usuarios):
@@ -42,7 +42,7 @@ class EventoListView(APIView):
 
 
 class EventoDetailView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [AllowAny]
 
     def get(self, request, pk):
         try:
@@ -58,7 +58,7 @@ class EventoDetailView(APIView):
 
 
 class EventoUpdateView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [AllowAny]
 
     def put(self, request, pk):
         try:
@@ -78,7 +78,7 @@ class EventoUpdateView(APIView):
 
 
 class EventoDeleteView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [AllowAny]
 
     def delete(self, request, pk):
         try:
@@ -111,7 +111,9 @@ def _serializar_usuarios(usuarios):
 
 
 class EventoCoordenadorView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [PodeGerenciarEquipeEvento]
+
+    coordenador_perm = "api.coordenar_evento"
 
     def get(self, request, pk):
         try:
@@ -159,9 +161,9 @@ class EventoCoordenadorView(APIView):
             with_group_users=False,
         )
         for user in atuais:
-            remove_perm("api.coordenar_evento", user, evento)
+            remove_perm(self.coordenador_perm, user, evento)
 
-        assign_perm("api.coordenar_evento", novo_coordenador, evento)
+        assign_perm(self.coordenador_perm, novo_coordenador, evento)
 
         return Response(
             {
@@ -182,9 +184,48 @@ class EventoCoordenadorView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    def delete(self, request, pk):
+
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        user_id = request.data.get("user_id")
+
+        if not user_id:
+            return Response({"erro": "Campo user_id é obrigatório"}, status=400)
+
+        try:
+            coordenador_removido = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        remove_perm(self.coordenador_perm, coordenador_removido, evento)
+
+        coordenadores = get_users_with_perms(
+            evento,
+            only_with_perms_in=["coordenar_evento"],
+            with_group_users=False,
+        )
+
+        return Response(
+            {
+                "msg": "Coordenador removido com sucesso",
+                "evento_id": evento.id,
+                "coordenador_removido": {
+                    "id": coordenador_removido.id,
+                    "username": coordenador_removido.username,
+                },
+                "coordenadores": _serializar_usuarios(coordenadores),
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class EventoOrganizadorView(APIView):
-    permission_classes = [PodeCoordenarEvento]
+    permission_classes = [PodeGerenciarEquipeEvento]
 
     organizador_perm = "api.organiza_evento"
 
@@ -241,6 +282,44 @@ class EventoOrganizadorView(APIView):
                 "organizador_adicionado": {
                     "id": novo_organizador.id,
                     "username": novo_organizador.username,
+                },
+                "organizadores": _serializar_usuarios(organizadores),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, pk):
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        user_id = request.data.get("user_id")
+
+        if not user_id:
+            return Response({"erro": "Campo user_id é obrigatório"}, status=400)
+
+        try:
+            organizador_removido = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        remove_perm(self.organizador_perm, organizador_removido, evento)
+
+        organizadores = get_users_with_perms(
+            evento,
+            only_with_perms_in=["organiza_evento"],
+            with_group_users=False,
+        )
+
+        return Response(
+            {
+                "msg": "Organizador removido com sucesso",
+                "evento_id": evento.id,
+                "organizador_removido": {
+                    "id": organizador_removido.id,
+                    "username": organizador_removido.username,
                 },
                 "organizadores": _serializar_usuarios(organizadores),
             },

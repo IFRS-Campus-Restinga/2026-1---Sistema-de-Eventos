@@ -23,8 +23,10 @@ export default function DefinirOrganizadorEvento({
     const { users, loading: loadingUsers } = useUsers();
     const {
         handleDefinirOrganizador,
+        handleRemoverOrganizador,
         carregarOrganizadores,
         organizadores,
+        organizadoresErro,
         loading,
         message,
     } = useOrganizadorEvento();
@@ -135,7 +137,11 @@ export default function DefinirOrganizadorEvento({
                                     Organizadores deste evento
                                 </h5>
 
-                                {organizadores.length === 0 ? (
+                                {organizadoresErro ? (
+                                    <p className="text-danger mb-0">
+                                        {organizadoresErro}
+                                    </p>
+                                ) : organizadores.length === 0 ? (
                                     <p className="text-muted mb-0">
                                         Nenhum organizador atribuído.
                                     </p>
@@ -144,18 +150,32 @@ export default function DefinirOrganizadorEvento({
                                         <table className="table table-striped table-bordered align-middle">
                                             <thead className="table-success">
                                                 <tr>
-                                                    <th>ID</th>
                                                     <th>Usuário</th>
                                                     <th>Email</th>
+                                                    <th>Ações</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {organizadores.map((organizador) => (
                                                     <tr key={organizador.id}>
-                                                        <td>{organizador.id}</td>
-                                                        <td>{organizador.username}</td>
+                                                        <td>{organizador?.username}</td>
                                                         <td>
                                                             {organizador.email || '-'}
+                                                        </td>
+                                                        <td>
+                                                            <Button
+                                                                variant="outline-danger"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    handleRemoverOrganizador(
+                                                                        selectedEventoId,
+                                                                        organizador.id,
+                                                                    )
+                                                                }
+                                                                disabled={loading}
+                                                            >
+                                                                Retirar
+                                                            </Button>
                                                         </td>
                                                     </tr>
                                                 ))}

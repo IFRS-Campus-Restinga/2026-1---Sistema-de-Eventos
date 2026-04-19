@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from api.enumerations.area_conhecimento import AreaConhecimento
+from api.enumerations.area_conhecimento_escolha import (
+    AreaConhecimentoEscolha as AreaConhecimento,
+)
 from api.enumerations.nivel_ensino import NivelEnsino
 from api.models.perfil import Perfil
 

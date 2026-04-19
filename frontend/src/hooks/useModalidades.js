@@ -182,7 +182,9 @@ export const useModalidades = () => {
             await sincronizarRelacionadosModalidade(
                 Number(id),
                 campos,
-                payload.requer_avaliacao ? criterios : [],
+                payload.requer_avaliacao || payload.requer_avaliacao_submissao
+                    ? criterios
+                    : [],
             );
 
             setModalidades((prev) =>
@@ -216,7 +218,10 @@ export const useModalidades = () => {
     const validarPayloadModalidade = async (payload, method = 'POST') => {
         // payload: { ...modalidadeFields, campos: [], criterios: [] }
         const { campos = [], criterios = [], ...base } = payload || {};
-        const criteriosConsiderados = base.requer_avaliacao ? criterios : [];
+        const criteriosConsiderados =
+            base.requer_avaliacao || base.requer_avaliacao_submissao
+                ? criterios
+                : [];
 
         // Valida tudo e agrega erros para exibir no formulario completo
         const erros = {};
