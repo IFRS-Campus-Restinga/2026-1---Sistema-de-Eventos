@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models.anexar_arquivo import Arquivo
+from ..models.arquivo import Arquivo
 from ..serializers.arquivo_serializer import ArquivoSerializer
 
 

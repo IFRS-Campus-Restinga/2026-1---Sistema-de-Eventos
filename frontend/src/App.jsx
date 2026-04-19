@@ -25,7 +25,9 @@ import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
-        <ProtectedRoute gruposPermitidos={gruposPermitidos}>{rota}</ProtectedRoute>
+        <ProtectedRoute gruposPermitidos={gruposPermitidos}>
+            {rota}
+        </ProtectedRoute>
     );
 
     useEffect(() => {
@@ -46,46 +48,47 @@ function App() {
         <div className="min-vh-100 d-flex flex-column">
             {/* prettier-ignore */}
             <Routes>
+                {/* Publico / Abertas        */}
                 <Route path="/" element={<Home />} />
-                <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
-                <Route path="/usuarioGrupos" element={protegido(<PessoasGrupos />, ADMIN_GROUPS)} />
-                <Route path="/adicionarLocal" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
-                <Route path="/listarLocaisEspacos" element={protegido(<LocaisEspacosListar />, ADMIN_GROUPS)} />
-                <Route path="/editarLocal/:id" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
-                <Route path="/adicionarEspaco" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
-                <Route path="/editarEspaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
-                <Route path="/permissoesPessoas" element={protegido(<PermissoesPessoas />, ADMIN_GROUPS)} />
-                {/*<Route path="/adicionarEvento" element={protegido(<AdicionarEvento />, ADMIN_GROUPS)} />*/}
-                {/*<Route path="/ListarEventos" element={protegido(<ListarEnvento />, ADMIN_GROUPS)} />*/}
-                <Route path="/adicionarEvento" element={<AdicionarEvento />} />
-                <Route path="/ListarEventos" element={<ListarEnvento />} />
-                <Route path="/listarLocais" element={protegido(<LocaisListar />, ADMIN_GROUPS)} />
-                <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/cadastroComplementar" element={<CadastroComplementar />} />
-                <Route path="/permissoesGrupos" element={<PermissoesGroups />} />
-                <Route path="/usuarioGrupos" element={<PessoasGrupos />} />
-                <Route path="/adicionarLocal" element={<LocalForm />} />
-                <Route path="/listarLocaisEspacos" element={<LocaisEspacosListar />} />
-                <Route path="/editarLocal/:id" element={<LocalForm />} />
-                <Route path="/adicionarEspaco" element={<EspacoForm />} />
-                <Route path="/editarEspaco/:id" element={<EspacoForm />} />
-                <Route path="/permissoesPessoas" element={<PermissoesPessoas />} />
-                <Route path="/adicionarEvento" element={<AdicionarEvento/>}/>
-                <Route path="/editarEvento/:id" element={<AdicionarEvento/>}/>
-                <Route path="/ListarEventos" element={<ListarEnvento />} />
-                <Route path="/listarLocais" element={<LocaisListar />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/cadastroComplementar"  element={<CadastroComplementar />} />
+
+                {/* Sessao / Autenticacao    */}
+                {/* callback para session/token e auth (SSO) */}
                 <Route path="/session/token/" element={<SessionTokenCallback />} />
                 <Route path="/session/token/*" element={<SessionTokenCallback />} />
                 <Route path="/session/auth" element={<SessionTokenCallback />} />
                 <Route path="/session/auth/*" element={<SessionTokenCallback />} />
-                <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
+
+                {/* Eventos (criacao/edicao) */}
+                <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/adicionarEvento" element={<AdicionarEvento />} />
+                <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
+                <Route path="/ListarEventos" element={<ListarEnvento />} />
+
+                {/* Locais & Espacos */}
+                <Route path="/adicionarLocal" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
+                <Route path="/editarLocal/:id" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
+                <Route path="/listarLocaisEspacos" element={protegido(<LocaisEspacosListar />, ADMIN_GROUPS)} />
+                <Route path="/listarLocais" element={protegido(<LocaisListar />, ADMIN_GROUPS)} />
+                <Route path="/adicionarEspaco" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
+                <Route path="/editarEspaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
+
+                {/* Permissoes / Grupos / Pessoas */}
+                <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
+                <Route path="/usuarioGrupos" element={protegido(<PessoasGrupos />, ADMIN_GROUPS)} />
+                <Route path="/permissoesPessoas" element={protegido(<PermissoesPessoas />, ADMIN_GROUPS)} />
+
+                {/* Modalidades      */}
                 <Route path="/listarModalidades" element={protegido(<ModalidadesListar />, ADMIN_GROUPS)} />
                 <Route path="/adicionarModalidade" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
                 <Route path="/editarModalidade/:id" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
+
+                {/* Atribuicoes / Organizadores */}
                 <Route path="/atribuirCoordenador" element={protegido(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
                 <Route path="/atribuirOrganizador" element={protegido(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
+
+                {/* Dashboard / Tests / Misc */}
+                <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
 
             </Routes>
         </div>

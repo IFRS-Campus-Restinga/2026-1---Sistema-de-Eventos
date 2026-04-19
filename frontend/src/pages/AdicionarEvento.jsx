@@ -5,28 +5,19 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import CriarEventoCard from '../components/common/criarEventoCard';
 import { useParams, useNavigate } from 'react-router-dom';
-import { criarEvento, buscarOpcoesFormulario, atualizarEvento, buscarEventoPorId } from '../services/eventoService';
+import {
+    criarEvento,
+    buscarOpcoesFormulario,
+    atualizarEvento,
+    buscarEventoPorId,
+} from '../services/eventoService';
 import { useState, useEffect } from 'react';
 import { useArquivo } from '../hooks/useArquivo';
 
-<<<<<<< HEAD
 export default function CriarEvento() {
     const { id } = useParams();
     const navigate = useNavigate();
-=======
 
-export default function CriarEvento(){
-    const navigate = useNavigate() ;
-    const [nome, setNome] = useState("")
-    const [descricao, setDescricao] = useState("")
-    const [status, setStatus] = useState("")
-    const [carga_horaria,setCargaHoraria] = useState(0)
-    const [setor, setSetor] = useState("")
-    const [tema, setTema] = useState("")
-    const [opcoes, setOpcoes] = useState({ status: [], setores: [] });
-    const { arquivos, limparArquivos } = useArquivo();
->>>>>>> 6ba585b (Mudando de brain..comite necessário)
-    
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
     const [status, setStatus] = useState('');
@@ -36,13 +27,14 @@ export default function CriarEvento(){
     const [opcoes, setOpcoes] = useState({ status: [], setores: [] });
     const [errors, setErrors] = useState({});
     const [exibirSucesso, setExibirSucesso] = useState(false);
+    const { arquivos, limparArquivos } = useArquivo();
 
     useEffect(() => {
         const carregarDados = async () => {
             try {
                 const dados = await buscarOpcoesFormulario();
                 setOpcoes(dados);
-                
+
                 if (id) {
                     const evento = await buscarEventoPorId(id);
                     setNome(evento.nome || '');
@@ -52,7 +44,7 @@ export default function CriarEvento(){
                     setCargaHoraria(evento.carga_horaria || 0);
                 }
             } catch (error) {
-                console.error("Erro ao carregar dados:", error);
+                console.error('Erro ao carregar dados:', error);
             }
         };
         carregarDados();
@@ -62,7 +54,6 @@ export default function CriarEvento(){
         setErrors({});
         setExibirSucesso(false);
 
-<<<<<<< HEAD
         const dadosEvento = {
             nome,
             descricao,
@@ -83,37 +74,35 @@ export default function CriarEvento(){
             setTimeout(() => {
                 navigate('/ListarEventos');
             }, 3000);
-
         } catch (erro) {
             if (erro.response && erro.response.data) {
                 setErrors(erro.response.data);
             }
-=======
-        try{
-            const novoEvento = {
-                nome,
-                descricao,
-                status_evento: status,
-                carga_horaria,
-                setor,
-                tema,
-                arquivos: arquivos // Inclui os arquivos anexados
+            try {
+                const novoEvento = {
+                    nome,
+                    descricao,
+                    status_evento: status,
+                    carga_horaria,
+                    setor,
+                    tema,
+                    arquivos: arquivos, // Inclui os arquivos anexados
+                };
+                await criarEvento(novoEvento);
+                alert('Evento criado com sucesso!');
+                navigate('/');
+                // Limpa todos os campos
+                setNome('');
+                setDescricao('');
+                setCargaHoraria(0);
+                setStatus('');
+                setTema('');
+                setSetor('');
+                limparArquivos(); // Limpa os arquivos anexados
+            } catch (erro) {
+                console.error('Erro ao criar Evento:', erro);
+                alert('Erro ao criar evento. Por favor, tente novamente.');
             }
-            await criarEvento(novoEvento)
-            alert('Evento criado com sucesso!');
-            navigate("/")
-            // Limpa todos os campos
-            setNome("")
-            setDescricao("")
-            setCargaHoraria(0)
-            setStatus("")
-            setTema("")
-            setSetor("")
-            limparArquivos() // Limpa os arquivos anexados
-        }catch (erro) {
-            console.error('Erro ao criar Evento:', erro);
-            alert('Erro ao criar evento. Por favor, tente novamente.');
->>>>>>> 6ba585b (Mudando de brain..comite necessário)
         }
     };
 
@@ -146,7 +135,7 @@ export default function CriarEvento(){
                     </Row>
                 </Container>
             </main>
-            <Footer 
+            <Footer
                 telefone="(51) 3333-1234"
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}

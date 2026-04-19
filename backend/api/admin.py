@@ -14,7 +14,7 @@ from .models import (
     Sessao,
 )
 
-from .models.anexar_arquivo import ArquivoAdmin
+from .models.arquivo import ArquivoAdmin
 from .models.cronograma import CronogramaAdmin
 from .models.evento import EventoAdmin
 from .models.area_conhecimento import AreaConhecimentoAdmin

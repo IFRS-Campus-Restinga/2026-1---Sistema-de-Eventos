@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models.anexar_arquivo import Arquivo
+from ..models.arquivo import Arquivo
 
 
 class ArquivoSerializer(serializers.ModelSerializer):

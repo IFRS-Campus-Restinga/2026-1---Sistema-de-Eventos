@@ -18,7 +18,11 @@ export default function Select({
                 <option value="">{textFundo}</option>
                 {itens.map((item) => (
                     <option key={item?.id} value={item?.id}>
-                        {item.name ? item.name : item.username}
+                        {item.nome
+                            ? item.nome
+                            : item.name
+                              ? item.name
+                              : item.username}
                     </option>
                 ))}
             </Form.Select>
