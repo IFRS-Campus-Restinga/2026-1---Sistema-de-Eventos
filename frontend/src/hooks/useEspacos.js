@@ -138,10 +138,10 @@ export default function useEspacos() {
             let resultado;
 
             if (dados.id) {
-                resultado = await editarLocal(dados.id, dados);
+                resultado = await editarEspaco(dados.id, dados);
                 setMessage('Local atualizado com sucesso!');
             } else {
-                resultado = await adicionaLocal(dados);
+                resultado = await adicionaEspaco(dados);
                 setMessage('Local criado com sucesso!');
             }
 
