@@ -9,7 +9,6 @@ class EventoSerializer(serializers.ModelSerializer):
     local_id = serializers.PrimaryKeyRelatedField(
         queryset=Local.objects.all(), 
         source='local', 
-        write_only=True
     )
     class Meta:
         model = Evento

@@ -38,7 +38,8 @@ export default function CriarEvento() {
                     setTema(evento.tema || '');
                     setSetor(evento.setor || '');
                     setCargaHoraria(evento.carga_horaria || 0);
-                    setLocalId(evento.local || '');
+                    const idDoLocal = evento.local?.id || evento.local;
+                    setLocalId(idDoLocal || '');
                 }
             } catch (error) {
                 console.error("Erro ao carregar dados:", error);
