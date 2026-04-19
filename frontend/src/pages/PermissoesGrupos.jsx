@@ -5,17 +5,16 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/Button';
 import Alerta from '../components/common/Alerta';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import Select from '../components/common/Select';
 import { useState } from 'react';
-
-
 
 import { useCsrf } from '../hooks/useCsrf';
 import { useGrupos } from '../hooks/useGrupos';
 import { usePermissoes } from '../hooks/usePermissoes';
 import { useGroupPermissions } from '../hooks/usePermissoesGrupos';
 import Vinculo from '../components/common/Vinculo';
+import { useNavigate } from 'react-router-dom';
 
 export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
     const { csrfToken } = useCsrf();
@@ -36,6 +35,7 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
         hasChanges,
     } = useGroupPermissions(perms);
     const [search, setSearch] = useState('');
+    const navegate = useNavigate();
     return (
         <>
             <NavBar />
@@ -54,25 +54,31 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                                 <h3 className="text-success fw-bold fs-5 ">
                                     Grupo
                                 </h3>
-                                
                             </div>
                         </Col>
                     </Row>
                     <Row>
                         <Col>
-                               <div className="d-flex align-items-start justify-content-start">
-                                <Select className='w-50'
+                            <div className="d-flex align-items-start justify-content-start">
+                                <Select
+                                    className="w-50"
                                     grupos={grupos}
                                     value={selectedGroupId}
                                     onChange={(event) =>
                                         setSelectedGroupId(event.target.value)
                                     }
-                                    textFundo='Selecione o grupo'
+                                    textFundo="Selecione o grupo"
                                 />
-                                <Button className='ms-4 h-50' variant="success" style={{background:'#006B3F', }} >
-                                    <Link to={'/usuarioGrupos'} className='text-white fw-bold text-decoration-none'>Atribuir Pessoas</Link>
+                                <Button
+                                    className="ms-4 h-50 text-white fw-bold text-decoration-none"
+                                    variant="success"
+                                    style={{ background: '#006B3F' }}
+                                    as={Link}
+                                    to={'/usuarioGrupos'}
+                                >
+                                    Atribuir Pessoas
                                 </Button>
-                            </div>     
+                            </div>
                         </Col>
                     </Row>
                     <Row className="mt-3">
@@ -96,18 +102,18 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                                 cabecario2="Permissões Grupo"
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
-                                dados1={permsDoGrupo.filter((p) =>
+                                dados1={permsNaoDoGrupo.filter((p) =>
                                     p.name
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase()),
                                 )}
-                                dados2={permsNaoDoGrupo.filter((p) =>
+                                dados2={permsDoGrupo.filter((p) =>
                                     p.name
                                         .toLowerCase()
                                         .includes(search.trim().toLowerCase()),
                                 )}
-                                onAcao1={handleAddPermission}
-                                onAcao2={handleRemovePermission}
+                                onAcao1={handleRemovePermission}
+                                onAcao2={handleAddPermission}
                                 save={handleSave}
                                 selecionado={selectedGroupId}
                             />
@@ -115,13 +121,12 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                     </Row>
                     <Row className="mt-5">
                         <Col className="justify-content-end gap-3 d-flex">
-                            <Button variant="secondary">
-                                <Link
-                                    to={'/'}
-                                    className="text-white text-decoration-none fw-bold"
-                                >
-                                    Voltar
-                                </Link>
+                            <Button
+                                variant="secondary"
+                                onClick={() => navegate(-1)}
+                                className="text-white text-decoration-none fw-bold"
+                            >
+                                Voltar
                             </Button>
 
                             <Button

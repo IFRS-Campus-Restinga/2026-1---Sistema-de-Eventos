@@ -1,0 +1,201 @@
+import NavBar from '../components/nav_bar/NavBar';
+import Footer from '../components/footer/Footer';
+import Container from 'react-bootstrap/esm/Container';
+import Row from 'react-bootstrap/esm/Row';
+import Col from 'react-bootstrap/esm/Col';
+import CustomFormCard from '../components/custom-form-card/FormularioCustomizado';
+import { criarEvento } from '../services/eventoService';
+import { useState } from 'react';
+import { MdEdit } from 'react-icons/md';
+import { FaRegClock } from 'react-icons/fa';
+import { AiFillBook } from 'react-icons/ai';
+import { LuBookCopy } from 'react-icons/lu';
+import { GiPaperClip } from 'react-icons/gi';
+import { Button } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
+import { MdCheckCircle } from 'react-icons/md';
+import { MdArrowBack } from 'react-icons/md';
+
+export default function CriarEvento({ campus = 'Campus Restinga' }) {
+    const [nome, setNome] = useState('');
+    const [descricao, setDescricao] = useState('');
+    const [status, setStatus] = useState('');
+    const [carga_horaria, setCargaHoraria] = useState(0);
+    const [setor, setSetor] = useState('');
+    const [tema, setTema] = useState('');
+
+    const navegate = useNavigate();
+
+    return (
+        <>
+            <NavBar />
+            <main className="flex-fill mb-5">
+                <Container className="mx-auto">
+                    <Row className="mx-auto my-5 d-flex justify-content-center">
+                        <Col className="d-flex flex-column gap-3">
+                            <CustomFormCard
+                                titulo="Dados Básicos do Evento"
+                                Icone={<MdEdit size={30} />}
+                                corTexto="#00A44B"
+                                campos={[
+                                    { titulo: 'Nome do Evento', tipo: 'text' },
+                                    { titulo: 'Tema Principal', tipo: 'text' },
+                                    { titulo: 'Descrição', tipo: 'textarea' },
+                                    {
+                                        titulo: 'Carga Horária',
+                                        tipo: 'number',
+                                        max: 1000,
+                                        min: 0,
+                                    },
+                                    [
+                                        {
+                                            titulo: 'Local',
+                                            tipo: 'select',
+                                            opcoes: [
+                                                {
+                                                    value: '#',
+                                                    text: 'Selecione um Local',
+                                                    disabled: true,
+                                                    selected: true,
+                                                },
+                                                { value: 1, text: 'Opcao 1' },
+                                            ],
+                                        },
+                                        {
+                                            tipo: 'button link',
+                                            to: '/adicionarLocal',
+                                            variant: 'success',
+                                            background: '#00A44B',
+                                            text: 'Cadastrar Local',
+                                        },
+                                    ],
+                                ]}
+                            />
+                            <CustomFormCard
+                                titulo="Controle de Prazos (Fases)"
+                                Icone={<FaRegClock size={30} />}
+                                corTexto="#00A44B"
+                                campos={[
+                                    {
+                                        tipo: 'fase',
+                                        name: 'fases',
+                                        opcoes: [
+                                            {
+                                                value: 'submissao',
+                                                text: 'Fase de Submissão',
+                                                descricao:
+                                                    'Permite que autores enviem novos trabalhos.',
+                                            },
+                                            {
+                                                value: 'avaliacao',
+                                                text: 'Fase de Avaliação',
+                                                descricao:
+                                                    'Avaliação dos trabalhos enviados.',
+                                            },
+                                            {
+                                                value: 'resultado',
+                                                text: 'Fase de Divulgação de Resultados',
+                                                descricao:
+                                                    'Divulgação dos resultados finais.',
+                                            },
+                                        ],
+                                    },
+                                ]}
+                            />
+                            <CustomFormCard
+                                titulo="Áreas de Conhecimento"
+                                Icone={<AiFillBook size={30} />}
+                                corTexto="#00A44B"
+                                campos={[
+                                    {
+                                        tipo: 'datalist',
+                                        placeholder: 'Selecione Áreas',
+                                        list: 'areas',
+                                        areas: [
+                                            {
+                                                value: 1,
+                                                text: 'Ciências Exatas e da Terra',
+                                            },
+                                        ],
+                                        opcoes: [
+                                            {
+                                                value: 1,
+                                                text: 'Ciências Exatas e da Terra',
+                                            },
+                                            { value: 3, text: 'Engenharias' },
+                                            {
+                                                value: 2,
+                                                text: 'Ciências Humanas',
+                                            },
+                                        ],
+                                    },
+                                ]}
+                            />
+                            <CustomFormCard
+                                titulo="Avaliações e Trabalhos"
+                                Icone={<LuBookCopy size={30} />}
+                                corTexto="#00A44B"
+                                campos={[
+                                    {
+                                        tipo: 'datalist',
+                                        placeholder: 'Selecione Modalidades',
+                                        list: 'modalidades',
+                                        areas: [
+                                            {
+                                                value: 1,
+                                                text: 'Apresentação Oral',
+                                            },
+                                        ],
+                                        opcoes: [
+                                            { value: 3, text: 'Poster' },
+                                            { value: 2, text: 'Oficina' },
+                                        ],
+                                    },
+                                ]}
+                            />
+                            <CustomFormCard
+                                titulo="Anexos e Finalização"
+                                Icone={<GiPaperClip size={30} />}
+                                corTexto="#00A44B"
+                                campos={[
+                                    {
+                                        titulo: 'Adicionar Arquivo',
+                                        tipo: 'file',
+                                    },
+                                ]}
+                            />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col className="d-flex justify-content-end gap-3">
+                            <Button
+                                variant="secondary"
+                                className="border-0 p-2"
+                                onClick={() => navegate(-1)}
+                            >
+                                <MdArrowBack size={20} className="me-2" />
+                                Voltar
+                            </Button>
+                            <Button
+                                variant="success"
+                                style={{ background: '#00A44B' }}
+                                className="p-2"
+                                as={Link}
+                                to="#"
+                            >
+                                <MdCheckCircle size={20} className="me-2" />
+                                Criar Evento
+                            </Button>
+                        </Col>
+                    </Row>
+                </Container>
+            </main>
+            <Footer
+                telefone={'(51) 3333-1234'}
+                endereco={'Rua Alberto Hoffmann, 285'}
+                ano={2026}
+                campus={campus}
+            />
+        </>
+    );
+}

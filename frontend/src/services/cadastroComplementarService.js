@@ -1,14 +1,10 @@
+import { API_URL } from '../config';
 import axios from 'axios';
 
-// URL para Cadastro servidor Django
-const API_URL = 'http://localhost:8001/api';
-
-// Busca as listas de Níveis de Ensino e Áreas de Conhecimento do Django para Popular os Selects
 export const buscarOpcoesCadastro = async () => {
     try {
-        // GET para a rota que devolve os Enums/Choices
         const response = await axios.get(
-            `${API_URL}/usuarios/cadastro-complementar/`,
+            `${API_URL}/api/usuarios/cadastro-complementar/`,
             {
                 withCredentials: true,
             },
@@ -21,11 +17,10 @@ export const buscarOpcoesCadastro = async () => {
     }
 };
 
-// Envia os dados complementares do aluno para o Django
 export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
     try {
         const response = await axios.post(
-            `${API_URL}/usuarios/cadastro-complementar/`,
+            `${API_URL}/api/usuarios/cadastro-complementar/`,
             dados,
             {
                 withCredentials: true,
@@ -36,7 +31,8 @@ export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
         );
         return response.data;
     } catch (erro) {
-        console.error('Erro ao salvar informações complementares:', erro);
+        console.error('Status do Erro:', erro.response?.status);
+        console.error('Mensagem do Django:', erro.response?.data);
         throw erro;
     }
 };

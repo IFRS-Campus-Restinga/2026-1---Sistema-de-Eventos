@@ -5,7 +5,7 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/Button';
 import Alerta from '../components/common/Alerta';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import Select from '../components/common/Select';
 import { useState } from 'react';
 
@@ -14,6 +14,7 @@ import { useGrupos } from '../hooks/useGrupos';
 import { useUsers } from '../hooks/useUsers';
 import { useUsersGrupos } from '../hooks/useUsersGrupos';
 import Vinculo from '../components/common/Vinculo';
+import { useNavigate } from 'react-router-dom';
 
 export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
     const { csrfToken } = useCsrf();
@@ -36,6 +37,8 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
     } = useUsersGrupos(users);
 
     const [search, setSearch] = useState('');
+
+    const navegate = useNavigate();
 
     return (
         <>
@@ -68,25 +71,25 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                     onChange={(event) =>
                                         setSelectedGroupId(event.target.value)
                                     }
-                                    textFundo='Selecione o grupo'
+                                    textFundo="Selecione o grupo"
                                 />
                                 <Button
-                                    className="ms-4 h-50"
+                                    className="ms-4 h-50 text-white fw-bold text-decoration-none"
                                     variant="success"
                                     style={{ background: '#006B3F' }}
+                                    as={Link}
+                                    to={'/permissoesGrupos'}
                                 >
-                                    <Link to={'/permissoesGrupos'} className="text-white fw-bold text-decoration-none">
-                                        Atribuir Permissões
-                                    </Link>
+                                    Atribuir Permissões
                                 </Button>
                                 <Button
-                                    className="ms-4 h-50"
+                                    className="ms-4 h-50 text-white fw-bold text-decoration-none"
                                     variant="success"
                                     style={{ background: '#006B3F' }}
+                                    as={Link}
+                                    to={'/permissoesPessoas'}
                                 >
-                                    <Link to={'/permissoesPessoas'} className="text-white fw-bold text-decoration-none">
-                                        PermsObj
-                                    </Link>
+                                    PermsObj
                                 </Button>
                             </div>
                         </Col>
@@ -114,14 +117,14 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
                                 dados1={usersNaoDoGrupo.filter((u) =>
-                                    `${u.username}`
+                                    `${u.nome || u.username}`
                                         .toLowerCase()
-                                        .includes(search.trim().toLowerCase())
+                                        .includes(search.trim().toLowerCase()),
                                 )}
                                 dados2={usersDoGrupo.filter((u) =>
-                                    `${u.username}`
+                                    `${u.nome || u.username}`
                                         .toLowerCase()
-                                        .includes(search.trim().toLowerCase())
+                                        .includes(search.trim().toLowerCase()),
                                 )}
                                 onAcao1={handleRemoveUser}
                                 onAcao2={handleAddUser}
@@ -133,13 +136,12 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
 
                     <Row className="mt-5">
                         <Col className="justify-content-end gap-3 d-flex">
-                            <Button variant="secondary">
-                                <Link
-                                    to={'/'}
-                                    className="text-white text-decoration-none fw-bold"
-                                >
-                                    Voltar
-                                </Link>
+                            <Button
+                                variant="secondary"
+                                onClick={() => navegate(-1)}
+                                className="text-white text-decoration-none fw-bold"
+                            >
+                                Voltar
                             </Button>
                             <Button
                                 disabled={!selectedGroupId || !hasChanges}
@@ -154,12 +156,12 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                 </Container>
             </main>
             {message && (
-                            <Alerta
-                                mensagem={message.text}
-                                variacao={message.type}
-                                duracao={7000}
-                            />
-                        )}
+                <Alerta
+                    mensagem={message.text}
+                    variacao={message.type}
+                    duracao={7000}
+                />
+            )}
             <Footer
                 telefone={'(51) 3333-1234'}
                 endereco={'Rua Alberto Hoffmann, 285'}

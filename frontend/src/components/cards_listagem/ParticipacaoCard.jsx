@@ -1,9 +1,9 @@
 import Button from 'react-bootstrap/Button';
-import Card from './Card';
+import Card from '../common/Card';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import Tag from './Tag';
+import Tag from '../common/Tag';
 import { FaCheckCircle } from 'react-icons/fa';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { ImBubbles } from 'react-icons/im';

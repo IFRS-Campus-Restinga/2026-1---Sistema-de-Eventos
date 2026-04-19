@@ -1,4 +1,5 @@
-from .area_conhecimento import *
+# ruff: noqa: F403
+from .area_conhecimento_escolha import *
 from .nivel_ensino import *
 from .setor import *
 from .status_aprovacao import *

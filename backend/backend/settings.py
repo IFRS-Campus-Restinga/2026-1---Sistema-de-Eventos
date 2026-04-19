@@ -10,10 +10,20 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-from datetime import timedelta
-from dotenv import load_dotenv
 import os
+from datetime import timedelta
+from pathlib import Path
+
+from django.conf import settings
+from django.conf.urls.static import static
+from dotenv import load_dotenv
+
+urlpatterns = (
+    [
+        # suas rotas
+    ]
+    + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+)
 
 load_dotenv()
 
@@ -34,7 +44,7 @@ ALLOWED_HOSTS = ["*"]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "eventos_session.authentication.CookieJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -57,8 +67,16 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
+    "guardian",
+    "eventos_session",
     "api",
 ]
+
+# APARENTIMENTE tem q ter isso, fé fml
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "guardian.backends.ObjectPermissionBackend",
+)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -73,6 +91,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "backend.urls"
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 
 TEMPLATES = [
     {
@@ -144,6 +167,16 @@ LOCALE_PATHS = [
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+AUTH_USER_MODEL = "eventos_session.Usuario"
+
+BASE_SYSTEM_URL = os.getenv("BASE_SYSTEM_URL", "http://localhost:8000")
+SYSTEM_ID = os.getenv("SYSTEM_ID", "")
+API_KEY = os.getenv("API_KEY", "")
+JWT_SECRET_KEY = SECRET_KEY
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = 1
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True

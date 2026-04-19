@@ -5,7 +5,7 @@ import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/Button';
 import Alerta from '../components/common/Alerta';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import Select from '../components/common/Select';
 import { useState } from 'react';
 
@@ -69,7 +69,7 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                     onChange={(event) =>
                                         setSelectedUserId(event.target.value)
                                     }
-                                    textFundo='Selecione a pessoa'
+                                    textFundo="Selecione a pessoa"
                                 />
                             </div>
                         </Col>
@@ -102,8 +102,8 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                 )}
                                 dados2={permsDoUser.filter((p) =>
                                     p.name
-                                    .toLowerCase()
-                                    .includes(search.trim().toLowerCase()),
+                                        .toLowerCase()
+                                        .includes(search.trim().toLowerCase()),
                                 )}
                                 onAcao1={handleRemovePermission}
                                 onAcao2={handleAddPermission}
@@ -115,13 +115,13 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
 
                     <Row className="mt-5">
                         <Col className="justify-content-end gap-3 d-flex">
-                            <Button variant="secondary">
-                                <Link
-                                    to={'/usuarioGrupos'}
-                                    className="text-white text-decoration-none fw-bold"
-                                >
-                                    Voltar
-                                </Link>
+                            <Button
+                                variant="secondary"
+                                as={Link}
+                                to={'/usuarioGrupos'}
+                                className="text-white text-decoration-none fw-bold"
+                            >
+                                Voltar
                             </Button>
                             <Button
                                 disabled={!selectedUserId || !hasChanges}
@@ -136,12 +136,12 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                 </Container>
             </main>
             {message && (
-                            <Alerta
-                                mensagem={message.text}
-                                variacao={message.type}
-                                duracao={7000}
-                            />
-                        )}
+                <Alerta
+                    mensagem={message.text}
+                    variacao={message.type}
+                    duracao={7000}
+                />
+            )}
             <Footer
                 telefone={'(51) 3333-1234'}
                 endereco={'Rua Alberto Hoffmann, 285'}
