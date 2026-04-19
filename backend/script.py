@@ -64,6 +64,7 @@ EVENTOS_DATA = [
         "setor": "ENSINO",
         "tema": "Inovação e Tecnologia",
         "modalidades_nomes": ["Palestra", "Oficina"],
+        "local_nome": "Campus Restinga", #
     },
     {
         "nome": "Mostra de Extensão",
@@ -73,6 +74,7 @@ EVENTOS_DATA = [
         "setor": "EXTENSAO",
         "tema": "Integração com a Comunidade",
         "modalidades_nomes": ["Palestra"],
+        "local_nome": "Campus Restinga", #
     },
 ]
 
@@ -188,11 +190,16 @@ def seed_modalidades():
 def seed_eventos():
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
+    from api.models.local import Local
 
     created = []
     existing = []
 
     for item in EVENTOS_DATA:
+        local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
+        if not local:
+             raise RuntimeError(f"Local '{item['local_nome']}' não encontrado para o evento.")
+        
         modalidades = list(
             Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
         )
@@ -214,6 +221,7 @@ def seed_eventos():
             carga_horaria=item["carga_horaria"],
             setor=item["setor"],
             tema=item["tema"],
+            local=local,
         )
         evento.full_clean()
         evento.save()

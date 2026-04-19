@@ -82,7 +82,7 @@ class Evento(Base):
             errors["setor"] = "Este campo não pode estar em branco"
         elif self.status_evento == "" or not self.status_evento.strip():
             errors["status_evento"] = "Este campo não pode estar em branco"
-        elif self.local is None:
+        if not hasattr(self, 'local') or self.local is None:
             errors["local"] = "Você deve selecionar um local para o evento."
         
 
