@@ -2,11 +2,17 @@ from django.urls import path
 
 from .views import csrf_token_view as views
 from .views.arquivo_view import ArquivoListView
+from .views.atracao_view import AtracaoDetailView, AtracaoListView
+from .views.avaliacao_submissao_view import (
+    AvaliacaoSubmissaoDetailView,
+    AvaliacaoSubmissaoListView,
+)
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
     CampoFormularioListView,
 )
+from .views.choices_atracao_view import AtracaoOpcoesView
 from .views.choices_evento_view import OpcoesFormularioView
 from .views.criterio_avaliacao_view import (
     CriterioAvaliacaoDetailView,
@@ -73,5 +79,13 @@ urlpatterns = [
     # paths relacionados a cronogramas
     path("cronogramas/", CronogramaListView.as_view()),
     path("cronogramas/<int:pk>/", CronogramaDetailView.as_view()),
+    # paths relacionados a atrações / submissões
+    path("atracoes/", AtracaoListView.as_view()),
+    path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
+    path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
+    # paths relacionados a avaliações de submissão
+    path("avaliacoes_submissao/", AvaliacaoSubmissaoListView.as_view()),
+    path("avaliacoes_submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
 ]
 # fmt: on
+

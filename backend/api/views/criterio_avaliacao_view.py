@@ -17,6 +17,9 @@ class CriterioAvaliacaoListView(APIView):
 
     def get(self, request, *args, **kwargs):
         criterios = CriterioAvaliacao.objects.all()
+        modalidade_id = request.query_params.get("modalidade")
+        if modalidade_id:
+            criterios = criterios.filter(modalidade_id=modalidade_id)
         serializer = CriterioAvaliacaoSerializer(criterios, many=True)
         return Response(serializer.data)
 

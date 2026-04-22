@@ -2,6 +2,7 @@
 from .base import *
 from .campo_formulario import *
 from .criterio_avaliacao import *
+from .avaliacao_submissao import *
 from .area_conhecimento import *
 from .arquivo import *
 from .espaco import *

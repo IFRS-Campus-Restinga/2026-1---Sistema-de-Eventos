@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, ListGroup, Badge, Spinner } from 'react-bootstrap';
-import { MdEvent, MdAddCircle, MdArrowBack, MdAccessTime, MdBusiness, MdInfoOutline, MdPlace } from 'react-icons/md';
+import { MdEvent, MdAddCircle, MdArrowBack, MdAccessTime, MdInfoOutline, MdPlace, MdGrade } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -75,10 +75,19 @@ export default function ListarAtracoes() {
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="text-end">
+                                                <div className="text-end d-flex flex-column align-items-end gap-2">
                                                     <Badge pill bg="success" className="px-3 py-2">
                                                         {atracao.status?.toUpperCase() || 'N/A'}
                                                     </Badge>
+                                                    <Button
+                                                        as={Link}
+                                                        to={`/avaliarSubmissao/${atracao.id}`}
+                                                        size="sm"
+                                                        style={{ backgroundColor: '#003366', border: 'none' }}
+                                                        className="d-flex align-items-center gap-1"
+                                                    >
+                                                        <MdGrade size={16} /> Avaliar
+                                                    </Button>
                                                 </div>
                                             </ListGroup.Item>
                                         ))

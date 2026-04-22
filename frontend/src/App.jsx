@@ -24,6 +24,7 @@ import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
+import AvaliacaoSubmissao from './pages/AvaliacaoSubmissao';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -80,6 +81,7 @@ function App() {
                 <Route path="/listarAtracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/adicionarAtracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listarInscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/avaliarSubmissao/:id" element={protegido(<AvaliacaoSubmissao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
