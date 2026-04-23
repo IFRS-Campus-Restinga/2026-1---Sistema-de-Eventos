@@ -24,6 +24,7 @@ import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
+import SemResultado from './pages/SemResultado';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -94,6 +95,8 @@ function App() {
                 {/* Atribuicoes / Organizadores */}
                 <Route path="/atribuirCoordenador" element={protegido(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
                 <Route path="/atribuirOrganizador" element={protegido(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
+
+                <Route path="*" element={<SemResultado/>}/>
 
                 {/* Dashboard / Tests / Misc */}
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
