@@ -25,6 +25,9 @@ class Sessao(Base):
     ativo = models.BooleanField(verbose_name=_("Ativo"), default=True)
 
     """Não sei se é assim que funciona
+
+    sim, é assim a primeira parte das permissões, vou deixar assim pra mais tarde. -Breno
+    
     class Meta:
         permissions = [
             ("ver_sessao", "Pode visualizar as sessões"),

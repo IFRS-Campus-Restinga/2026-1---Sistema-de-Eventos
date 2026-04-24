@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from ..serializers.evento_serializer import EventoSerializer
 from ..models.evento import Evento
+from django.contrib.auth.models import Group
 
 # from api.permissions import IsAdmin, PodeGerenciarEvento
 from .perms_generic_view import PodeCoordenarEvento, PodeGerenciarEquipeEvento
@@ -153,6 +154,13 @@ class EventoCoordenadorView(APIView):
             novo_coordenador = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        # daria pra usar o get_or_create né, mas meio q a gnt tem coordenador,
+        #  enfim, ta td certo. Se veio pra reclamar, faz melhor. -Breno
+
+        # moral disso daq é dar grupo pro coordenador no momento que ele for atribuido a permissão. -Breno
+        grupo_coordenador= Group.objects.get(name="Coordenador")
+        novo_coordenador.groups.add(grupo_coordenador)
 
         # Regra simples: manter apenas um coordenador por evento.
         atuais = get_users_with_perms(

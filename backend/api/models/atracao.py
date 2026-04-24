@@ -91,7 +91,7 @@ class Atracao(Base):
     
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
-    local_atracao = models.CharField(max_length=200, null=True, blank=True)
+    local_atracao = models.CharField(max_length=200, null=True, blank=True) #vira relação com local/espaço
 
     class Meta(Base.Meta):
         verbose_name = "Atração / Submissão"
