@@ -3,6 +3,7 @@ import Button from 'react-bootstrap/esm/Button';
 import { Link } from 'react-router-dom';
 import CampoDatalist from './CampoDatalist';
 import CampoFase from './CampoFase';
+import CampoEquipe from './CampoEquipe';
 import eArray from '../../utils/eArray';
 
 export default function RenderizarCampo({
@@ -14,9 +15,11 @@ export default function RenderizarCampo({
     aoAlterar,
     estadoDatalist,
     estadoFase,
+    corTexto,
 }) {
     const temErro = eArray(erro) && erro.length > 0;
     const desativado = !!campo?.desativado;
+    const obrigatorio = !!campo?.obrigatorio;
 
     function atualizarValor(valor) {
         setValores((anterior) => ({ ...anterior, [id]: valor }));
@@ -24,8 +27,9 @@ export default function RenderizarCampo({
     }
 
     const valorAtual = obterValor(id, campo);
+    const tipoCampo = String(campo?.tipo || '').toLocaleLowerCase();
 
-    if (campo?.tipo === 'text') {
+    if (tipoCampo === 'text' || tipoCampo === 'texto') {
         return (
             <>
                 <Form.Control
@@ -38,6 +42,7 @@ export default function RenderizarCampo({
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
                     disabled={desativado}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -50,7 +55,11 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'textarea') {
+    if (
+        tipoCampo === 'textarea' ||
+        tipoCampo === 'area de texto' ||
+        tipoCampo === 'área de texto'
+    ) {
         return (
             <>
                 <Form.Control
@@ -64,6 +73,7 @@ export default function RenderizarCampo({
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
                     disabled={desativado}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -76,7 +86,11 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'switch') {
+    if (
+        tipoCampo === 'switch' ||
+        tipoCampo === 'boolean' ||
+        tipoCampo === 'booleano'
+    ) {
         return (
             <>
                 <Form.Check
@@ -84,6 +98,7 @@ export default function RenderizarCampo({
                     checked={!!valorAtual}
                     onChange={(e) => atualizarValor(e.target.checked)}
                     id={id}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     disabled={desativado}
                 />
@@ -96,7 +111,7 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'date') {
+    if (tipoCampo === 'date' || tipoCampo === 'data') {
         return (
             <>
                 <Form.Control
@@ -105,6 +120,7 @@ export default function RenderizarCampo({
                     onChange={(e) => atualizarValor(e.target.value)}
                     className="py-3"
                     disabled={desativado}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -117,13 +133,17 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'number') {
+    if (
+        tipoCampo === 'number' ||
+        tipoCampo === 'numero' ||
+        tipoCampo === 'número'
+    ) {
         return (
             <>
                 <Form.Control
                     type="number"
                     max={campo?.max || 10000}
-                    min={campo?.min}
+                    min={campo?.min || 0}
                     placeholder={
                         campo?.placeholder ||
                         `Informe ${campo?.titulo || 'o campo'}`
@@ -135,6 +155,7 @@ export default function RenderizarCampo({
                     }}
                     className="py-3"
                     disabled={desativado}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     id={id}
                 />
@@ -147,13 +168,18 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'select') {
+    if (
+        tipoCampo === 'select' ||
+        tipoCampo === 'selecao' ||
+        tipoCampo === 'seleção'
+    ) {
         return (
             <>
                 <Form.Select
                     value={valorAtual ?? '#'}
                     className="py-3"
                     disabled={desativado}
+                    required={obrigatorio}
                     isInvalid={temErro}
                     id={id}
                     onChange={(e) => atualizarValor(e.target.value)}
@@ -180,7 +206,11 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'button link') {
+    if (
+        tipoCampo === 'button link' ||
+        tipoCampo === 'botao link' ||
+        tipoCampo === 'botão link'
+    ) {
         return (
             <Button
                 variant={campo?.variant}
@@ -195,7 +225,7 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'file') {
+    if (tipoCampo === 'file' || tipoCampo === 'arquivo') {
         return (
             <Form.Control
                 type="file"
@@ -208,12 +238,13 @@ export default function RenderizarCampo({
                 }
                 className="py-3"
                 disabled={desativado}
+                required={obrigatorio}
                 id={id}
             />
         );
     }
 
-    if (campo?.tipo === 'datalist') {
+    if (tipoCampo === 'datalist') {
         return (
             <CampoDatalist
                 id={id}
@@ -230,7 +261,7 @@ export default function RenderizarCampo({
         );
     }
 
-    if (campo?.tipo === 'fase') {
+    if (tipoCampo === 'fase' || tipoCampo === 'etapa') {
         return (
             <CampoFase
                 id={id}
@@ -240,6 +271,20 @@ export default function RenderizarCampo({
                 mostrarOpcoes={estadoFase.mostrarOpcoes}
                 setMostrarOpcoes={estadoFase.setMostrarOpcoes}
                 desativado={desativado}
+            />
+        );
+    }
+
+    if (tipoCampo === 'equipe') {
+        return (
+            <CampoEquipe
+                id={id}
+                campo={campo}
+                erro={erro}
+                valor={valorAtual}
+                onChange={atualizarValor}
+                desativado={desativado}
+                corTexto={corTexto}
             />
         );
     }

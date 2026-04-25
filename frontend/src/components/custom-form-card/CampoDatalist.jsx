@@ -70,7 +70,7 @@ export default function CampoDatalist({
         >
             {selecionados.map((item, i) => (
                 <div
-                    className="w-100 rounded-2 d-flex align-items-center justify-content-between px-5 form-control"
+                    className="w-100 rounded-2 d-flex align-items-center justify-content-between px-1 px-sm-5 form-control"
                     key={i}
                 >
                     <span>
@@ -86,7 +86,7 @@ export default function CampoDatalist({
                 </div>
             ))}
 
-            <div className="d-flex gap-2 w-100">
+            <div className="d-flex gap-2 w-100 flex-column flex-md-row">
                 <div style={{ position: 'relative', width: '100%' }}>
                     <Form.Control
                         id={id}
