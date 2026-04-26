@@ -9,3 +9,4 @@ from .modalidade_serializer import *
 from .perms_serializer import *
 from .resposta_serializer import *
 from .users_serializer import *
+from .inscricao_evento_serializer import *

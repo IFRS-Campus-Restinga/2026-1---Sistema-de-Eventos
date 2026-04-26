@@ -25,6 +25,10 @@ from .views.evento_view import (
     EventoUpdateView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
+from .views.inscricao_evento_view import (
+    InscricaoEventoDetailView,
+    InscricaoEventoListView,
+)
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
@@ -46,6 +50,11 @@ urlpatterns = [
     path("eventos/<int:pk>/coordenador/", EventoCoordenadorView.as_view()),
     path("eventos/<int:pk>/organizador/", EventoOrganizadorView.as_view()),
     path("dashboard/", DashboardView.as_view()),
+
+    # inscricoes
+    path("inscricoes_eventos/", InscricaoEventoListView.as_view()),
+    path("inscricoes_eventos/<int:pk>/", InscricaoEventoDetailView.as_view()),
+
 
     # locais e espacos
     path("locais/", LocalListView.as_view()),

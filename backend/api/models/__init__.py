@@ -12,3 +12,4 @@ from .modalidade import *
 from .resposta import *
 from .sessao import *
 from .perfil import *
+from .inscricao_evento import *
