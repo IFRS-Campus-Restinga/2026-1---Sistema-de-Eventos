@@ -158,18 +158,9 @@ class EventoCoordenadorView(APIView):
         # daria pra usar o get_or_create né, mas meio q a gnt tem coordenador,
         #  enfim, ta td certo. Se veio pra reclamar, faz melhor. -Breno
 
-        # moral disso daq é dar grupo pro coordenador no momento que ele for atribuido a permissão. -Breno
-        grupo_coordenador= Group.objects.get(name="Coordenador")
+        # moral disso daq é dar grupo pro coordenador no momento que ele for atribuido a permissão. - Breno
+        grupo_coordenador = Group.objects.get(name="Coordenador")
         novo_coordenador.groups.add(grupo_coordenador)
-
-        # Regra simples: manter apenas um coordenador por evento.
-        atuais = get_users_with_perms(
-            evento,
-            only_with_perms_in=["coordenar_evento"],
-            with_group_users=False,
-        )
-        for user in atuais:
-            remove_perm(self.coordenador_perm, user, evento)
 
         assign_perm(self.coordenador_perm, novo_coordenador, evento)
 
@@ -209,6 +200,9 @@ class EventoCoordenadorView(APIView):
             coordenador_removido = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        grupo_coordenador = Group.objects.get(name="Coordenador")
+        coordenador_removido.groups.remove(grupo_coordenador)
 
         remove_perm(self.coordenador_perm, coordenador_removido, evento)
 
@@ -275,6 +269,9 @@ class EventoOrganizadorView(APIView):
         except User.DoesNotExist:
             return Response({"erro": "Usuário não encontrado"}, status=404)
 
+        grupo_organizador = Group.objects.get(name="Organizador")
+        novo_organizador.groups.add(grupo_organizador)
+
         assign_perm(self.organizador_perm, novo_organizador, evento)
 
         organizadores = get_users_with_perms(
@@ -312,6 +309,9 @@ class EventoOrganizadorView(APIView):
             organizador_removido = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"erro": "Usuário não encontrado"}, status=404)
+
+        grupo_organizador = Group.objects.get(name="Organizador")
+        organizador_removido.groups.remove(grupo_organizador)
 
         remove_perm(self.organizador_perm, organizador_removido, evento)
 

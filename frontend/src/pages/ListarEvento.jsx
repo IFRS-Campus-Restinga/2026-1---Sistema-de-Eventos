@@ -215,28 +215,9 @@ export default function EventosListar() {
                                                         variant="success"
                                                         size="sm"
                                                         as={Link}
-                                                        to={`/dashboard`}
+                                                        to={`/dashboard/${evento.id}`}
                                                     >
                                                         Dashboard
-                                                    </Button>
-                                                    <Button
-                                                        variant="success"
-                                                        size="sm"
-                                                        as={Link}
-                                                        to={`/atribuirCoordenador?eventoId=${evento.id}`}
-                                                    >
-                                                        Designar Coordenador de
-                                                        Evento
-                                                    </Button>
-                                                    
-                                                    <Button
-                                                        variant="success"
-                                                        size="sm"
-                                                        as={Link}
-                                                        to={`/atribuirOrganizador?eventoId=${evento.id}`}
-                                                    >
-                                                        Designar Organizador de
-                                                        Evento
                                                     </Button>
                                                     <Button
                                                         variant="danger"

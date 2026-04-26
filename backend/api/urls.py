@@ -49,7 +49,7 @@ urlpatterns = [
     path("eventos/<int:pk>/delete/", EventoDeleteView.as_view()),
     path("eventos/<int:pk>/coordenador/", EventoCoordenadorView.as_view()),
     path("eventos/<int:pk>/organizador/", EventoOrganizadorView.as_view()),
-    path("dashboard/", DashboardView.as_view()),
+    path("dashboard/<int:pk>/", DashboardView.as_view()),
 
     # inscricoes
     path("inscricoes_eventos/", InscricaoEventoListView.as_view()),

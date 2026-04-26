@@ -13,6 +13,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useCoordenadorEvento } from '../hooks/useCoordenadorEvento';
 
 import Vinculo from '../components/common/Vinculo';
+
 export default function DefinirCoordenadorEvento({
     campus = 'Campus Restinga',
 }) {

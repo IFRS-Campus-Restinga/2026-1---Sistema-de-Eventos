@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Spinner, Badge, Button } from 'react-bootstrap';
-import { MdDashboard } from 'react-icons/md';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Container, Row, Col, Button } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import BarrasStatus from '../components/barras_status/BarrasStatus';
 import MenuColuna from '../components/menu_coluna/MenuColuna';
 import { PiChecks } from 'react-icons/pi';
@@ -16,49 +15,98 @@ import { RiTeamFill } from 'react-icons/ri';
 import { IoMdSchool } from 'react-icons/io';
 import { RiAddBoxFill } from 'react-icons/ri';
 
-// import { getDashboard } from "../services/dashboardService";
+import { getDashboardEvento } from "../services/dashboardService";
 
 export default function DashboardEvento({}) {
-    //Pegar da api, apenas placeholder
-    const { totalSubmissoes, semAvaliador, desistencias } = {
-        totalSubmissoes: 87,
-        semAvaliador: 2,
-        desistencias: 3,
-    };
+    // comentei pra n dar conflito, mas meio q ficou assim, agr ele funciona com dados reais. -Breno
 
-    //Pegar da api, apenas placeholder
-    const dados = [
-        {
-            titulo: 'Ciências Exatas e da Terra',
-            valorAtual: 25,
-            total: 30,
-            textoFim: 'Avaliados',
-        },
-        {
-            titulo: 'Ciências Humanas',
-            valorAtual: 12,
-            total: 30,
-            textoFim: 'Avaliados',
-        },
-        {
-            titulo: 'Linguística, Letras e Artes',
-            valorAtual: 20,
-            total: 20,
-            textoFim: 'Avaliados',
-        },
-        {
-            titulo: 'Linguística, Letras e Artes',
-            valorAtual: 20,
-            total: 20,
-            textoFim: 'Avaliados',
-        },
-        {
-            titulo: 'Linguística, Letras e Artes',
-            valorAtual: 20,
-            total: 20,
-            textoFim: 'Avaliados',
-        },
-    ];
+    // //Pegar da api, apenas placeholder
+    // const { totalSubmissoes, semAvaliador, desistencias } = {
+    //     totalSubmissoes: 87,
+    //     semAvaliador: 2,
+    //     desistencias: 3,
+    // };
+
+    // //Pegar da api, apenas placeholder
+    // const dados = [
+    //     {
+    //         titulo: 'Ciências Exatas e da Terra',
+    //         valorAtual: 25,
+    //         total: 30,
+    //         textoFim: 'Avaliados',
+    //     },
+    //     {
+    //         titulo: 'Ciências Humanas',
+    //         valorAtual: 12,
+    //         total: 30,
+    //         textoFim: 'Avaliados',
+    //     },
+    //     {
+    //         titulo: 'Linguística, Letras e Artes',
+    //         valorAtual: 20,
+    //         total: 20,
+    //         textoFim: 'Avaliados',
+    //     },
+    //     {
+    //         titulo: 'Linguística, Letras e Artes',
+    //         valorAtual: 20,
+    //         total: 20,
+    //         textoFim: 'Avaliados',
+    //     },
+    //     {
+    //         titulo: 'Linguística, Letras e Artes',
+    //         valorAtual: 20,
+    //         total: 20,
+    //         textoFim: 'Avaliados',
+    //     },
+    // ];
+
+
+    const { id: eventoId } = useParams();
+    const [loading, setLoading] = useState(false);
+    const [erro, setErro] = useState('');
+    const [dashboard, setDashboard] = useState(null);
+
+    useEffect(() => {
+        async function carregarDashboard() {
+            if (!eventoId) {
+                setErro('Selecione um evento para visualizar o dashboard.');
+                setDashboard(null);
+                return;
+            }
+
+            setLoading(true);
+            setErro('');
+            try {
+                const data = await getDashboardEvento(eventoId);
+                setDashboard(data);
+            } catch (error) {
+                setDashboard(null);
+                setErro(error?.message || 'Erro ao carregar dashboard do evento.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        carregarDashboard();
+    }, [eventoId]);
+
+    const metricas = dashboard?.metricas || {};
+    const totalSubmissoes = metricas.totalSubmissoes || 0;
+    const semAvaliador = metricas.semAvaliador || 0;
+    const desistencias = metricas.desistencias || 0;
+    const taxaEvasao = metricas.taxaEvasao || 0;
+
+    const dados = useMemo(
+        () =>
+            (dashboard?.areas || []).map((area) => ({
+                titulo: area.nome,
+                valorAtual: area.avaliados,
+                total: area.total,
+                textoFim: 'Avaliados',
+            })),
+        [dashboard],
+    );
 
     const links = [
         {
@@ -69,7 +117,7 @@ export default function DashboardEvento({}) {
         {
             texto: 'Editar Informações do Evento',
             icone: <BiSolidEdit color="#727272" size={20} />,
-            to: '#',
+            to: eventoId ? `/editarEvento/${eventoId}` : '#',
         },
         {
             texto: 'Definir Locais de Trabalhos',
@@ -87,9 +135,9 @@ export default function DashboardEvento({}) {
             to: '#',
         },
         {
-            texto: 'Gerenciar Grupos',
+            texto: 'Gerenciar Organizadores',
             icone: <RiTeamFill color="#00A44B" size={20} />,
-            to: '/permissoesGrupos',
+            to: '/atribuirOrganizador',
         },
         {
             texto: 'Adicionar um Novo Evento',
@@ -112,8 +160,12 @@ export default function DashboardEvento({}) {
                     <Row>
                         <Col className="d-flex flex-xl-row gap-5 flex-column">
                             <h2 className="fw-semibold text-center">
-                                Visão Geral do Evento
+                                Visão Geral do Evento: {dashboard?.evento?.nome}
                             </h2>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col className="d-flex flex-xl-row gap-5 flex-column">
                             <div className="d-flex flex-xl-row flex-column gap-3">
                                 <Button
                                     variant="secondary"
@@ -143,10 +195,10 @@ export default function DashboardEvento({}) {
                                 <Button
                                     variant="success"
                                     as={Link}
-                                    to="#"
+                                    to={eventoId ? `/atribuirCoordenador?eventoId=${eventoId}` : '#'}
                                     className="d-flex align-items-center justify-content-center"
                                 >
-                                    Inscrições Atrações
+                                    Coordenadores
                                 </Button>
                             </div>
                         </Col>
@@ -222,7 +274,7 @@ export default function DashboardEvento({}) {
                                     <Row className="mt-4">
                                         <Col>
                                             <span className="fw-bold fs-6 text-secondary">
-                                                Taxa de evasão 3%
+                                                Taxa de evasão {taxaEvasao}%
                                             </span>
                                         </Col>
                                     </Row>

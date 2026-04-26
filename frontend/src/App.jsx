@@ -65,7 +65,9 @@ function App() {
                 <Route path="/session/auth/*" element={<SessionTokenCallback />} />
 
                 {/* Eventos (criacao/edicao) */}
+                {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionarEvento" element={<AdicionarEvento />} />
                 <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
                 <Route path="/ListarEventos" element={<ListarEnvento />} />
