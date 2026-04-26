@@ -15,7 +15,7 @@ import { RiTeamFill } from 'react-icons/ri';
 import { IoMdSchool } from 'react-icons/io';
 import { RiAddBoxFill } from 'react-icons/ri';
 
-import { getDashboardEvento } from "../services/dashboardService";
+import { getDashboardEvento } from '../services/dashboardService';
 
 export default function DashboardEvento({}) {
     // comentei pra n dar conflito, mas meio q ficou assim, agr ele funciona com dados reais. -Breno
@@ -61,7 +61,6 @@ export default function DashboardEvento({}) {
     //     },
     // ];
 
-
     const { id: eventoId } = useParams();
     const [loading, setLoading] = useState(false);
     const [erro, setErro] = useState('');
@@ -82,7 +81,9 @@ export default function DashboardEvento({}) {
                 setDashboard(data);
             } catch (error) {
                 setDashboard(null);
-                setErro(error?.message || 'Erro ao carregar dashboard do evento.');
+                setErro(
+                    error?.message || 'Erro ao carregar dashboard do evento.',
+                );
             } finally {
                 setLoading(false);
             }
@@ -162,10 +163,6 @@ export default function DashboardEvento({}) {
                             <h2 className="fw-semibold text-center">
                                 Visão Geral do Evento: {dashboard?.evento?.nome}
                             </h2>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col className="d-flex flex-xl-row gap-5 flex-column">
                             <div className="d-flex flex-xl-row flex-column gap-3">
                                 <Button
                                     variant="secondary"
@@ -195,7 +192,11 @@ export default function DashboardEvento({}) {
                                 <Button
                                     variant="success"
                                     as={Link}
-                                    to={eventoId ? `/atribuirCoordenador?eventoId=${eventoId}` : '#'}
+                                    to={
+                                        eventoId
+                                            ? `/atribuirCoordenador?eventoId=${eventoId}`
+                                            : '#'
+                                    }
                                     className="d-flex align-items-center justify-content-center"
                                 >
                                     Coordenadores
