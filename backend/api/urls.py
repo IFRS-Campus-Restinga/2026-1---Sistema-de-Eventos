@@ -30,6 +30,9 @@ from .views.tipo_etapa_view import TipoEtapaListView
 from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
+from .views import EnumChoicesAPIView
+from .enumerations import AreaConhecimentoEscolha, Setor
+
 
 app_name = "api"
 
@@ -73,5 +76,8 @@ urlpatterns = [
     # paths relacionados a cronogramas
     path("cronogramas/", CronogramaListView.as_view()),
     path("cronogramas/<int:pk>/", CronogramaDetailView.as_view()),
+    # paths com código genérico para requisições dos Enuns com 'GET'
+    path('areas_conhecimento/', EnumChoicesAPIView.as_view(enum_class=AreaConhecimentoEscolha)),
+    path('setores/', EnumChoicesAPIView.as_view(enum_class=Setor)),
 ]
 # fmt: on
