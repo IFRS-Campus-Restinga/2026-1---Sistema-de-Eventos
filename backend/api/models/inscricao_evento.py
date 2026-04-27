@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from ..enumerations.status_evento import StatusEvento
 from ..enumerations.status_inscricao import StatusInscricao
 from .base import Base
 from .evento import Evento
@@ -27,8 +28,25 @@ class InscricaoEvento(Base):
 
     evento = models.ForeignKey(Evento, on_delete=models.RESTRICT)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["perfil", "evento"],
+                name="uniq_inscricao_evento_perfil_evento",
+            )
+        ]
+
     def clean(self):
         errors = {}
+
+        if (
+            self.evento_id
+            and self.evento.status_evento != StatusEvento.INSCRICOES_ABERTAS
+        ):
+            errors["evento"] = _(
+                "Inscrição não concluída, o evento não está com as inscrições abertas."
+            )
+
         if errors:
             raise ValidationError(errors)
 

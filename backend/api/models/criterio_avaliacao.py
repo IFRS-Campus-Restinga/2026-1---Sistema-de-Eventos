@@ -44,10 +44,8 @@ class CriterioAvaliacao(Base):
         if modalidade is None and getattr(self, "modalidade_id", None):
             modalidade = Modalidade.objects.filter(pk=self.modalidade_id).first()
 
-        if (
-            modalidade
-            and not modalidade.requer_avaliacao
-            or not modalidade.requer_avaliacao_submissao
+        if modalidade and not (
+            modalidade.requer_avaliacao or modalidade.requer_avaliacao_submissao
         ):
             errors["modalidade"] = _(
                 "Não é possível vincular um critério a uma modalidade que não requer avaliação."
