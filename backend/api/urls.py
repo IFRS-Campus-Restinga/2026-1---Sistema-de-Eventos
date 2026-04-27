@@ -36,6 +36,8 @@ from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
+from .views.atracao_view import AtracaoListView, AtracaoDetailView
+from .views.choices_atracao_view import AtracaoOpcoesView
 
 app_name = "api"
 
@@ -91,5 +93,10 @@ urlpatterns = [
 
     # utilitarios
     path("csrf/", views.get_csrf_token),
+
+    # atracoes
+    path("atracoes/", AtracaoListView.as_view()),
+    path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
+    path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
 ]
 # fmt: on

@@ -2,9 +2,7 @@ from django.db import models
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.conf import settings
 from ..enumerations.status_atracao import StatusAtracao
-from ..enumerations.area_conhecimento_escolha import (
-    AreaConhecimentoEscolha as AreaConhecimento,
-)
+from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
 from .base import Base
 from .evento import Evento
@@ -50,7 +48,7 @@ class Atracao(Base):
         blank=True,
     )
     area_conhecimento = models.CharField(
-        choices=AreaConhecimento.choices,
+        choices=AreaConhecimentoEscolha.choices,
         max_length=50,
         verbose_name="Área de Conhecimento",
         null=True,
