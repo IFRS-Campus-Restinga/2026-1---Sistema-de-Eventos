@@ -184,7 +184,7 @@ export default function DashboardEvento({}) {
                                     variant="success"
                                     style={{ background: '#05C978' }}
                                     as={Link}
-                                    to="#"
+                                    to="/listarInscritos"
                                     className="d-flex align-items-center border-0 justify-content-center"
                                 >
                                     Inscrições Evento

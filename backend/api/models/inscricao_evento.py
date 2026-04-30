@@ -28,6 +28,12 @@ class InscricaoEvento(Base):
 
     evento = models.ForeignKey(Evento, on_delete=models.RESTRICT)
 
+    presente = models.BooleanField(
+        verbose_name=_("Presente"),
+        help_text=_("Informe se o perfil está presente no evento"),
+        default=False,
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

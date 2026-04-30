@@ -26,6 +26,7 @@ import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
+import PresencaEvento from './pages/PresencaEvento';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/listarAtracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/adicionarAtracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listarInscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/credenciamento" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}
                 <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />

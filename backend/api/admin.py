@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    Atracao,
     AreaConhecimento,
     Arquivo,
     Cronograma,
@@ -29,6 +30,7 @@ admin.site.register(Resposta)
 admin.site.register(Espaco)
 admin.site.register(Sessao)
 admin.site.register(Perfil)
+admin.site.register(Atracao)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)

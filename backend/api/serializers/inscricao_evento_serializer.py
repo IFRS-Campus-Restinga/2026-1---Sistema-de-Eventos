@@ -63,4 +63,5 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "data_hora",
             "perfil_id",
             "evento_id",
+            "presente",
         ]

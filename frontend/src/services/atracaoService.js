@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
+//import { API_URL } from '../config';
 
-const API_URL = 'http://localhost:8000/api/atracoes/';
+const API_URL = 'http://localhost:8001/api/atracoes/';
 
 export const listarAtracoes = async () => {
     const response = await axios.get(API_URL);
@@ -26,7 +27,7 @@ export const criarAtracao = async (dados) => {
             'X-CSRFToken': csrfToken,
             'Content-Type': 'multipart/form-data'
         },
-        withCredentials: true,
+        withCredentials: true,  
     });
     return response.data;
 };
@@ -55,16 +56,16 @@ export const salvarRascunho = async (dados) => {
 };
 
 export const buscarOpcoesAtracao = async () => {
-    const response = await axios.get('http://localhost:8000/api/atracoes/opcoes/');
+    const response = await axios.get('http://localhost:8001/api/atracoes/opcoes/');
     return response.data;
 };
 
 export const buscarEventos = async () => {
-    const response = await axios.get('http://localhost:8000/api/eventos/');
+    const response = await axios.get('http://localhost:8001/api/eventos/');
     return response.data;
 };
 
 export const buscarUsuarios = async () => {
-    const response = await axios.get('http://localhost:8000/api/users/');
+    const response = await axios.get('http://localhost:8001/api/users/');
     return response.data;
 };
