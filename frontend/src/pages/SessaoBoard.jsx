@@ -14,57 +14,202 @@ import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import Alerta from '../components/common/Alerta';
 
+import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+
 export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
 
     // MOCK DE DADOS
     const [dataSelecionada, setDataSelecionada] = useState('2025-11-25');
-
-    const salasMock = [
+    const [espacos, setEspacos] = useState([
         {
             id: 1,
-            nome: 'Sala 101 (Projetor)',
-            tipo: 'Palestras',
-            eventos: [
+            nome: 'Sala 101',
+            capacidade: 50,
+            sessoes: [
                 {
-                    id: 1,
-                    horario: '08:00 - 08:30',
-                    titulo: 'Abertura da Sessão',
-                    autor: 'Diretoria',
-                },
-                {
-                    id: 2,
-                    horario: '09:00 - 10:00',
-                    titulo: 'Uso de Python na Bio',
-                    autor: 'João Silva',
+                    id: 10,
+                    data_horario_inicio: '08:00',
+                    data_horario_fim: '10:30',
+                    ordem_apresentacoes: [
+                        {
+                            id: 10,
+                            horario_inicio: '08:00',
+                            horario_fim: '08:30',
+                            ordem: 1,
+                            atracao: {
+                                id: 1,
+                                titulo: 'Abertura da Sessão',
+                                autor: 'Diretoria',
+                            },
+                        },
+                        {
+                            id: 11,
+                            horario_inicio: '08:30',
+                            horario_fim: '09:00',
+                            ordem: 2,
+                            atracao: {
+                                id: 10,
+                                titulo: 'Vida marinha: uma narrativa',
+                                autor: 'João da Silva',
+                            },
+                        },
+                    ],
                 },
             ],
         },
         {
             id: 2,
             nome: 'Sala 102 (Lab. Info)',
-            tipo: 'Oficinas',
-            eventos: [
+            capacidade: 30,
+            sessoes: [
                 {
-                    id: 3,
-                    horario: '08:00 - 09:00',
-                    titulo: 'Oficina de Blender',
-                    autor: 'Julia Silva',
-                    erro: true, // simula conflito
+                    id: 20,
+                    data_horario_inicio: '08:00',
+                    data_horario_fim: '10:30',
+                    ordem_apresentacoes: [
+                        {
+                            id: 20,
+                            horario_inicio: '08:00',
+                            horario_fim: '08:30',
+                            ordem: 1,
+                            atracao: {
+                                id: 22,
+                                titulo: 'Oficina de teatro',
+                                autor: 'NEABI',
+                            },
+                        },
+                        {
+                            id: 21,
+                            horario_inicio: '08:30',
+                            horario_fim: '09:00',
+                            ordem: 2,
+                            atracao: {
+                                id: 220,
+                                titulo: 'Tudo sobre Python',
+                                autor: 'Jean Oliveira',
+                            },
+                        },
+                    ],
                 },
             ],
         },
-        {
-            id: 3,
-            nome: 'Ginásio',
-            tipo: 'Pôster / Feira',
-            eventos: [],
-        },
-    ];
+    ]);
 
     // MOCK DE ALERTAS
     const [message] = useState(null);
     const [error] = useState(null);
+
+    // Para mover cards entre as colunas
+    function handleDragEnd(event) {
+        const { active, over } = event;
+
+        if (!over) return;
+
+        const apresentacaoId = active.id;
+        const novoEspacoId = parseInt(
+            over.id.toString().replace('espaco-', ''),
+        );
+
+        let apresentacaoMovida;
+
+        const novosEspacos = espacos.map((espaco) => {
+            return {
+                ...espaco,
+                sessoes: espaco.sessoes.map((sessao) => {
+                    const encontrada = sessao.ordem_apresentacoes.find(
+                        (a) => a.id === apresentacaoId,
+                    );
+
+                    if (encontrada) {
+                        apresentacaoMovida = encontrada;
+
+                        return {
+                            ...sessao,
+                            ordem_apresentacoes:
+                                sessao.ordem_apresentacoes.filter(
+                                    (a) => a.id !== apresentacaoId,
+                                ),
+                        };
+                    }
+
+                    return sessao;
+                }),
+            };
+        });
+
+        const resultado = novosEspacos.map((espaco) => {
+            if (espaco.id === novoEspacoId) {
+                return {
+                    ...espaco,
+                    sessoes: [
+                        {
+                            ...espaco.sessoes[0], // simplificação: 1 sessão por espaço
+                            ordem_apresentacoes: [
+                                ...espaco.sessoes[0].ordem_apresentacoes,
+                                apresentacaoMovida,
+                            ],
+                        },
+                    ],
+                };
+            }
+            return espaco;
+        });
+
+        setEspacos(resultado);
+    }
+
+    // Card atração arrastável
+    function AtracaoArrastavel({ ordem_apresentacoes }) {
+        const { attributes, listeners, setNodeRef, transform } = useDraggable({
+            id: ordem_apresentacoes.id,
+        });
+
+        const style = {
+            transform: transform
+                ? `translate(${transform.x}px, ${transform.y}px)`
+                : undefined,
+            cursor: 'grab',
+        };
+
+        return (
+            <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+                <Card
+                    className="mb-2"
+                    style={{
+                        borderLeft: '6px solid #198754',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        backgroundColor: ordem_apresentacoes.erro
+                            ? '#ffe6e6'
+                            : '',
+                    }}
+                >
+                    <small className="text-muted">
+                        {ordem_apresentacoes.horario_inicio} -{' '}
+                        {ordem_apresentacoes.horario_fim}
+                    </small>
+
+                    <h6>{ordem_apresentacoes.atracao.titulo}</h6>
+
+                    <small>{ordem_apresentacoes.atracao.autor}</small>
+                </Card>
+            </div>
+        );
+    }
+
+    // Colunas do quadro(espaço)
+    function EspacoDrop({ espaco, children }) {
+        const { setNodeRef } = useDroppable({
+            id: espaco.id,
+        });
+
+        return (
+            <div ref={setNodeRef} className="p-2 border rounded bg-light h-100">
+                {children}
+            </div>
+        );
+    }
 
     return (
         <>
@@ -72,7 +217,8 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
             <main className="flex-fill">
                 <Container className="mx-auto">
-                    {/* HEADER */}
+                    {/* Menu de datas */}
+                    {/* PUXARA AS DATAS DE EXECUÇÃO DO EVENTO- FICARÁ AQUI! */}
                     <Row className="mx-auto my-4 align-items-center">
                         <Col md={4}>
                             <Form.Select
@@ -88,11 +234,8 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             </Form.Select>
                         </Col>
 
+                        {/* Botões de ação */}
                         <Col className="d-flex justify-content-end gap-2">
-                            <Button variant="secondary" className="fw-bold">
-                                Definição automática
-                            </Button>
-
                             <Button
                                 variant="outline-secondary"
                                 className="fw-bold"
@@ -108,71 +251,65 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                         </Col>
                     </Row>
 
-                    {/* KANBAN */}
-                    <Row className="g-3">
-                        {salasMock.map((sala) => (
-                            <Col key={sala.id} md={4}>
-                                <div className="p-2 border rounded bg-light h-100">
-                                    {/* HEADER DA SALA */}
-                                    <div
-                                        className="p-2 rounded text-white mb-2"
-                                        style={{ backgroundColor: '#198754' }}
-                                    >
-                                        <strong>{sala.nome}</strong>
-                                        <br />
-                                        <small>{sala.tipo}</small>
-                                    </div>
-
-                                    {/* EVENTOS */}
-                                    {sala.eventos.map((evento) => (
-                                        <Card
-                                            key={evento.id}
-                                            className="mb-2"
+                    {/* Quadro de espaços */}
+                    <DndContext onDragEnd={handleDragEnd}>
+                        <Row className="g-3">
+                            {espacos.map((espaco) => (
+                                <Col key={espaco.id} md={4}>
+                                    <EspacoDrop espaco={espaco.id} md={4}>
+                                        {/* HEADER DA SALA */}
+                                        <div
+                                            className="p-2 rounded text-white mb-2"
                                             style={{
-                                                border: evento.erro
-                                                    ? '1px solid red'
-                                                    : '',
-                                                backgroundColor: evento.erro
-                                                    ? '#ffe6e6'
-                                                    : '',
+                                                backgroundColor: '#198754',
                                             }}
                                         >
-                                            <div>
-                                                <small className="text-muted">
-                                                    {evento.horario}
-                                                </small>
-                                                <h6 className="mb-1">
-                                                    {evento.titulo}
-                                                </h6>
-                                                <small>{evento.autor}</small>
-                                            </div>
-                                        </Card>
-                                    ))}
+                                            <strong>{espaco.nome}</strong>
+                                            <br />
+                                            <small>{espaco.capacidade}</small>
+                                        </div>
 
-                                    {/* ÁREA DE DROP */}
-                                    <div
-                                        className="mt-2 text-center"
-                                        style={{
-                                            border: '2px dashed #ccc',
-                                            padding: '10px',
-                                            borderRadius: '5px',
-                                        }}
-                                    >
-                                        Arraste aqui
-                                    </div>
-                                </div>
-                            </Col>
-                        ))}
-                    </Row>
+                                        {/* Cards */}
+                                        {espaco.sessoes.map((sessao) =>
+                                            sessao.ordem_apresentacoes.map(
+                                                (ordem_apresentacao) => (
+                                                    <AtracaoArrastavel
+                                                        key={
+                                                            ordem_apresentacao.id
+                                                        }
+                                                        ordem_apresentacoes={
+                                                            ordem_apresentacao
+                                                        }
+                                                    />
+                                                ),
+                                            ),
+                                        )}
 
-                    {/* BOTÃO VOLTAR */}
+                                        {/* Drop area */}
+                                        <div
+                                            className="mt-2 text-center"
+                                            style={{
+                                                border: '2px dashed #ccc',
+                                                padding: '10px',
+                                                borderRadius: '5px',
+                                            }}
+                                        >
+                                            Arraste aqui
+                                        </div>
+                                    </EspacoDrop>
+                                </Col>
+                            ))}
+                        </Row>
+                    </DndContext>
+
+                    {/* Botão de voltar */}
                     <Row className="my-4">
                         <Col className="d-flex justify-content-end">
                             <Button
                                 size="lg"
                                 variant="secondary"
                                 className="fw-bold"
-                                onClick={() => navigate(-1)}
+                                onClick={() => navigate('/dashboard')}
                             >
                                 <MdArrowBack className="me-2" />
                                 Voltar
