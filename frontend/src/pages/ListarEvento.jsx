@@ -220,6 +220,14 @@ export default function EventosListar() {
                                                         Dashboard
                                                     </Button>
                                                     <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        as={Link}
+                                                        to={`/credenciamento/${evento.id}`}
+                                                    >
+                                                        Presença
+                                                    </Button>
+                                                    <Button
                                                         variant="danger"
                                                         size="sm"
                                                         onClick={() =>

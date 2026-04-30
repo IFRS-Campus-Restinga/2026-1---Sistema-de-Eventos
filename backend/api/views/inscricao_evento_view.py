@@ -9,6 +9,7 @@ from ..serializers import InscricaoEventoSerializer
 from rest_framework.permissions import IsAuthenticated
 from ..models.perfil import Perfil
 
+
 class InscricaoEventoListView(APIView):
     queryset = InscricaoEvento.objects.all()
     serializer_class = InscricaoEventoSerializer
@@ -68,30 +69,30 @@ class InscricaoEventoDetailView(APIView):
         InscricaoEvento.delete()
         return Response({"msg": "Deletado com sucesso"}, status=204)
 
+
 class RegistrarPresencaView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        evento_id = request.data.get('evento_id')
+    def post(self, request, pk=None):
+        evento_id = pk
 
         if not evento_id:
             return Response({"erro": "evento_id é obrigatório."}, status=404)
-        
+
         try:
             perfil = Perfil.objects.get(usuario=request.user)
         except Perfil.DoesNotExist:
             return Response({"erro": "Perfil nao encontrado"}, status=404)
-        
+
         try:
             inscricao = InscricaoEvento.objects.get(perfil=perfil, evento_id=evento_id)
         except InscricaoEvento.DoesNotExist:
             return Response({"erro": "Inscrição nao encontrada"}, status=404)
-        
-        if inscricao.presente:
-            return Response({"msg":"Presença já registrada"}, status=200)
-        
-        inscricao.presente = True
-        inscricao.save(update_fields=['presente'])
 
-        return Response({"msg":"Presença registrada com sucesso"}, status=200)
-    
+        if inscricao.presente:
+            return Response({"msg": "Presença já registrada"}, status=200)
+
+        inscricao.presente = True
+        inscricao.save(update_fields=["presente"])
+
+        return Response({"msg": "Presença registrada com sucesso"}, status=200)

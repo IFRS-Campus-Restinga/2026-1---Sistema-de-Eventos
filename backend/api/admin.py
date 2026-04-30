@@ -14,6 +14,7 @@ from .models import (
     Resposta,
     Sessao,
     Perfil,
+    InscricaoEvento,
 )
 
 from .models.arquivo import ArquivoAdmin
@@ -31,6 +32,7 @@ admin.site.register(Espaco)
 admin.site.register(Sessao)
 admin.site.register(Perfil)
 admin.site.register(Atracao)
+admin.site.register(InscricaoEvento)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)
