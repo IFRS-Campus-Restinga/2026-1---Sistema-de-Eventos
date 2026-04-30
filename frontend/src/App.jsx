@@ -27,6 +27,7 @@ import ListarInscritos from './pages/ListarInscritos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import PresencaEvento from './pages/PresencaEvento';
+import SessaoBoard from './pages/SessaoBoard';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -108,6 +109,9 @@ function App() {
 
                 {/* Dashboard / Tests / Misc */}
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
+
+                {/* Programação / Sessão de Eventos */}
+                <Route path="/sessaoAtribuirData" element={<SessaoBoard />} />
 
             </Routes>
         </div>

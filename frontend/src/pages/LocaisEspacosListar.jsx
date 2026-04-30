@@ -32,7 +32,7 @@ export default function LocaisEspacosListar() {
         setIdLocalSelecionado,
         loading,
         error,
-        excluirEspaco,
+        excluiEspaco,
     } = useEspacos();
 
     //const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
@@ -318,7 +318,7 @@ export default function LocaisEspacosListar() {
                 titulo="Aviso!"
                 tituloSecundario="Excluir Espaço"
                 onAcao={() => {
-                    excluirEspaco(idEspaco);
+                    excluiEspaco(idEspaco);
                     setMostrarModal(false);
                 }}
                 onFechar={() => setMostrarModal(false)}

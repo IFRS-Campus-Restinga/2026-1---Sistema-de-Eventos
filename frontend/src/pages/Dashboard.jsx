@@ -14,6 +14,7 @@ import { TbFileCertificate } from 'react-icons/tb';
 import { RiTeamFill } from 'react-icons/ri';
 import { IoMdSchool } from 'react-icons/io';
 import { RiAddBoxFill } from 'react-icons/ri';
+import { IoCalendarOutline } from 'react-icons/io5';
 
 import { getDashboardEvento } from '../services/dashboardService';
 
@@ -149,6 +150,11 @@ export default function DashboardEvento({}) {
             texto: 'Gerenciar Modalidades',
             icone: <IoMdSchool color="#00f" size={20} />,
             to: '/listarModalidades',
+        },
+        {
+            texto: 'Definir Sessões da Programação do Evento',
+            icone: <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />,
+            to: '/sessaoAtribuirData',
         },
     ];
 

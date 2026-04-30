@@ -14,7 +14,14 @@ import Alerta from '../components/common/Alerta';
 
 export default function EspacoForm({ campus = 'Campus Restinga' }) {
     const { buscarLocal, localSelecionado } = useLocais();
-    const { buscarEspaco, handleSave, loading, error, message } = useEspacos();
+    const {
+        espacoSelecionado,
+        buscarEspaco,
+        handleSave,
+        loading,
+        error,
+        message,
+    } = useEspacos();
 
     const { id } = useParams(); // Se houver ID, é edição. Se não, é criação.
     const navigate = useNavigate(); // para navegar de volta para a página de listagem após criar o local
@@ -36,23 +43,22 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
         }
     }, [localId]);
 
-    // carrega se for edição
     useEffect(() => {
-        if (editando && id) {
-            async function carregar() {
-                const data = await buscarEspaco(id);
-
-                if (data) {
-                    setNome(data.nome);
-                    setCapacidade(data.capacidade);
-                    setPredioBloco(data.predio_bloco);
-                    setRecursosDisponiveis(data.recursos_disponiveis);
-                    setAtivo(data.ativo);
-                }
-            }
-            carregar();
+        if (editando) {
+            buscarEspaco(id);
         }
     }, [id]);
+
+    // carrega se for edição
+    useEffect(() => {
+        if (espacoSelecionado) {
+            setNome(espacoSelecionado.nome);
+            setCapacidade(espacoSelecionado.capacidade);
+            setPredioBloco(espacoSelecionado.predio_bloco);
+            setRecursosDisponiveis(espacoSelecionado.recursos_disponiveis);
+            setAtivo(espacoSelecionado.ativo);
+        }
+    }, [espacoSelecionado]);
 
     const validar = () => {
         const novosErros = {};
@@ -65,7 +71,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
             novosErros.nome = 'Nome não pode ser apenas números';
         }
 
-        if (!capacidade || capacidade <= 0) {
+        if (!capacidade || Number(capacidade) <= 0) {
             novosErros.capacidade = 'Capacidade deve ser maior que zero';
         }
 
@@ -86,7 +92,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
     const handleSalvar = async () => {
         if (!validar()) return;
 
-        const dados = {
+        const dados = await handleSave({
             id,
             nome,
             capacidade: Number(capacidade),
@@ -94,9 +100,17 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
             recursos_disponiveis: recursosDisponiveis,
             ativo,
             local: localId,
-        };
+        });
 
-        await handleSave(dados);
+        if (dados.sucesso) {
+            const timeout = setTimeout(() => {
+                navigate('/listarLocaisEspacos');
+            }, 3000);
+        } else {
+            if (dados.erro) {
+                setErrors(dados.erro);
+            }
+        }
     };
 
     return (
