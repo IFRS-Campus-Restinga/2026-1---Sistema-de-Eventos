@@ -27,8 +27,8 @@ import ListarInscritos from './pages/ListarInscritos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import PresencaEvento from './pages/AlunoCredenciamento';
-import SessaoBoard from './pages/SessaoBoard';
-
+//import SessaoBoard from './pages/SessaoBoard';
+import SessaoBoard from './pages/sessaoteste';
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
