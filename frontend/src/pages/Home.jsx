@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -9,38 +9,28 @@ import Spinner from 'react-bootstrap/esm/Spinner';
 import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
 import { MdOutlineSearch } from 'react-icons/md';
-import { listarEventos } from '../services/eventoService'; // Importando seu serviço
-import eArray from '../utils/eArray'; // Sua utilidade de verificação de array
+import { useEventos } from '../hooks/useEventos';
+import useInscricoesEvento from '../hooks/useInscricoesEvento';
 
 export default function Home({ campus = 'Campus Restinga' }) {
     const location = useLocation();
-    const [loginAlert, setLoginAlert] = useState(null);
-    const [eventos, setEventos] = useState([]);
-    const [carregando, setCarregando] = useState(true);
+    const loginAlert = location.state?.loginAlert ?? null;
+    const { eventos } = useEventos();
+    const { estaInscritoEmEvento } = useInscricoesEvento();
 
     useEffect(() => {
-        const alertState = location.state?.loginAlert;
-        if (alertState) {
-            setLoginAlert(alertState);
-            window.history.replaceState({}, document.title, window.location.pathname);
+        if (loginAlert) {
+            const timeoutId = window.setTimeout(() => {
+                window.history.replaceState(
+                    {},
+                    document.title,
+                    window.location.pathname,
+                );
+            }, 5000);
+
+            return () => window.clearTimeout(timeoutId);
         }
-    }, [location.state]);
-
-    useEffect(() => {
-        const buscarDados = async () => {
-            try {
-                const dados = await listarEventos();
-                if (eArray(dados)) {
-                    setEventos(dados);
-                }
-            } catch (error) {
-                console.error("Erro ao carregar eventos na home:", error);
-            } finally {
-                setCarregando(false);
-            }
-        };
-        buscarDados();
-    }, []);
+    }, [loginAlert, location.pathname]);
 
     return (
         <>
@@ -53,7 +43,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                         duracao={5000}
                     />
                 )}
-                
+
                 <Container fluid className="p-0">
                     <Row className="m-0">
                         <Col
@@ -75,24 +65,42 @@ export default function Home({ campus = 'Campus Restinga' }) {
                             lg={8}
                             className="mx-auto d-flex flex-column align-items-center my-5 gap-4"
                         >
-                            {carregando ? (
-                                <Spinner animation="border" variant="success" />
-                            ) : eventos.length > 0 ? (
+                            {eventos.length > 0 ? (
                                 eventos.map((evento) => (
                                     <EventoCard
                                         key={evento.id}
                                         titulo={evento.nome}
                                         data={`Carga Horária: ${evento.carga_horaria}h`}
-                                        faseAtual={evento.status_evento || "Em andamento"}
-                                        corFase={evento.status_evento === 'Aberto' ? "#106D47" : "#6c757d"}
-                                        descricao={evento.descricao}
-                                        textoBotao="Ver Detalhes"
-                                        icon={MdOutlineSearch}
-                                        id={evento.id} 
+                                        faseAtual={
+                                            evento.status_evento ||
+                                            'Em andamento'
+                                        }
+                                        corFase={
+                                            evento.status_evento === 'Aberto'
+                                                ? '#106D47'
+                                                : '#6c757d'
+                                        }
+                                        descricao={evento?.descricao}
+                                        textoBotao1="Ver Detalhes"
+                                        textoBotao2={
+                                            estaInscritoEmEvento(evento.id)
+                                                ? 'Inscrito'
+                                                : evento?.status_evento ===
+                                                    'EM_ANDAMENTO'
+                                                  ? 'Inscreva-se'
+                                                  : ''
+                                        }
+                                        icon1={MdOutlineSearch}
+                                        id={evento.id}
+                                        desabilitarBotao2={estaInscritoEmEvento(
+                                            evento.id,
+                                        )}
                                     />
                                 ))
                             ) : (
-                                <p className="text-muted">Nenhum evento disponível no momento.</p>
+                                <p className="text-muted">
+                                    Nenhum evento disponível no momento.
+                                </p>
                             )}
                         </Col>
                     </Row>

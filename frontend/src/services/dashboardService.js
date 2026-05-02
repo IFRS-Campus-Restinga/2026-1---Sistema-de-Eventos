@@ -1,7 +1,9 @@
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL } from '../config';
 
-export async function getDashboard() {
-    const response = await fetch(`${API_URL}/api/dashboard/`);
+export async function getDashboardEvento(eventoId) {
+    const response = await fetch(`${API_URL}/api/dashboard/${eventoId}/`, {
+        credentials: 'include',
+    });
     return response.json();
 }
 

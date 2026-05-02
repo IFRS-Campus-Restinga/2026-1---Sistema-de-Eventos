@@ -24,6 +24,10 @@ import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
+import SemResultado from './pages/SemResultado';
+import SubmeterTrabalho from './pages/SubmeterTrabalho';
+import PresencaEvento from './pages/AlunoCredenciamento';
+import SessaoBoard from './pages/SessaoBoard';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -63,7 +67,9 @@ function App() {
                 <Route path="/session/auth/*" element={<SessionTokenCallback />} />
 
                 {/* Eventos (criacao/edicao) */}
+                {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionarEvento" element={<AdicionarEvento />} />
                 <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
                 <Route path="/ListarEventos" element={<ListarEnvento />} />
@@ -80,6 +86,10 @@ function App() {
                 <Route path="/listarAtracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/adicionarAtracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listarInscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
+
+                {/* Submissões e Avaliações */}
+                <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
@@ -95,8 +105,13 @@ function App() {
                 <Route path="/atribuirCoordenador" element={protegido(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
                 <Route path="/atribuirOrganizador" element={protegido(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
 
+                <Route path="*" element={<SemResultado/>}/>
+
                 {/* Dashboard / Tests / Misc */}
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
+
+                {/* Programação / Sessão de Eventos */}
+                <Route path="/sessaoAtribuirData" element={<SessaoBoard />} />
 
             </Routes>
         </div>

@@ -5,13 +5,14 @@ import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
 import Alerta from '../components/common/Alerta';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useEventos } from '../hooks/useEventos';
 import { useUsers } from '../hooks/useUsers';
 import { useCoordenadorEvento } from '../hooks/useCoordenadorEvento';
+
+import Vinculo from '../components/common/Vinculo';
 
 export default function DefinirCoordenadorEvento({
     campus = 'Campus Restinga',
@@ -20,7 +21,7 @@ export default function DefinirCoordenadorEvento({
     const eventoIdDaUrl = searchParams.get('eventoId') || '';
 
     const { eventos, loading: loadingEventos } = useEventos();
-    const { users, loading: loadingUsers } = useUsers();
+    const { users } = useUsers();
     const {
         handleDefinirCoordenador,
         handleRemoverCoordenador,
@@ -31,7 +32,6 @@ export default function DefinirCoordenadorEvento({
     } = useCoordenadorEvento();
 
     const [selectedEventoId, setSelectedEventoId] = useState('');
-    const [selectedUserId, setSelectedUserId] = useState('');
 
     // aq é onde tu acha qual o evento q tu ta atribuindo coordenador
     const eventoSelecionado = eventos.find(
@@ -50,10 +50,19 @@ export default function DefinirCoordenadorEvento({
         carregarCoordenadores(selectedEventoId);
     }, [selectedEventoId]);
 
-    const handleSubmit = async () => {
-        await handleDefinirCoordenador(selectedEventoId, selectedUserId);
-        setSelectedUserId('');
-    };
+    const usuariosServidor = users.filter(
+        (user) => user.access_profile === 'servidor',
+    );
+
+    const idsCoordenadores = new Set(
+        coordenadores.map((coordenador) => String(coordenador.id)),
+    );
+
+    const dadosDisponiveis = usuariosServidor.filter(
+        (user) => !idsCoordenadores.has(String(user.id)),
+    );
+
+    const dadosSelecionados = coordenadores;
 
     return (
         <>
@@ -77,108 +86,34 @@ export default function DefinirCoordenadorEvento({
                                         ? 'Carregando evento...'
                                         : 'Evento não encontrado')}
                             </h4>
-                            <Form>
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="fw-bold">
-                                        Selecionar Coordenador
-                                    </Form.Label>
-                                    <Form.Select
-                                        value={selectedUserId}
-                                        onChange={(e) =>
-                                            setSelectedUserId(e.target.value)
-                                        }
-                                        disabled={loadingUsers}
-                                    >
-                                        <option value="">
-                                            {loadingUsers
-                                                ? 'Carregando...'
-                                                : 'Escolha um usuário'}
-                                        </option>
-                                        {users.map((user) => (
-                                            <option
-                                                key={user.id}
-                                                value={user.id}
-                                            >
-                                                {user.nome}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
+                            <Vinculo
+                                cabecario1="Usuários disponíveis"
+                                cabecario2="Coordenadores escolhidos"
+                                corTexto="#fff"
+                                corCabecario="#006B3F"
+                                dados1={dadosDisponiveis}
+                                dados2={dadosSelecionados}
+                                onAcao2={(id) =>
+                                    handleDefinirCoordenador(selectedEventoId, id)
+                                }
+                                onAcao1={(id) =>
+                                    handleRemoverCoordenador(selectedEventoId, id)
+                                }
+                                selecionado={selectedEventoId}
+                                renderItem={(user) => user.nome || user.username}
+                            />
 
-                                <div className="d-flex gap-3">
-                                    <Button
-                                        variant="success"
-                                        className="fw-bold"
-                                        onClick={handleSubmit}
-                                        disabled={
-                                            loading ||
-                                            !selectedEventoId ||
-                                            !selectedUserId
-                                        }
-                                    >
-                                        {loading
-                                            ? 'Definindo...'
-                                            : 'Definir Coordenador'}
-                                    </Button>
-
-                                    <Button
-                                        variant="secondary"
-                                        className="fw-bold text-white text-decoration-none"
-                                        onClick={() => navegate(-1)}
-                                    >
-                                        Voltar
-                                    </Button>
-                                </div>
-                            </Form>
-
-                            <div className="mt-4">
-                                <h5 className="fw-bold text-success">
-                                    Coordenadores deste evento
-                                </h5>
-
-                                {coordenadores.length === 0 ? (
-                                    <p className="text-muted mb-0">
-                                        Nenhum coordenador atribuído.
-                                    </p>
-                                ) : (
-                                    <div className="table-responsive">
-                                        <table className="table table-striped table-bordered align-middle">
-                                            <thead className="table-success">
-                                                <tr>
-                                                    <th>Usuário</th>
-                                                    <th>Email</th>
-                                                    <th>Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {coordenadores.map((coordenador) => (
-                                                    <tr key={coordenador.id}>
-                                                        <td>{coordenador.username}</td>
-                                                        <td>
-                                                            {coordenador.email || '-'}
-                                                        </td>
-                                                        <td>
-                                                            <Button
-                                                                variant="outline-danger"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    handleRemoverCoordenador(
-                                                                        selectedEventoId,
-                                                                        coordenador.id,
-                                                                    )
-                                                                }
-                                                                disabled={loading}
-                                                            >
-                                                                Retirar
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
+                            <div className="d-flex gap-3 mt-3">
+                                <Button
+                                    variant="secondary"
+                                    className="fw-bold text-white text-decoration-none"
+                                    onClick={() => navegate(-1)}
+                                >
+                                    Voltar
+                                </Button>
                             </div>
+
+                            
                         </Col>
                     </Row>
                 </Container>

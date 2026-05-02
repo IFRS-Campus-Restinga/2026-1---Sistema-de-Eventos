@@ -13,9 +13,14 @@ export default function EventoCard({
     faseAtual,
     corFase = '#106D47',
     descricao,
-    textoBotao = 'Ver Detalhes',
-    onDetailsClick,
-    Icon,
+    textoBotao1 = 'Ver Detalhes',
+    textoBotao2 = 'Ver Detalhes',
+    onClick1,
+    onClick2,
+    Icon1,
+    corBotao1 = '#00a44b',
+    varianteBotao2 = 'outline-success',
+    desabilitarBotao2 = false,
 }) {
     return (
         <Card corBorda={corCard}>
@@ -27,28 +32,96 @@ export default function EventoCard({
             <Container fluid>
                 {/* 1 linha título e data */}
                 <Row>
-                    <Col className="d-flex ms-5 mt-5 align-items-center">
-                        <h3 className="fw-bold">{titulo}</h3>
-                        <span className="ms-3 fw-bold">Realização: {data}</span>
+                    <Col>
+                        <Row>
+                            <Col className="d-flex d-md-flex flex-column ms-md-5 mt-5 align-items-center">
+                                <div className="d-flex w-100  justify-content-md-start">
+                                    <h3 className="fw-bold">{titulo}</h3>
+                                </div>
+                                <div className="d-flex w-100  justify-content-md-start">
+                                    <span className="ms-0 fw-bold">
+                                        Realização: {data}
+                                    </span>
+                                </div>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col
+                                xs={9}
+                                className="d-flex align-items-center mt-md-2 "
+                            >
+                                <span className="fw-bold ms-md-5">
+                                    Fase atual:{' '}
+                                    <span
+                                        className="fw-bold"
+                                        style={{ color: corFase }}
+                                    >
+                                        {faseAtual}
+                                    </span>
+                                </span>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col className="d-flex ms-md-5 m-0 mt-2">
+                                <span className="fw-bold">Descrição:</span>
+                            </Col>
+                        </Row>
+                        {/* 4 linha descrição */}
+                        <Row>
+                            <Col className="d-flex ms-md-5 m-0 mt-2">
+                                <span className="d-none d-md-flex fw-light text-break ">
+                                    {descricao}
+                                </span>
+                                <span className="d-flex d-md-none fw-light text-break w-100">
+                                    {descricao}
+                                </span>
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col className="d-none d-md-flex justify-content-end">
+                        <Row className="d-flex flex-column gap-3 justify-content-center">
+                            <Col
+                                md={12}
+                                className="d-none d-md-flex justify-content-end "
+                            >
+                                <Button
+                                    variant="success"
+                                    className="fw-bold rounded-5 px-3 py-2 me-lg-5"
+                                    style={{
+                                        background: corBotao1,
+                                        border: corBotao1,
+                                    }}
+                                    onClick={onClick1}
+                                >
+                                    {Icon1 ? (
+                                        <Icon1 size={20} />
+                                    ) : (
+                                        <MdOutlineSearch size={20} />
+                                    )}
+                                    {textoBotao1}
+                                </Button>
+                            </Col>
+                            <Col
+                                md={12}
+                                className="d-none d-md-flex justify-content-end "
+                            >
+                                {textoBotao2 ? (
+                                    <Button
+                                        variant={varianteBotao2}
+                                        className="fw-bold rounded-5 px-3 py-2 me-lg-5 w-100"
+                                        onClick={onClick2}
+                                        disabled={desabilitarBotao2}
+                                    >
+                                        {textoBotao2}
+                                    </Button>
+                                ) : null}
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
-                {/* 2 linha fase atual*/}
-                <Row>
-                    <Col
-                        xs={9}
-                        className="d-flex ms-5  align-items-center mt-2"
-                    >
-                        <span className="fw-bold">
-                            Fase atual:{' '}
-                            <span
-                                className="fw-bold"
-                                style={{ color: corFase }}
-                            >
-                                {faseAtual}
-                            </span>
-                        </span>
-                    </Col>
-                    <Col className="d-flex justify-content-end me-5">
+                {/*  */}
+                <Row className="d-md-none mt-3 ">
+                    <Col className="d-flex flex-column gap-2 justify-content-center px-4 ">
                         <Button
                             variant="success"
                             className="fw-bold rounded-5 px-3 py-2"
@@ -56,29 +129,25 @@ export default function EventoCard({
                                 background: '#00A44B',
                                 border: '#00A44B',
                             }}
-                            onClick={onDetailsClick}
+                            onClick={onClick1}
                         >
-                            {Icon ? (
-                                <Icon size={20} />
+                            {Icon1 ? (
+                                <Icon1 size={20} />
                             ) : (
                                 <MdOutlineSearch size={20} />
                             )}
-                            {textoBotao}
+                            {textoBotao1}
                         </Button>
-                    </Col>
-                </Row>
-                {/* 3 linha Descrição */}
-                <Row>
-                    <Col className="d-flex ms-5  align-items-center mt-2">
-                        <span className="fw-bold">Descrição:</span>
-                    </Col>
-                </Row>
-                {/* 4 linha descrição */}
-                <Row>
-                    <Col className="d-flex ms-5  align-items-center mt-2">
-                        <span className="fw-light text-break w-50">
-                            {descricao}
-                        </span>
+                        {textoBotao2 ? (
+                            <Button
+                                variant={varianteBotao2}
+                                className="fw-bold rounded-5 px-3 py-2 me-lg-5 w-100"
+                                onClick={onClick2}
+                                disabled={desabilitarBotao2}
+                            >
+                                {textoBotao2}
+                            </Button>
+                        ) : null}
                     </Col>
                 </Row>
             </Container>

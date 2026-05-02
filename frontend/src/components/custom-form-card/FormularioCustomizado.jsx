@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Fragment,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/esm/Button';
@@ -12,7 +19,7 @@ import {
     obterNomeCampo,
 } from './utils';
 
-export default function CustomFormCard({
+export default function FormularioCustomizado({
     titulo = '',
     Icone,
     corTexto = '',
@@ -23,6 +30,8 @@ export default function CustomFormCard({
     erros = {},
     gruposIniciais,
     aoRemoverGrupo,
+    orientacao = 'column',
+    onFasesChange,
 }) {
     const listaGruposIniciais = useMemo(
         () => (eArray(gruposIniciais) ? gruposIniciais : []),
@@ -74,6 +83,12 @@ export default function CustomFormCard({
         iniciaisAplicadosRef.current = false;
         instanciasInicializadasRef.current = new Set();
     }, [assinaturaGruposIniciais]);
+
+    useEffect(() => {
+        if (typeof onFasesChange === 'function') {
+            onFasesChange(fases);
+        }
+    }, [fases, onFasesChange]);
 
     useEffect(() => {
         if (!add || iniciaisAplicadosRef.current) return;
@@ -193,12 +208,19 @@ export default function CustomFormCard({
                 <Row>
                     <Col className="mx-4 d-flex flex-column gap-2">
                         {instancias.map((chaveInstancia, idxInstancia) => (
-                            <div key={chaveInstancia} className="replica-group">
+                            <div
+                                key={chaveInstancia}
+                                className={`replica-group d-flex gap-2 ${
+                                    orientacao != 'row'
+                                        ? 'flex-column'
+                                        : 'flex-column flex-md-row justify-content-between'
+                                }`}
+                            >
                                 {campos.map((item, i) => {
                                     const lista = eArray(item) ? item : [item];
 
                                     return (
-                                        <div key={i}>
+                                        <Fragment key={i}>
                                             {lista.map((campo, idxCampo) => {
                                                 if (campo?.visivel === false)
                                                     return null;
@@ -212,7 +234,9 @@ export default function CustomFormCard({
                                                 );
 
                                                 return (
-                                                    <div key={idxCampo}>
+                                                    <div
+                                                        key={`${i}-${idxCampo}`}
+                                                    >
                                                         <Form.Label
                                                             htmlFor={id}
                                                             className="fw-bold"
@@ -225,6 +249,7 @@ export default function CustomFormCard({
 
                                                         <RenderizarCampo
                                                             id={id}
+                                                            corTexto={corTexto}
                                                             campo={campo}
                                                             erro={erro}
                                                             obterValor={
@@ -254,7 +279,7 @@ export default function CustomFormCard({
                                                     </div>
                                                 );
                                             })}
-                                        </div>
+                                        </Fragment>
                                     );
                                 })}
 

@@ -1,69 +1,63 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-#from api.models import Evento, Atracao, AvaliacaoSubmissao
+from rest_framework import status
 
-def get_cor_area(area):
-    cores = {
-        "CIENCIAS_EXATAS_E_DA_TERRA": "bg-green-600",
-        "CIENCIAS_HUMANAS": "bg-yellow-500",
-        "LINGUISTICA_LETRAS_ARTES": "bg-blue-500"
-    }
-    return cores.get(area, "bg-gray-500")
+from ..enumerations.status_atracao import StatusAtracao
+from ..models.evento import Evento
+from ..models.atracao import Atracao
 
 
 class DashboardView(APIView):
-    def get(self, request):
+    # dshboard focada em um evento específico
 
-        user = request.user
-        evento = Evento.objects.first()
+    def get(self, request, pk):
+        try:
+            evento = Evento.objects.get(pk=pk)
+        except Evento.DoesNotExist:
+            return Response(
+                {"erro": "Evento não encontrado"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         atracoes = Atracao.objects.filter(evento=evento)
-
         total = atracoes.count()
-
-        avaliadas_ids = AvaliacaoSubmissao.objects.values_list('atracao_id', flat=True)
-
-        sem_avaliador = atracoes.exclude(id__in=avaliadas_ids).count()
-
-        desistencias = atracoes.filter(status="CANCELADO").count()
+        desistencias = atracoes.filter(status=StatusAtracao.CANCELADA).count()
+        sem_avaliador = atracoes.filter(status=StatusAtracao.PREVISTA).count()
 
         areas = []
-        areas_db = atracoes.values_list('area_conhecimento', flat=True).distinct()
-
-        for area in areas_db:
+        for area in atracoes.values_list("area_conhecimento", flat=True).distinct():
             total_area = atracoes.filter(area_conhecimento=area).count()
-            avaliados_area = atracoes.filter(
-                area_conhecimento=area,
-                id__in=avaliadas_ids
-            ).count()
+            avaliados_area = (
+                atracoes.filter(area_conhecimento=area)
+                .exclude(status=StatusAtracao.PREVISTA)
+                .count()
+            )
 
-            areas.append({
-                "nome": area,
-                "avaliados": avaliados_area,
-                "total": total_area,
-                "cor": get_cor_area(area)
-            })
+            areas.append(
+                {
+                    "nome": area,
+                    "avaliados": avaliados_area,
+                    "total": total_area,
+                }
+            )
 
         data = {
             "usuario": {
-                "nome": user.username if user.is_authenticated else "Usuário",
-                "iniciais": user.username[0].upper() if user.is_authenticated else "U"
+                "nome": request.user.username
+                if request.user.is_authenticated
+                else "Usuário",
             },
             "evento": {
-                "nome": evento.nome if evento else "Evento"
+                "id": evento.id,
+                "nome": evento.nome,
             },
             "metricas": {
                 "totalSubmissoes": total,
                 "semAvaliador": sem_avaliador,
                 "desistencias": desistencias,
-                "taxaEvasao": int((desistencias / total) * 100) if total > 0 else 0
+                "taxaEvasao": int((desistencias / total) * 100) if total > 0 else 0,
             },
             "areas": areas,
-            "acoes": [
-                "Homologar Avaliadores",
-                "Editar Evento",
-                "Definir Locais"
-            ]
         }
 
-        return Response(data)
+        return Response(data, status=status.HTTP_200_OK)

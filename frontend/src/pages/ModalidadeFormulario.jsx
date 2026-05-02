@@ -5,7 +5,7 @@ import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import CustomFormCard from '../components/custom-form-card/FormularioCustomizado';
+import FormularioCustomizado from '../components/custom-form-card/FormularioCustomizado';
 import NavBar from '../components/nav_bar/NavBar';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
@@ -107,6 +107,9 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                 );
                 setEmiteCertificado(Boolean(modalidadeData?.emite_certificado));
                 setLimiteVagas(Number(modalidadeData?.limite_vagas || 0));
+                setLimiteAvaliadores(
+                    Number(modalidadeData?.limite_avaliadores || 0),
+                );
                 setCamposIniciais(
                     campos.filter(
                         (campo) => Number(campo.modalidade) === Number(id),
@@ -184,7 +187,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                 <Container className="mx-auto">
                     <Row className="mx-auto my-5 d-flex justify-content-center">
                         <Col className="d-flex flex-column gap-3">
-                            <CustomFormCard
+                            <FormularioCustomizado
                                 titulo="Campos Padronizados"
                                 Icone={<LuPencil size={30} />}
                                 corTexto="#00A44B"
@@ -239,7 +242,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                     },
                                 ]}
                             />
-                            <CustomFormCard
+                            <FormularioCustomizado
                                 add
                                 iniciarSemGrupo
                                 titulo="Campos Customizado"
@@ -303,7 +306,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                 ]}
                             />
                             {(requerAvaliacao || requerAvaliacaoSubmissao) && (
-                                <CustomFormCard
+                                <FormularioCustomizado
                                     add
                                     titulo="Critérios de Avaliação"
                                     Icone={<LuPencil size={30} />}

@@ -2,7 +2,7 @@ from django.db import models
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.conf import settings
 from ..enumerations.status_atracao import StatusAtracao
-from ..enumerations.area_conhecimento import AreaConhecimento
+from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
 from .base import Base
 from .evento import Evento
@@ -22,7 +22,7 @@ class Atracao(Base):
         help_text="Forneça um resumo detalhado (250 a 500 palavras)",
         validators=[MaxLengthValidator(5000)],
         null=True,
-        blank=True
+        blank=True,
     )
     palavras_chave = models.CharField(
         max_length=250,
@@ -30,7 +30,7 @@ class Atracao(Base):
         help_text="Separe as palavras-chave por vírgula",
         validators=[MaxLengthValidator(250)],
         null=True,
-        blank=True
+        blank=True,
     )
     modalidade = models.ForeignKey(
         Modalidade,
@@ -38,21 +38,21 @@ class Atracao(Base):
         related_name="atracoes",
         verbose_name="Modalidade",
         null=True,
-        blank=True
+        blank=True,
     )
     nivel_ensino = models.CharField(
         choices=NivelEnsino.choices,
         max_length=50,
         verbose_name="Nível de Ensino",
         null=True,
-        blank=True
+        blank=True,
     )
     area_conhecimento = models.CharField(
-        choices=AreaConhecimento.choices,
+        choices=AreaConhecimentoEscolha.choices,
         max_length=50,
         verbose_name="Área de Conhecimento",
         null=True,
-        blank=True
+        blank=True,
     )
     orientador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -60,21 +60,17 @@ class Atracao(Base):
         related_name="orientacoes",
         verbose_name="Orientador(a)",
         null=True,
-        blank=True
+        blank=True,
     )
-    sou_orientador = models.BooleanField(
-        default=False,
-        verbose_name="Sou o Orientador"
-    )
+    sou_orientador = models.BooleanField(default=False, verbose_name="Sou o Orientador")
     anexo_pdf = models.FileField(
         upload_to="submissoes/pdfs/",
         verbose_name="Anexo I (PDF)",
         null=True,
-        blank=True
+        blank=True,
     )
     acessibilidade = models.BooleanField(
-        default=False,
-        verbose_name="Possui recursos de acessibilidade?"
+        default=False, verbose_name="Possui recursos de acessibilidade?"
     )
     evento = models.ForeignKey(
         Evento,
@@ -88,10 +84,12 @@ class Atracao(Base):
         verbose_name="Status",
         default=StatusAtracao.PREVISTA,
     )
-    
+
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
-    local_atracao = models.CharField(max_length=200, null=True, blank=True)
+    local_atracao = models.CharField(
+        max_length=200, null=True, blank=True
+    )  # vira relação com local/espaço
 
     class Meta(Base.Meta):
         verbose_name = "Atração / Submissão"

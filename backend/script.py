@@ -58,26 +58,68 @@ MODALIDADES_DATA = [
 EVENTOS_DATA = [
     {
         "nome": "Semana Acadêmica de Tecnologia",
-        "descricao": "Evento voltado para integração acadêmica, palestras e oficinas de tecnologia.",
+        "descricao": "Evento voltado para integração acadêmica...",
         "status_evento": "EM_PLANEJAMENTO",
         "carga_horaria": 20,
         "setor": "ENSINO",
         "tema": "Inovação e Tecnologia",
         "modalidades_nomes": ["Palestra", "Oficina"],
-        "local_nome": "Campus Restinga", #
+        "local_nome": "Campus Restinga",
+        "areas_conhecimento": ["EXATAS_TERRA", "ENGENHARIAS"] 
     },
     {
         "nome": "Mostra de Extensão",
-        "descricao": "Apresentação de projetos e ações de extensão desenvolvidos no campus.",
+        "descricao": "Apresentação de projetos...",
         "status_evento": "INSCRICOES_ABERTAS",
         "carga_horaria": 12,
         "setor": "EXTENSAO",
-        "tema": "Integração com a Comunidade",
+        "tema": "Integração",
         "modalidades_nomes": ["Palestra"],
-        "local_nome": "Campus Restinga", #
+        "local_nome": "Campus Restinga",
+        "areas_conhecimento": ["HUMANAS"] 
     },
 ]
 
+ARQUIVOS_DATA = [
+    {
+        "nome_arquivo": "Edital da Mostra Científica",
+        "evento_nome": "Mostra de Extensão",
+        "caminho_fake": "editais/mostra_2025.pdf"
+    },
+    {
+        "nome_arquivo": "Cronograma de Tecnologia",
+        "evento_nome": "Semana Acadêmica de Tecnologia",
+        "caminho_fake": "docs/cronograma.pdf"
+    }
+]
+
+ETAPAS_DATA = [
+    {
+        "evento_nome": "Semana Acadêmica de Tecnologia",
+        "tipo_etapa": "INSCRICAO", 
+        "data_inicio": "2025-09-01 08:00:00",
+        "data_fim": "2025-10-15 23:59:59",
+    },
+    {
+        "evento_nome": "Semana Acadêmica de Tecnologia",
+        "tipo_etapa": "REALIZACAO",
+        "data_inicio": "2025-10-20 08:00:00",
+        "data_fim": "2025-10-22 18:00:00",
+    },
+    {
+        "evento_nome": "Mostra de Extensão",
+        "tipo_etapa": "INSCRICAO",
+        "data_inicio": "2025-08-10 00:00:00",
+        "data_fim": "2025-09-10 23:59:59",
+    }
+]
+
+AREAS_DATA = [
+    {"area": "EXATAS_TERRA", "descricao": "Ciências que estudam a matéria e as leis da natureza."},
+    {"area": "ENGENHARIAS", "descricao": "Aplicação de conhecimentos técnicos para criação de soluções."},
+    {"area": "HUMANAS", "descricao": "Estudo do comportamento, cultura e sociedade humana."},
+    {"area": "LINGUISTICA_LETRAS_ARTES", "descricao": "Estudo das linguagens, literatura e manifestações artísticas."},
+]
 
 def setup_django():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
@@ -186,52 +228,124 @@ def seed_modalidades():
     print(f"Criados: {created if created else 'nenhum'}")
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
 
+def seed_areas():
+    from api.models.area_conhecimento import AreaConhecimento
+    
+    created_count = 0
+    for item in AREAS_DATA:
+        area, created = AreaConhecimento.objects.get_or_create(
+            area_conhecimento=item["area"],
+            defaults={"descricao": item["descricao"]}
+        )
+        if created:
+            created_count += 1
+    print(f"Seed de áreas finalizada. Criadas: {created_count}")
+
 
 def seed_eventos():
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
     from api.models.local import Local
+    from api.models.area_conhecimento import AreaConhecimento
+
+    for item in EVENTOS_DATA:
+        local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
+        
+        # Primeiro, tentamos buscar o evento exatamente pelo nome
+        evento = Evento.objects.filter(nome__iexact=item["nome"]).first()
+        created = False
+
+        if not evento:
+            # Se não existe, criamos um novo
+            evento = Evento.objects.create(
+                nome=item["nome"],
+                descricao=item["descricao"],
+                status_evento=item["status_evento"],
+                carga_horaria=item["carga_horaria"],
+                setor=item["setor"],
+                tema=item["tema"],
+                local=local,
+            )
+            created = True
+
+        # Vincular N:N (Sempre rodar para garantir que os vínculos existam)
+        mods = Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
+        evento.modalidades.set(mods)
+        
+        areas = AreaConhecimento.objects.filter(area_conhecimento__in=item["areas_conhecimento"])
+        evento.area_conhecimento.set(areas) 
+        
+        status = "criado" if created else "já existia"
+        print(f"Evento '{evento.nome}' {status} com {areas.count()} áreas.")
+
+
+def seed_etapas():
+    from api.models.etapa_evento import EtapaEvento
+    from api.models.evento import Evento
+    from django.utils.dateparse import parse_datetime
+
+    created_count = 0
+    existing_count = 0
+
+    for item in ETAPAS_DATA:
+        evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
+        if not evento:
+            print(f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}.")
+            continue
+
+       
+        etapa, created = EtapaEvento.objects.update_or_create(
+            evento=evento,
+            tipo_etapa=item["tipo_etapa"],
+            defaults={
+                "data_inicio": parse_datetime(item["data_inicio"]),
+                "data_fim": parse_datetime(item["data_fim"]),
+            }
+        )
+
+        if created:
+            created_count += 1
+        else:
+            existing_count += 1
+
+    print("Seed de etapas finalizada.")
+    print(f"Criadas: {created_count} | Já existiam/Atualizadas: {existing_count}")
+
+
+def seed_arquivos():
+    from api.models.arquivo import Arquivo
+    from api.models.evento import Evento
+    from django.core.files import File # Caso queira manipular arquivos reais
 
     created = []
     existing = []
 
-    for item in EVENTOS_DATA:
-        local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
-        if not local:
-             raise RuntimeError(f"Local '{item['local_nome']}' não encontrado para o evento.")
-        
-        modalidades = list(
-            Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
-        )
-        if len(modalidades) != len(item["modalidades_nomes"]):
-            raise RuntimeError(
-                f"Modalidades base ausentes para o evento '{item['nome']}'. Rode seed_modalidades antes de seed_eventos."
-            )
-
-        evento = Evento.objects.filter(nome__iexact=item["nome"]).first()
-
-        if evento:
-            existing.append(evento.nome)
+    for item in ARQUIVOS_DATA:
+        evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
+        if not evento:
+            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo.")
             continue
 
-        evento = Evento(
-            nome=item["nome"],
-            descricao=item["descricao"],
-            status_evento=item["status_evento"],
-            carga_horaria=item["carga_horaria"],
-            setor=item["setor"],
-            tema=item["tema"],
-            local=local,
-        )
-        evento.full_clean()
-        evento.save()
-        evento.modalidades.set(modalidades)
-        created.append(evento.nome)
+        arquivo_obj = Arquivo.objects.filter(
+            nome_arquivo__iexact=item["nome_arquivo"], 
+            evento=evento
+        ).first()
 
-    print("Seed de eventos finalizada.")
+        if arquivo_obj:
+            existing.append(item["nome_arquivo"])
+            continue
+
+        arquivo_obj = Arquivo(
+            nome_arquivo=item["nome_arquivo"],
+            evento=evento,
+            arquivo=item["caminho_fake"] 
+        )
+        arquivo_obj.save()
+        created.append(item["nome_arquivo"])
+
+    print("Seed de arquivos finalizada.")
     print(f"Criados: {created if created else 'nenhum'}")
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
-
 
 def seed_admin_user():
     """Cria um superusuário padrão 'admin' com senha 'admin' e o adiciona ao grupo 'Administrador'."""
@@ -272,5 +386,8 @@ if __name__ == "__main__":
     seed_locais()
     seed_espacos()
     seed_modalidades()
-    seed_eventos()
+    seed_areas()       
+    seed_eventos()     
+    seed_arquivos()
+    seed_etapas()
     seed_admin_user()

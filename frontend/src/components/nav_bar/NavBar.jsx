@@ -3,55 +3,90 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import AuthButton from '../common/AuthButton';
 import IFLogo from '../common/IFLogo';
+import Offcanvas from 'react-bootstrap/Offcanvas';
+import { BsBell } from 'react-icons/bs';
+
 export default function NavBar() {
+    const expand = 'xl';
     return (
-        <Navbar style={{ backgroundColor: '#00A44B' }}>
-            <Container fluid className="px-0 d-flex align-items-center">
-                <Navbar.Brand href="#home" className="ps-5 me-3">
+        <Navbar
+            key={expand}
+            expand={expand}
+            className="bg-body-tertiary p-0"
+            style={{ backgroundColor: '#00A44B' }}
+        >
+            <Container
+                fluid
+                style={{ backgroundColor: '#00A44B' }}
+                className="py-2 position-relative"
+            >
+                <Navbar.Brand href="#" className="ps-5">
                     <IFLogo
+                        escalaTitulo={12}
+                        escalaTexto={10}
                         estado="Rio Grande do Sul"
                         campus="Campus Restinga"
                         corRect="#fff"
                         corTexto="#fff"
                     />
                 </Navbar.Brand>
-                <Navbar.Toggle aria-controls="basic-navbar-nav" />
-                <Navbar.Collapse
-                    id="basic-navbar-nav"
-                    className="justify-content-center"
+                <Navbar.Toggle
+                    aria-controls={`offcanvasNavbar-expand-${expand}`}
+                />
+                <Navbar.Offcanvas
+                    style={{ backgroundColor: '#00A44B' }}
+                    id={`offcanvasNavbar-expand-${expand}`}
+                    aria-labelledby={`offcanvasNavbarLabel-expand-${expand}`}
+                    placement="end"
                 >
-                    <Nav className="gap-5">
-                        <Nav.Link href="/" className="text-white">
-                            Home
-                        </Nav.Link>
-                        {/* <Nav.Link
-                            href="permissoesGrupos"
-                            className="text-white"
+                    <Offcanvas.Header closeButton>
+                        <Offcanvas.Title
+                            id={`offcanvasNavbarLabel-expand-${expand}`}
+                            className="text-white fw-bold"
                         >
-                            Permissões mock
-                        </Nav.Link> */}
-                        <Nav.Link
-                            href="listarLocaisEspacos"
-                            className="text-white"
-                        >
-                            Listar Locais e Espaços
-                        </Nav.Link>
+                            Menu
+                        </Offcanvas.Title>
+                    </Offcanvas.Header>
+                    <Offcanvas.Body>
+                        <Nav className="justify-content-center flex-grow-1 pe-3 gap-5 ">
+                            <Nav.Link href="/" className="text-white fw-bold">
+                                Home
+                            </Nav.Link>
+                            <Nav.Link href="#" className="text-white fw-bold">
+                                Meus Eventos
+                            </Nav.Link>
+                            <Nav.Link href="#" className="text-white fw-bold">
+                                Avaliações
+                            </Nav.Link>
+                            <Nav.Link
+                                href="/dashboard"
+                                className="text-white fw-bold"
+                            >
+                                Gestão
+                            </Nav.Link>
+                            <div className="d-flex d-xl-none">
+                                <div className="pe-3 d-flex fw-bold">
+                                    <AuthButton />
+                                </div>
+                            </div>
+                            <div className="d-flex d-xl-none">
+                                <div className="pe-3 d-flex flex-column justify-content-center fw-bold">
+                                    <BsBell
+                                        size={20}
+                                        color="#fff"
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                </div>
+                            </div>
 
-                        <Nav.Link href="ListarEventos" className="text-white">
-                            Listar Evento
-                        </Nav.Link>
-                        {/*<Nav.Link href="#link" className="text-white">
-                            Avaliações
-                        </Nav.Link>
-                        */}
-                        <Nav.Link href="/dashboard" className="text-white">
-                            Gestão
-                        </Nav.Link>
-                    </Nav>
-                </Navbar.Collapse>
-                <div className="d-flex align-items-center ms-auto pe-5">
-                    <AuthButton />
-                </div>
+                            <div className="d-none d-xl-flex position-absolute end-0 top-50 translate-middle-y pe-5">
+                                <div className="me-3 d-flex fw-bold align-items-center">
+                                    <AuthButton />
+                                </div>
+                            </div>
+                        </Nav>
+                    </Offcanvas.Body>
+                </Navbar.Offcanvas>
             </Container>
         </Navbar>
     );

@@ -11,6 +11,7 @@ import {
 export default function useEspacos() {
     const [idLocalSelecionado, setIdLocalSelecionado] = useState(null); //pega o idlocal selecionado no dropdown
     const [localSelecionado, setLocalSelecionado] = useState(null);
+    const [espacoSelecionado, setEspacoSelecionado] = useState(null);
     const [espacos, setEspacos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -50,7 +51,7 @@ export default function useEspacos() {
 
         try {
             const data = await pegarEspaco(id);
-            setLocalSelecionado(data);
+            setEspacoSelecionado(data);
         } catch (erro) {
             console.error('Erro ao buscar espaço:', erro);
             setError('Erro ao buscar espaço');
@@ -111,7 +112,7 @@ export default function useEspacos() {
         }
     };
 
-    const excluirEspaco = async (id) => {
+    const excluiEspaco = async (id) => {
         setLoading(true);
         setError(null);
         setMessage('');
@@ -139,17 +140,17 @@ export default function useEspacos() {
 
             if (dados.id) {
                 resultado = await editarEspaco(dados.id, dados);
-                setMessage('Local atualizado com sucesso!');
+                setMessage('Espaço atualizado com sucesso!');
             } else {
                 resultado = await adicionaEspaco(dados);
-                setMessage('Local criado com sucesso!');
+                setMessage('Espaço criado com sucesso!');
             }
 
             return { sucesso: true, data: resultado };
         } catch (erro) {
             console.error('Erro ao salvar:', erro);
 
-            const erroBackend = erro.response?.data || 'Erro ao salvar local';
+            const erroBackend = erro.response?.data || 'Erro ao salvar espaço';
             setError(erroBackend);
 
             return { sucesso: false, erro: erroBackend };
@@ -167,6 +168,7 @@ export default function useEspacos() {
         idLocalSelecionado,
         setIdLocalSelecionado,
         localSelecionado,
+        espacoSelecionado,
         loading,
         error,
         message,
@@ -175,7 +177,7 @@ export default function useEspacos() {
         buscarEspaco,
         adicionaEspaco,
         editarEspaco,
-        excluirEspaco,
+        excluiEspaco,
         handleSave,
     };
 }
