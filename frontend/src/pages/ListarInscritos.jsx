@@ -1,31 +1,85 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import ListaInscritos from '../components/lista_inscritos/ListaInscritos';
+import Alerta from '../components/common/Alerta';
 
-const inscritosEstaticos = [
-    { id: 1, nome: 'Ana Clara Rodrigues', cpf: '123.456.789-00', email: 'ana.clara@email.com', tipo: 'Participante', status: 'Confirmado', dataInscricao: '10/04/2026', evento: 'Feira de Ciencias 2026' },
-    { id: 2, nome: 'Bruno Silva Santos', cpf: '987.654.321-00', email: 'bruno.santos@email.com', tipo: 'Participante', status: 'Pendente', dataInscricao: '09/04/2026', evento: 'Feira de Ciencias 2026' },
-    { id: 3, nome: 'Carlos Eduardo Oliveira', cpf: '456.123.789-00', email: 'carlos.oliveira@email.com', tipo: 'Avaliador', status: 'Confirmado', dataInscricao: '08/04/2026', evento: 'Feira de Ciencias 2026' },
-    { id: 4, nome: 'Daniela Costa Lima', cpf: '789.123.456-00', email: 'daniela.costa@email.com', tipo: 'Participante', status: 'Confirmado', dataInscricao: '07/04/2026', evento: 'Feira de Ciencias 2026' },
-    { id: 5, nome: 'Eduardo Ferreira Souza', cpf: '321.789.456-00', email: 'eduardo.souza@email.com', tipo: 'Organizador', status: 'Confirmado', dataInscricao: '05/04/2026', evento: 'Feira de Ciencias 2026' },
-    { id: 6, nome: 'Fernanda Alves Pereira', cpf: '654.987.321-00', email: 'fernanda.alves@email.com', tipo: 'Participante', status: 'Confirmado', dataInscricao: '04/04/2026', evento: 'Feira de Ciencias 2026' },
-];
+const ITENS_POR_PAGINA = 10;
 
 export default function ListarInscritos() {
+    const location = useLocation();
+    const inscritosIniciais = location.state?.inscritos ?? [];
+    const [inscritos, setInscritos] = useState(inscritosIniciais);
+    const [paginaAtual, setPaginaAtual] = useState(0);
+    const [presencasRegistradas, setPresencasRegistradas] = useState(new Set());
+    const [alerta, setAlerta] = useState({
+        mensagem: '',
+        variacao: 'danger',
+        reacao: 0,
+    });
+
+    const mostrarAlerta = (mensagem, variacao = 'danger') =>
+        setAlerta((prev) => ({
+            ...prev,
+            mensagem,
+            variacao,
+            reacao: (prev.reacao || 0) + 1,
+        }));
+
+    const totalPaginas = Math.max(1, Math.ceil(inscritos.length / ITENS_POR_PAGINA));
+
+    const usuariosPagina = useMemo(() => {
+        const inicio = paginaAtual * ITENS_POR_PAGINA;
+        const fim = inicio + ITENS_POR_PAGINA;
+        return inscritos.slice(inicio, fim);
+    }, [inscritos, paginaAtual]);
+
+    const registrarPresenca = (usuario) => {
+        setPresencasRegistradas((prev) => {
+            const novoSet = new Set(prev);
+            novoSet.add(usuario.id);
+            return novoSet;
+        });
+        mostrarAlerta(`Presença registrada para ${usuario.nome}.`, 'success');
+    };
+
+    const excluirInscrito = (usuario) => {
+        setInscritos((prev) => prev.filter((item) => item.id !== usuario.id));
+        mostrarAlerta('Inscrito removido da listagem.', 'success');
+    };
+
+    const paginaAnterior = () => {
+        setPaginaAtual((prev) => Math.max(prev - 1, 0));
+    };
+
+    const proximaPagina = () => {
+        setPaginaAtual((prev) => Math.min(prev + 1, totalPaginas - 1));
+    };
+
     return (
         <div className="d-flex flex-column min-vh-100">
             <NavBar />
             <main className="flex-fill bg-light py-4">
+                {alerta.mensagem && (
+                    <Alerta
+                        mensagem={alerta.mensagem}
+                        variacao={alerta.variacao}
+                        reacao={alerta.reacao}
+                    />
+                )}
                 <ListaInscritos
-                    titulo="Lista de Inscritos"
-                    usuarios={inscritosEstaticos}
+                    titulo="Lista de Inscritos da Atração"
+                    usuarios={usuariosPagina}
                     habilitarPresenca={true}
-                    onRegistrarPresenca={(usuario) => console.log('Registrar presença:', usuario)}
-                    onExcluir={(usuario) => console.log('Excluir inscrito:', usuario)}
+                    onRegistrarPresenca={registrarPresenca}
+                    onExcluir={excluirInscrito}
                     onVoltar={() => window.history.back()}
-                    paginaAtual={0}
-                    totalPaginas={3}
+                    paginaAnterior={paginaAnterior}
+                    proximaPagina={proximaPagina}
+                    paginaAtual={paginaAtual}
+                    totalPaginas={totalPaginas}
+                    presencasRegistradas={presencasRegistradas}
                 />
             </main>
             <Footer 
