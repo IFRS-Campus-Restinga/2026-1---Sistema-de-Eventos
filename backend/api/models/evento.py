@@ -10,6 +10,7 @@ from ..enumerations.setor import Setor
 from .base import Base
 from .modalidade import Modalidade
 from .local import Local
+from .area_conhecimento import AreaConhecimento
 from django.core.exceptions import ValidationError
 
 
@@ -49,6 +50,16 @@ class Evento(Base):
         validators=[MaxLengthValidator(100)],
     )
     local = models.ForeignKey(Local, on_delete=models.CASCADE, null=False,blank=False)
+    modalidades = models.ManyToManyField(Modalidade,
+                                         related_name="eventos",
+                                         null=False,
+                                         blank=False)
+    area_conhecimento = models.ManyToManyField(AreaConhecimento,
+                                               related_name="eventos",
+                                               verbose_name="áreas de conhecimento",
+                                               null=False,
+                                               blank=False)
+    
 
     # futuramente, fazer relacionamento com local
     class Meta:
