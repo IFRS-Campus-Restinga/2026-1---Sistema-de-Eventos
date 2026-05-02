@@ -16,6 +16,7 @@ from .models import (
     Perfil,
     InscricaoEvento,
     EtapaEvento,
+    AvaliacaoSubmissao,
 )
 
 from .models.arquivo import ArquivoAdmin
@@ -35,6 +36,7 @@ admin.site.register(Perfil)
 admin.site.register(Atracao)
 admin.site.register(InscricaoEvento)
 admin.site.register(EtapaEvento)
+admin.site.register(AvaliacaoSubmissao)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)

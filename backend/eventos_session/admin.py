@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 
 from .models import Usuario
@@ -11,6 +10,13 @@ def is_admin_user(user: Usuario) -> bool:
 
 
 class UsuarioAdminForm(forms.ModelForm):
+    password = forms.CharField(
+        label="Senha",
+        required=False,
+        widget=forms.PasswordInput,
+        help_text="Deixe em branco para manter a senha atual.",
+    )
+
     class Meta:
         model = Usuario
         fields = "__all__"
@@ -29,6 +35,18 @@ class UsuarioAdminForm(forms.ModelForm):
             permissions_field.help_text = (
                 "Usuarios comuns so podem receber permissoes diretas de visualizacao."
             )
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password") or ""
+
+        if password:
+            user.set_password(password)
+        # Se deixar vazio, a senha atual é mantida
+
+        if commit:
+            user.save()
+        return user
 
 
 class UsuarioAdminCreationForm(forms.ModelForm):
@@ -82,7 +100,7 @@ class UsuarioAdminCreationForm(forms.ModelForm):
 
 
 @admin.register(Usuario)
-class UsuarioAdmin(UserAdmin):
+class UsuarioAdmin(admin.ModelAdmin):
     form = UsuarioAdminForm
     add_form = UsuarioAdminCreationForm
     filter_horizontal = ("user_permissions", "groups")

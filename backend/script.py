@@ -53,30 +53,64 @@ MODALIDADES_DATA = [
         "limite_avaliadores": 2,
         "ativo": True,
     },
+    {
+        "nome": "Pôster",
+        "requer_avaliacao": True,
+        "requer_avaliacao_submissao": True,
+        "emite_certificado": True,
+        "limite_avaliadores": 2,
+        "ativo": True,
+    },
+    {
+        "nome": "Mesa-redonda",
+        "requer_avaliacao": False,
+        "requer_avaliacao_submissao": False,
+        "emite_certificado": True,
+        "limite_avaliadores": 0,
+        "ativo": True,
+    },
 ]
 
 EVENTOS_DATA = [
     {
         "nome": "Semana Acadêmica de Tecnologia",
-        "descricao": "Evento voltado para integração acadêmica...",
-        "status_evento": "EM_PLANEJAMENTO",
+        "descricao": "Evento voltado para integração acadêmica com foco em inovação, pesquisa aplicada e formação técnica.",
+        "status_evento": "EM_ANDAMENTO",
         "carga_horaria": 20,
         "setor": "ENSINO",
         "tema": "Inovação e Tecnologia",
-        "modalidades_nomes": ["Palestra", "Oficina"],
+        "modalidades_nomes": ["Palestra", "Oficina", "Pôster"],
         "local_nome": "Campus Restinga",
-        "areas_conhecimento": ["EXATAS_TERRA", "ENGENHARIAS"] 
+        "areas_conhecimento": [
+            "CIENCIAS_EXATAS_E_DA_TERRA",
+            "ENGENHARIAS",
+        ],
     },
     {
         "nome": "Mostra de Extensão",
-        "descricao": "Apresentação de projetos...",
+        "descricao": "Apresentação de projetos, relatos e soluções desenvolvidas junto à comunidade.",
         "status_evento": "INSCRICOES_ABERTAS",
         "carga_horaria": 12,
         "setor": "EXTENSAO",
         "tema": "Integração",
-        "modalidades_nomes": ["Palestra"],
+        "modalidades_nomes": ["Palestra", "Mesa-redonda"],
         "local_nome": "Campus Restinga",
-        "areas_conhecimento": ["HUMANAS"] 
+        "areas_conhecimento": ["CIENCIAS_HUMANAS", "CIENCIAS_SOCIAIS_APLICADAS"],
+    },
+    {
+        "nome": "Jornada de Pesquisa e Inovação",
+        "descricao": "Espaço para apresentação de trabalhos científicos e avanços tecnológicos dos estudantes.",
+        "status_evento": "EM_ANDAMENTO",
+        "carga_horaria": 16,
+        "setor": "PESQUISA",
+        "tema": "Ciência, dados e inovação",
+        "modalidades_nomes": ["Palestra", "Oficina", "Pôster"],
+        "local_nome": "Campus Centro",
+        "areas_conhecimento": [
+            "CIENCIAS_EXATAS_E_DA_TERRA",
+            "CIENCIAS_BIOLOGICAS",
+            "ENGENHARIAS",
+        ],
     },
 ]
 
@@ -115,10 +149,76 @@ ETAPAS_DATA = [
 ]
 
 AREAS_DATA = [
-    {"area": "EXATAS_TERRA", "descricao": "Ciências que estudam a matéria e as leis da natureza."},
+    {"area": "CIENCIAS_EXATAS_E_DA_TERRA", "descricao": "Ciências que estudam a matéria, energia e as leis da natureza."},
+    {"area": "CIENCIAS_BIOLOGICAS", "descricao": "Estudo dos seres vivos e dos processos biológicos."},
     {"area": "ENGENHARIAS", "descricao": "Aplicação de conhecimentos técnicos para criação de soluções."},
-    {"area": "HUMANAS", "descricao": "Estudo do comportamento, cultura e sociedade humana."},
-    {"area": "LINGUISTICA_LETRAS_ARTES", "descricao": "Estudo das linguagens, literatura e manifestações artísticas."},
+    {"area": "CIENCIAS_DA_SAUDE", "descricao": "Área voltada à promoção, prevenção e cuidado com a saúde."},
+    {"area": "CIENCIAS_SOCIAIS_APLICADAS", "descricao": "Estudo das relações sociais, instituições e políticas públicas."},
+    {"area": "CIENCIAS_HUMANAS", "descricao": "Estudo do comportamento, cultura e sociedade humana."},
+    {"area": "LINGUISTICA_LETRAS_E_ARTES", "descricao": "Estudo das linguagens, literatura e manifestações artísticas."},
+]
+
+ATRACOES_DATA = [
+    {
+        "titulo": "Aplicações de IA no ensino técnico",
+        "resumo": "Apresentação de um estudo sobre o uso de inteligência artificial em atividades didáticas e avaliação formativa no ensino técnico.",
+        "palavras_chave": "IA, ensino, tecnologia educacional",
+        "evento_nome": "Semana Acadêmica de Tecnologia",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "CIENCIAS_EXATAS_E_DA_TERRA",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Robótica acessível para laboratórios escolares",
+        "resumo": "Desenvolvimento de kits de baixo custo para ensino de robótica e automação em ambientes educacionais.",
+        "palavras_chave": "robótica, educação, automação",
+        "evento_nome": "Semana Acadêmica de Tecnologia",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
+        "area_conhecimento": "ENGENHARIAS",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Horta comunitária e segurança alimentar",
+        "resumo": "Relato de experiência de uma ação extensionista com foco em alimentação saudável e sustentabilidade.",
+        "palavras_chave": "extensão, comunidade, sustentabilidade",
+        "evento_nome": "Mostra de Extensão",
+        "modalidade_nome": "Palestra",
+        "nivel_ensino": "SUBSEQUENTE",
+        "area_conhecimento": "CIENCIAS_HUMANAS",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Tecnologias sociais para economia solidária",
+        "resumo": "Apresentação de soluções sociais desenvolvidas em parceria com associações locais.",
+        "palavras_chave": "tecnologia social, economia solidária, extensão",
+        "evento_nome": "Mostra de Extensão",
+        "modalidade_nome": "Mesa-redonda",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "CIENCIAS_SOCIAIS_APLICADAS",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Biodiversidade e compostos bioativos da mata nativa",
+        "resumo": "Trabalho científico investigando potenciais aplicações farmacológicas de espécies vegetais da região sul.",
+        "palavras_chave": "biodiversidade, biologia, bioativos",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "MESTRADO",
+        "area_conhecimento": "CIENCIAS_BIOLOGICAS",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Monitoramento de dados para eficiência energética",
+        "resumo": "Aplicação de análise de dados para reduzir consumo elétrico em espaços institucionais.",
+        "palavras_chave": "dados, energia, eficiência",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "POS_GRADUACAO",
+        "area_conhecimento": "ENGENHARIAS",
+        "status": "CONFIRMADA",
+    },
 ]
 
 def setup_django():
@@ -279,6 +379,51 @@ def seed_eventos():
         print(f"Evento '{evento.nome}' {status} com {areas.count()} áreas.")
 
 
+def seed_atracoes():
+    from api.models.atracao import Atracao
+    from api.models.evento import Evento
+    from api.models.modalidade import Modalidade
+
+    created = []
+    existing = []
+
+    for item in ATRACOES_DATA:
+        evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
+        if not evento:
+            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'.")
+            continue
+
+        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade_nome"]).first()
+        if not modalidade:
+            print(f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'.")
+            continue
+
+        atracao = Atracao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
+        if atracao:
+            existing.append(atracao.titulo)
+            continue
+
+        atracao = Atracao(
+            titulo=item["titulo"],
+            resumo=item["resumo"],
+            palavras_chave=item["palavras_chave"],
+            modalidade=modalidade,
+            nivel_ensino=item["nivel_ensino"],
+            area_conhecimento=item["area_conhecimento"],
+            evento=evento,
+            status=item["status"],
+            sou_orientador=False,
+            acessibilidade=False,
+        )
+        atracao.full_clean()
+        atracao.save()
+        created.append(atracao.titulo)
+
+    print("Seed de atracoes finalizada.")
+    print(f"Criadas: {created if created else 'nenhuma'}")
+    print(f"Ja existiam: {existing if existing else 'nenhuma'}")
+
+
 def seed_etapas():
     from api.models.etapa_evento import EtapaEvento
     from api.models.evento import Evento
@@ -388,6 +533,7 @@ if __name__ == "__main__":
     seed_modalidades()
     seed_areas()       
     seed_eventos()     
+    seed_atracoes()
     seed_arquivos()
     seed_etapas()
     seed_admin_user()

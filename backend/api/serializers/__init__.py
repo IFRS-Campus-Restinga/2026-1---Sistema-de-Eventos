@@ -11,3 +11,4 @@ from .perms_serializer import *
 from .resposta_serializer import *
 from .sessao_serializer import *
 from .users_serializer import *
+from .avaliacao_submissao_serializer import *

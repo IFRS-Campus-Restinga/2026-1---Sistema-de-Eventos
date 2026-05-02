@@ -3,6 +3,10 @@ from django.urls import path
 from .enumerations import AreaConhecimentoEscolha, Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
+from .views.avaliacao_submissao_view import (
+    AvaliacaoSubmissaoDetailView,
+    AvaliacaoSubmissaoListView,
+)
 from .views.arquivo_view import ArquivoListView
 from .views.atracao_view import AtracaoDetailView, AtracaoListView
 from .views.cadastro_complementar_view import CadastroComplementarView
@@ -105,5 +109,9 @@ urlpatterns = [
     path("atracoes/", AtracaoListView.as_view()),
     path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
+
+    # avaliacao de submissoes
+    path("avaliacao-submissao/", AvaliacaoSubmissaoListView.as_view()),
+    path("avaliacao-submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
 ]
 # fmt: on
