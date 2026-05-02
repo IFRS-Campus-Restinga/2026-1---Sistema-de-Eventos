@@ -31,6 +31,7 @@ export default function FormularioCustomizado({
     gruposIniciais,
     aoRemoverGrupo,
     orientacao = 'column',
+    onFasesChange,
 }) {
     const listaGruposIniciais = useMemo(
         () => (eArray(gruposIniciais) ? gruposIniciais : []),
@@ -82,6 +83,12 @@ export default function FormularioCustomizado({
         iniciaisAplicadosRef.current = false;
         instanciasInicializadasRef.current = new Set();
     }, [assinaturaGruposIniciais]);
+
+    useEffect(() => {
+        if (typeof onFasesChange === 'function') {
+            onFasesChange(fases);
+        }
+    }, [fases, onFasesChange]);
 
     useEffect(() => {
         if (!add || iniciaisAplicadosRef.current) return;

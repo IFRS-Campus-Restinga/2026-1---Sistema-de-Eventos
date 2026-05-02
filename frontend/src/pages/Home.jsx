@@ -10,12 +10,14 @@ import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
 import { MdOutlineSearch } from 'react-icons/md';
 import { useEventos } from '../hooks/useEventos';
+import useInscricoesEvento from '../hooks/useInscricoesEvento';
 
 export default function Home({ campus = 'Campus Restinga' }) {
     const location = useLocation();
     const loginAlert = location.state?.loginAlert ?? null;
     const { eventos } = useEventos();
-    console.log(eventos);
+    const { estaInscritoEmEvento } = useInscricoesEvento();
+
     useEffect(() => {
         if (loginAlert) {
             const timeoutId = window.setTimeout(() => {
@@ -81,13 +83,18 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                         descricao={evento?.descricao}
                                         textoBotao1="Ver Detalhes"
                                         textoBotao2={
-                                            evento?.status_evento ==
-                                            'INSCRICOES_ABERTAS'
-                                                ? 'Inscreva-se'
-                                                : ''
+                                            estaInscritoEmEvento(evento.id)
+                                                ? 'Inscrito'
+                                                : evento?.status_evento ===
+                                                    'EM_ANDAMENTO'
+                                                  ? 'Inscreva-se'
+                                                  : ''
                                         }
                                         icon1={MdOutlineSearch}
                                         id={evento.id}
+                                        desabilitarBotao2={estaInscritoEmEvento(
+                                            evento.id,
+                                        )}
                                     />
                                 ))
                             ) : (

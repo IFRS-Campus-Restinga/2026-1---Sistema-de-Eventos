@@ -4,11 +4,13 @@ from .enumerations import AreaConhecimentoEscolha, Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
 from .views.arquivo_view import ArquivoListView
+from .views.atracao_view import AtracaoDetailView, AtracaoListView
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
     CampoFormularioListView,
 )
+from .views.choices_atracao_view import AtracaoOpcoesView
 from .views.choices_evento_view import OpcoesFormularioView
 from .views.criterio_avaliacao_view import (
     CriterioAvaliacaoDetailView,
@@ -16,6 +18,10 @@ from .views.criterio_avaliacao_view import (
 )
 from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.espaco_view import EspacoDetailView, EspacoListView
+from .views.etapa_evento_view import (
+    EtapaEventoDetailView,
+    EtapaEventoListView,
+)
 from .views.evento_view import (
     EventoCoordenadorView,
     EventoDeleteView,
@@ -37,8 +43,6 @@ from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
-from .views.atracao_view import AtracaoListView, AtracaoDetailView
-from .views.choices_atracao_view import AtracaoOpcoesView
 
 app_name = "api"
 
@@ -74,6 +78,8 @@ urlpatterns = [
     path("campo_formulario/<int:pk>/", CampoFormularioDetailView.as_view()),
     path("criterio_avaliacao/", CriterioAvaliacaoListView.as_view()),
     path("criterio_avaliacao/<int:pk>/", CriterioAvaliacaoDetailView.as_view()),
+    path("etapas_evento/", EtapaEventoListView.as_view()),
+    path("etapas_evento/<int:pk>/", EtapaEventoDetailView.as_view()),
     path('areas_conhecimento/', EnumChoicesAPIView.as_view(enum_class=AreaConhecimentoEscolha)),
     path('setores/', EnumChoicesAPIView.as_view(enum_class=Setor)),
 

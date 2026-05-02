@@ -13,6 +13,7 @@ export default function CampoDatalist({
     setEntradasDatalist,
     mostrarDatalist,
     setMostrarDatalist,
+    onChange,
     desativado,
 }) {
     const chave = campo?.list;
@@ -38,29 +39,42 @@ export default function CampoDatalist({
 
     function adicionar(opcao) {
         if (desativado) return;
+
+        let novaLista = [];
         setSelecoes((anterior) => {
             const atuais =
                 chave in anterior ? anterior[chave] : preSelecionadas;
             if (atuais.find((x) => String(x.value) === String(opcao.value))) {
+                novaLista = atuais;
                 return anterior;
             }
-            return { ...anterior, [chave]: [...atuais, opcao] };
+            novaLista = [...atuais, opcao];
+            return { ...anterior, [chave]: novaLista };
         });
+
+        // Dispara o evento fora da mutação de estado (evita bad setState em modo estrito do React)
+        setTimeout(() => {
+            if (typeof onChange === 'function' && novaLista.length > 0)
+                onChange(novaLista);
+        }, 0);
+
         setEntradasDatalist((anterior) => ({ ...anterior, [chave]: '' }));
     }
 
     function remover(valor) {
         if (desativado) return;
+
+        let novaLista = [];
         setSelecoes((anterior) => {
             const atuais =
                 chave in anterior ? anterior[chave] : preSelecionadas;
-            return {
-                ...anterior,
-                [chave]: atuais.filter(
-                    (x) => String(x.value) !== String(valor),
-                ),
-            };
+            novaLista = atuais.filter((x) => String(x.value) !== String(valor));
+            return { ...anterior, [chave]: novaLista };
         });
+
+        setTimeout(() => {
+            if (typeof onChange === 'function') onChange(novaLista);
+        }, 0);
     }
 
     return (

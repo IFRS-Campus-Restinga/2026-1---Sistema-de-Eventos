@@ -16,12 +16,21 @@ export default function CampoFase({
     const preFases = campo?.fases || [];
     const fasesAtuais =
         fases[chave] && fases[chave].length > 0 ? fases[chave] : preFases;
+    const tiposJaAdicionados = new Set(
+        fasesAtuais.map((fase) => fase?.tipo ?? fase?.value),
+    );
 
     function adicionarFase(opcao) {
+        const tipoNovo = opcao?.value ?? opcao;
+
+        if (tiposJaAdicionados.has(tipoNovo)) {
+            return;
+        }
+
         setFases((anterior) => {
             const atuais = anterior[chave] || [];
             const nova = {
-                tipo: opcao?.value ?? opcao,
+                tipo: tipoNovo,
                 titulo: opcao?.text ?? opcao?.label ?? opcao,
                 descricao: opcao?.descricao || opcao?.desc || '',
                 inicio: '',
@@ -57,29 +66,20 @@ export default function CampoFase({
                 <div className="p-3 border rounded mb-3" key={idx}>
                     <Row className="align-items-center">
                         <Col md={6}>
-                            <Form.Check
-                                type="switch"
-                                label={fase.titulo || 'Fase'}
-                                className="fw-bold"
-                                checked={!!fase.ativo}
-                                onChange={(e) =>
-                                    !desativado &&
-                                    atualizarFase(
-                                        idx,
-                                        'ativo',
-                                        e.target.checked,
-                                    )
-                                }
-                                disabled={desativado}
-                            />
+                            <span className="fw-bold">
+                                {fase.titulo || 'Fase'}
+                            </span>
                             <small className="text-muted">
                                 {fase?.descricao || campo?.descricao || ''}
                             </small>
                         </Col>
 
-                        <Col md={6} className="d-flex align-items-center gap-2">
+                        <Col
+                            md={6}
+                            className="d-flex flex-column flex-xl-row align-items-center gap-2"
+                        >
                             <Form.Control
-                                type="date"
+                                type="datetime-local"
                                 value={fase.inicio || ''}
                                 onChange={(e) =>
                                     !desativado &&
@@ -87,9 +87,9 @@ export default function CampoFase({
                                 }
                                 disabled={desativado}
                             />
-                            <span>ate</span>
+                            <span>até</span>
                             <Form.Control
-                                type="date"
+                                type="datetime-local"
                                 value={fase.fim || ''}
                                 onChange={(e) =>
                                     !desativado &&
@@ -128,27 +128,32 @@ export default function CampoFase({
 
                 {mostrarOpcoes[chave] && (
                     <div className="list-group mt-2">
-                        {(campo?.opcoes || []).map((opcao, i) => (
-                            <button
-                                key={i}
-                                type="button"
-                                className="list-group-item list-group-item-action"
-                                onClick={() => {
-                                    if (desativado) return;
-                                    adicionarFase(opcao);
-                                    setMostrarOpcoes((anterior) => ({
-                                        ...anterior,
-                                        [chave]: false,
-                                    }));
-                                }}
-                                disabled={desativado}
-                            >
-                                {opcao?.text ??
-                                    opcao?.label ??
-                                    opcao?.value ??
-                                    String(opcao)}
-                            </button>
-                        ))}
+                        {(campo?.opcoes || [])
+                            .filter((opcao) => {
+                                const valorOpcao = opcao?.value ?? opcao;
+                                return !tiposJaAdicionados.has(valorOpcao);
+                            })
+                            .map((opcao, i) => (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    className="list-group-item list-group-item-action"
+                                    onClick={() => {
+                                        if (desativado) return;
+                                        adicionarFase(opcao);
+                                        setMostrarOpcoes((anterior) => ({
+                                            ...anterior,
+                                            [chave]: false,
+                                        }));
+                                    }}
+                                    disabled={desativado}
+                                >
+                                    {opcao?.text ??
+                                        opcao?.label ??
+                                        opcao?.value ??
+                                        String(opcao)}
+                                </button>
+                            ))}
                     </div>
                 )}
             </div>

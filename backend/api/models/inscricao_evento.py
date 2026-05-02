@@ -3,8 +3,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from ..enumerations.status_evento import StatusEvento
 from ..enumerations.status_inscricao import StatusInscricao
+from ..enumerations.tipo_etapa import TipoEtapa
 from .base import Base
 from .evento import Evento
 from .perfil import Perfil
@@ -44,14 +44,42 @@ class InscricaoEvento(Base):
 
     def clean(self):
         errors = {}
+        now = timezone.now()
 
-        if (
-            self.evento_id
-            and self.evento.status_evento != StatusEvento.INSCRICOES_ABERTAS
-        ):
-            errors["evento"] = _(
-                "Inscrição não concluída, o evento não está com as inscrições abertas."
+        if self.perfil_id and self.evento_id:
+            inscricao = self.__class__.objects.filter(
+                perfil_id=self.perfil_id, evento_id=self.evento_id
             )
+            if self.pk:
+                inscricao = inscricao.exclude(pk=self.pk)
+            if inscricao.exists():
+                errors["evento"] = _(
+                    "Já existe uma inscrição para este perfil neste evento."
+                )
+
+        if self.evento_id:
+            evento = getattr(self, "evento", None)
+            etapa = getattr(evento, "etapa_evento", None)
+
+            if etapa is None:
+                errors["evento"] = _(
+                    "Evento sem etapa configurada para inscrições. Contate o organizador."
+                )
+            else:
+                tipo = getattr(etapa, "tipo_etapa", None)
+                inicio = getattr(etapa, "data_inicio", None)
+                fim = getattr(etapa, "data_fim", None)
+
+                if tipo != TipoEtapa.SUBMISSAO_TRABALHOS:
+                    if not (inicio and fim):
+                        errors["evento"] = _(
+                            "Período de inscrições não está configurado para este evento."
+                        )
+                    else:
+                        if not (inicio <= now <= fim):
+                            errors["evento"] = _(
+                                "Inscrição não concluída, o evento não está com as inscrições abertas."
+                            )
 
         if errors:
             raise ValidationError(errors)

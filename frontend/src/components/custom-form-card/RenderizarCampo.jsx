@@ -256,6 +256,7 @@ export default function RenderizarCampo({
                 setEntradasDatalist={estadoDatalist.setEntradasDatalist}
                 mostrarDatalist={estadoDatalist.mostrarDatalist}
                 setMostrarDatalist={estadoDatalist.setMostrarDatalist}
+                onChange={atualizarValor}
                 desativado={desativado}
             />
         );

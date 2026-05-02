@@ -20,6 +20,7 @@ export default function EventoCard({
     Icon1,
     corBotao1 = '#00a44b',
     varianteBotao2 = 'outline-success',
+    desabilitarBotao2 = false,
 }) {
     return (
         <Card corBorda={corCard}>
@@ -109,6 +110,7 @@ export default function EventoCard({
                                         variant={varianteBotao2}
                                         className="fw-bold rounded-5 px-3 py-2 me-lg-5 w-100"
                                         onClick={onClick2}
+                                        disabled={desabilitarBotao2}
                                     >
                                         {textoBotao2}
                                     </Button>
@@ -141,6 +143,7 @@ export default function EventoCard({
                                 variant={varianteBotao2}
                                 className="fw-bold rounded-5 px-3 py-2 me-lg-5 w-100"
                                 onClick={onClick2}
+                                disabled={desabilitarBotao2}
                             >
                                 {textoBotao2}
                             </Button>

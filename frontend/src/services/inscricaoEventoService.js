@@ -1,5 +1,6 @@
 import { API_URL } from '../config';
 import axios from 'axios';
+import { pegarTokenCsrf } from './csrfService';
 
 export const listarInscricoesEventos = async (eventoId) => {
     const response = await axios.get(`${API_URL}/api/inscricoes_eventos/`, {
@@ -10,5 +11,29 @@ export const listarInscricoesEventos = async (eventoId) => {
         return response.data;
     }
 
-    return response.data.filter(item => Number(item.evento_id) === Number(eventoId));
+    return response.data.filter(
+        (item) => Number(item.evento_id) === Number(eventoId),
+    );
+};
+
+export const criarInscricaoEvento = async (dados) => {
+    if (!dados?.perfil_id || !dados?.evento_id) {
+        throw new Error('perfil_id e evento_id são obrigatórios');
+    }
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.post(
+        `${API_URL}/api/inscricoes_eventos/`,
+        dados,
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
 };

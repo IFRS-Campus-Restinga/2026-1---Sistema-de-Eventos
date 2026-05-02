@@ -1,12 +1,16 @@
+from django.utils import timezone
 from rest_framework import serializers
 
-from ..enumerations.status_evento import StatusEvento
+from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.evento import Evento
 from ..models.inscricao_evento import InscricaoEvento
 from ..models.perfil import Perfil
 
 
 class InscricaoEventoSerializer(serializers.ModelSerializer):
+    perfil_usuario_id = serializers.IntegerField(
+        source="perfil.usuario.id", read_only=True
+    )
     perfil_id = serializers.PrimaryKeyRelatedField(
         queryset=Perfil.objects.all(),
         source="perfil",
@@ -19,6 +23,7 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         perfil = attrs.get("perfil") or getattr(self.instance, "perfil", None)
         evento = attrs.get("evento") or getattr(self.instance, "evento", None)
+        now = timezone.now()
 
         if perfil and evento:
             inscricao_existente = InscricaoEvento.objects.filter(
@@ -34,10 +39,30 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
                     {"mensagem": ["Este perfil ja esta inscrito neste evento."]}
                 )
 
-            if evento.status_evento != StatusEvento.INSCRICOES_ABERTAS:
+            etapa = getattr(evento, "etapa_evento", None)
+            if etapa is None:
                 raise serializers.ValidationError(
-                    {"mensagem": ["Inscrições ainda não estão abertas."]}
+                    {"mensagem": ["Evento sem etapa configurada para inscrições."]}
                 )
+
+            if etapa.tipo_etapa != TipoEtapa.SUBMISSAO_TRABALHOS:
+                if not (etapa.data_inicio and etapa.data_fim):
+                    raise serializers.ValidationError(
+                        {
+                            "mensagem": [
+                                "Período de inscrições não está configurado para este evento."
+                            ]
+                        }
+                    )
+
+                if not (etapa.data_inicio <= now <= etapa.data_fim):
+                    raise serializers.ValidationError(
+                        {
+                            "mensagem": [
+                                "Inscrição não concluída, o evento não está com as inscrições abertas."
+                            ]
+                        }
+                    )
 
         return attrs
 
@@ -61,6 +86,7 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "data_hora",
+            "perfil_usuario_id",
             "perfil_id",
             "evento_id",
             "presente",
