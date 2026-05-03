@@ -19,7 +19,7 @@ export default function Footer({
                 style={{ backgroundColor: '#00A44B' }}
             >
                 <Row>
-                    <Col className="d-flex flex-colum justify-content-center align-items-center">
+                    <Col className="d-flex flex-colum justify-content-md-start justify-content-center align-items-center pb-md-0 pb-5">
                         <IFLogo
                             corCirculo="#fff"
                             corRect="#fff"
@@ -29,9 +29,8 @@ export default function Footer({
                             width={250}
                         ></IFLogo>
                     </Col>
-                    <Col xs={6}></Col>
-                    <Col className="d-flex flex-colum justify-content-center align-items-center">
-                        <div className="d-flex flex-column">
+                    <Col className="d-flex flex-colum justify-content-md-end justify-content-center align-items-center py-md-0 py-5">
+                        <div className="d-flex flex-column gap-md-0 gap-3">
                             <p className="fs-4 text-white fw-bold">
                                 Contato e Suporte
                             </p>

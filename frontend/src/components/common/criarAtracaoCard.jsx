@@ -144,6 +144,12 @@ export default function CriarAtracaoCard({
         }
     };
 
+    const getNomeUsuario = (usuario) =>
+        usuario?.nome ||
+        usuario?.name ||
+        usuario?.username ||
+        `Usuário ${usuario?.id}`;
+
     return (
         <Container className="py-2">
             <Form>
@@ -333,11 +339,26 @@ export default function CriarAtracaoCard({
 
                         {!formState.sou_orientador && (
                             <div className="mb-3">
-                                <Form.Control 
-                                    placeholder="Digite o nome ou CPF do orientador..." 
-                                    style={{ backgroundColor: '#fff', border: '1px solid #ddd' }} 
+                                <Form.Select
+                                    value={formState.orientador || ''}
+                                    onChange={(e) =>
+                                        setFormState({
+                                            ...formState,
+                                            orientador: e.target.value
+                                                ? Number(e.target.value)
+                                                : null,
+                                        })
+                                    }
+                                    style={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
                                     className="py-2"
-                                />
+                                >
+                                    <option value="">Selecione o orientador</option>
+                                    {usuarios?.map((usuario) => (
+                                        <option key={usuario.id} value={usuario.id}>
+                                            {getNomeUsuario(usuario)}
+                                        </option>
+                                    ))}
+                                </Form.Select>
                                 <div className="mt-2" style={{ fontSize: '0.95rem', color: '#333' }}>
                                     O orientador receberá um e-mail para validar este trabalho.
                                 </div>

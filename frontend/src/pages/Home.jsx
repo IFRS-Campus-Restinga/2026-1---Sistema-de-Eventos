@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
@@ -9,38 +10,71 @@ import Spinner from 'react-bootstrap/esm/Spinner';
 import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
 import { MdOutlineSearch } from 'react-icons/md';
-import { listarEventos } from '../services/eventoService'; // Importando seu serviço
-import eArray from '../utils/eArray'; // Sua utilidade de verificação de array
+import { useEventos } from '../hooks/useEventos';
+import useInscricoesEvento from '../hooks/useInscricoesEvento';
+import { redirectToLogin } from '../services/authService';
 
 export default function Home({ campus = 'Campus Restinga' }) {
     const location = useLocation();
-    const [loginAlert, setLoginAlert] = useState(null);
-    const [eventos, setEventos] = useState([]);
-    const [carregando, setCarregando] = useState(true);
+    const loginAlert = location.state?.loginAlert ?? null;
+    const navigate = useNavigate();
+    const [alertaInscricao, setAlertaInscricao] = useState(null);
 
-    useEffect(() => {
-        const alertState = location.state?.loginAlert;
-        if (alertState) {
-            setLoginAlert(alertState);
-            window.history.replaceState({}, document.title, window.location.pathname);
+    const { eventos, possuiEtapaSubmissaoAberta } = useEventos();
+    const {
+        estaInscritoEmEvento,
+        criarInscricao,
+        usuarioLogado,
+        obterStatusInscricao,
+    } = useInscricoesEvento();
+
+    const handleInscrever = async (eventoId) => {
+        if (!usuarioLogado) {
+            redirectToLogin();
+            return;
         }
-    }, [location.state]);
+
+        if (!usuarioLogado.perfil_id) {
+            navigate('/cadastroComplementar');
+            return;
+        }
+
+        try {
+            await criarInscricao({
+                perfil_id: usuarioLogado.perfil_id,
+                evento_id: eventoId,
+            });
+            setAlertaInscricao({
+                mensagem: 'Inscrição realizada com sucesso!',
+                variacao: 'success',
+            });
+        } catch (erro) {
+            console.error('Erro ao inscrever:', erro);
+            const mensagem =
+                erro?.response?.data?.mensagem?.[0] ||
+                erro?.message ||
+                'Erro ao realizar inscrição. Tente novamente.';
+            setAlertaInscricao({
+                mensagem,
+                variacao: 'danger',
+            });
+        }
+    };
+   
 
     useEffect(() => {
-        const buscarDados = async () => {
-            try {
-                const dados = await listarEventos();
-                if (eArray(dados)) {
-                    setEventos(dados);
-                }
-            } catch (error) {
-                console.error("Erro ao carregar eventos na home:", error);
-            } finally {
-                setCarregando(false);
-            }
-        };
-        buscarDados();
-    }, []);
+        if (loginAlert) {
+            const timeoutId = window.setTimeout(() => {
+                window.history.replaceState(
+                    {},
+                    document.title,
+                    window.location.pathname,
+                );
+            }, 5000);
+
+            return () => window.clearTimeout(timeoutId);
+        }
+    }, [loginAlert, location.pathname]);
 
     return (
         <>
@@ -53,7 +87,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                         duracao={5000}
                     />
                 )}
-                
+
                 <Container fluid className="p-0">
                     <Row className="m-0">
                         <Col
@@ -75,29 +109,69 @@ export default function Home({ campus = 'Campus Restinga' }) {
                             lg={8}
                             className="mx-auto d-flex flex-column align-items-center my-5 gap-4"
                         >
-                            {carregando ? (
-                                <Spinner animation="border" variant="success" />
-                            ) : eventos.length > 0 ? (
+                            {eventos.length > 0 ? (
                                 eventos.map((evento) => (
                                     <EventoCard
                                         key={evento.id}
                                         titulo={evento.nome}
                                         data={`Carga Horária: ${evento.carga_horaria}h`}
-                                        faseAtual={evento.status_evento || "Em andamento"}
-                                        corFase={evento.status_evento === 'Aberto' ? "#106D47" : "#6c757d"}
-                                        descricao={evento.descricao}
-                                        textoBotao="Ver Detalhes"
-                                        icon={MdOutlineSearch}
-                                        id={evento.id} 
+                                        faseAtual={
+                                            evento.status_evento ||
+                                            'Em andamento'
+                                        }
+                                        corFase={
+                                            evento.status_evento === 'Aberto'
+                                                ? '#106D47'
+                                                : '#6c757d'
+                                        }
+                                        descricao={evento?.descricao}
+                                        textoBotao1="Ver Detalhes"
+                                        onClick1={()=>{navigate(`/detalhe-evento/${evento.id}`)}}
+                                        textoBotao2={
+                                            estaInscritoEmEvento(evento.id)
+                                                ? obterStatusInscricao(
+                                                      evento.id,
+                                                  ) === 'CANCELADA'
+                                                    ? 'Cancelada'
+                                                    : 'Inscrito'
+                                                : possuiEtapaSubmissaoAberta(
+                                                        evento,
+                                                    )
+                                                  ? 'Inscreva-se'
+                                                  : ''
+                                        }
+                                        onClick2={() =>
+                                            handleInscrever(evento.id)
+                                        }
+                                        icon1={MdOutlineSearch}
+                                        varianteBotao2={
+                                            obterStatusInscricao(evento.id) ===
+                                            'CANCELADA'
+                                                ? 'danger'
+                                                : 'outline-success'
+                                        }
+                                        id={evento.id}
+                                        desabilitarBotao2={estaInscritoEmEvento(
+                                            evento.id,
+                                        )}
                                     />
                                 ))
                             ) : (
-                                <p className="text-muted">Nenhum evento disponível no momento.</p>
+                                <p className="text-muted">
+                                    Nenhum evento disponível no momento.
+                                </p>
                             )}
                         </Col>
                     </Row>
                 </Container>
             </main>
+            {alertaInscricao && (
+                <Alerta
+                    mensagem={alertaInscricao.mensagem}
+                    variacao={alertaInscricao.variacao}
+                    duracao={3000}
+                />
+            )}
 
             <Footer
                 telefone={'(51) 3333-1234'}

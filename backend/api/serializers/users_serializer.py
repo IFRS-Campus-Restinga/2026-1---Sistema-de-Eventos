@@ -8,7 +8,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "nome"]
+        fields = ["id", "username", "nome", "access_profile"]
 
 
 class UserGrupoSerializer(serializers.ModelSerializer):

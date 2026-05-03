@@ -24,6 +24,20 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    def create(self, validated_data):
+        instance = Modalidade(**validated_data)
+        instance.full_clean()
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.full_clean()
+        instance.save()
+        return instance
+
     class Meta:
         model = Modalidade
         fields = [

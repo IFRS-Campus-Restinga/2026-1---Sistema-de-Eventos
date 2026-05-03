@@ -5,6 +5,7 @@ import jwt
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.shortcuts import get_object_or_404
 from jwt.exceptions import InvalidTokenError
 
@@ -30,6 +31,30 @@ def filter_permissions_for_user(user, permissions: list[str]) -> list[str]:
     if is_admin_user(user):
         return sorted(set(permissions))
     return sorted({permission for permission in permissions if permission.split(".")[-1].startswith("view_")})
+
+
+ACCESS_PROFILE_GROUP_MAP = {
+    "convidado": "Convidado",
+    "aluno": "Aluno",
+    "servidor": "Servidor",
+}
+
+
+def sync_group_from_access_profile(user, access_profile: str | None) -> None:
+    profile_key = str(access_profile or "").strip().lower()
+    target_group_name = ACCESS_PROFILE_GROUP_MAP.get(profile_key)
+    if not target_group_name:
+        return
+
+    target_group, _ = Group.objects.get_or_create(name=target_group_name)
+    profile_group_names = set(ACCESS_PROFILE_GROUP_MAP.values())
+    removable_names = [name for name in profile_group_names if name != target_group_name]
+
+    removable_groups = list(Group.objects.filter(name__in=removable_names))
+    if removable_groups:
+        user.groups.remove(*removable_groups)
+
+    user.groups.add(target_group)
 
 
 class TokenValidationError(Exception):
@@ -712,7 +737,13 @@ class TokenService:
         elif user.nome and not is_technical_username(user.nome):
             display_name = user.nome
 
+        # Sincroniza o grupo de perfil de acesso vindo do Hub.
+        sync_group_from_access_profile(user, user.access_profile)
+
         metadata = TokenMetadataService.get(user)
+        token_metadata = {
+            "groups": metadata.get("groups", []),
+        }
 
         access_payload = {
             "iat": now,
@@ -725,7 +756,7 @@ class TokenService:
             "last_name": user.last_name,
             "email": user.email,
             "cpf": user.cpf,
-            **metadata,
+            **token_metadata,
         }
 
         refresh_payload = {
@@ -739,7 +770,7 @@ class TokenService:
             "last_name": user.last_name,
             "email": user.email,
             "cpf": user.cpf,
-            **metadata,
+            **token_metadata,
         }
 
         access_token = jwt.encode(access_payload, jwt_secret, algorithm=jwt_algorithm)

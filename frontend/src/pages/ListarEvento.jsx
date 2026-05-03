@@ -215,7 +215,7 @@ export default function EventosListar() {
                                                         variant="success"
                                                         size="sm"
                                                         as={Link}
-                                                        to={`/dashboard`}
+                                                        to={`/dashboard/${evento.id}`}
                                                     >
                                                         Dashboard
                                                     </Button>
@@ -223,20 +223,9 @@ export default function EventosListar() {
                                                         variant="success"
                                                         size="sm"
                                                         as={Link}
-                                                        to={`/atribuirCoordenador?eventoId=${evento.id}`}
+                                                        to={`/credenciamento/${evento.id}`}
                                                     >
-                                                        Designar Coordenador de
-                                                        Evento
-                                                    </Button>
-                                                    
-                                                    <Button
-                                                        variant="success"
-                                                        size="sm"
-                                                        as={Link}
-                                                        to={`/atribuirOrganizador?eventoId=${evento.id}`}
-                                                    >
-                                                        Designar Organizador de
-                                                        Evento
+                                                        Presença
                                                     </Button>
                                                     <Button
                                                         variant="danger"

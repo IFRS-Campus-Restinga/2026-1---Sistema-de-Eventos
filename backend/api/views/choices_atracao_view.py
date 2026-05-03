@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
 from ..enumerations.status_atracao import StatusAtracao
-from ..enumerations.area_conhecimento import AreaConhecimento
+from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
 from ..models.coautor import FuncaoEquipe
 from ..models.modalidade import Modalidade
@@ -27,7 +27,7 @@ class AtracaoOpcoesView(APIView):
 
         areas = [
             {"value": choice[0], "label": choice[1]}
-            for choice in AreaConhecimento.choices
+            for choice in AreaConhecimentoEscolha.choices
         ]
 
         funcoes = [

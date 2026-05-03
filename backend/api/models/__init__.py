@@ -12,3 +12,8 @@ from .modalidade import *
 from .resposta import *
 from .sessao import *
 from .perfil import *
+from .inscricao_evento import *
+from .atracao import *
+from .etapa_evento import *
+from .avaliacao_submissao import *
+from .inscricao_atracao import *

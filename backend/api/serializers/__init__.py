@@ -4,8 +4,12 @@ from .criterio_avaliacao_serializer import *
 from .espaco_serializer import *
 from .evento_serializer import *
 from .groups_serializer import *
+from .inscricao_evento_serializer import *
+from .inscricao_atracao_serializer import *
 from .local_serializer import *
 from .modalidade_serializer import *
 from .perms_serializer import *
 from .resposta_serializer import *
+from .sessao_serializer import *
 from .users_serializer import *
+from .avaliacao_submissao_serializer import *

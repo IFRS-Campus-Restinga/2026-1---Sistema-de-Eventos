@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 
 from .models import Usuario
@@ -11,6 +10,13 @@ def is_admin_user(user: Usuario) -> bool:
 
 
 class UsuarioAdminForm(forms.ModelForm):
+    password = forms.CharField(
+        label="Senha",
+        required=False,
+        widget=forms.PasswordInput,
+        help_text="Deixe em branco para manter a senha atual.",
+    )
+
     class Meta:
         model = Usuario
         fields = "__all__"
@@ -30,10 +36,73 @@ class UsuarioAdminForm(forms.ModelForm):
                 "Usuarios comuns so podem receber permissoes diretas de visualizacao."
             )
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password") or ""
+
+        if password:
+            user.set_password(password)
+        # Se deixar vazio, a senha atual é mantida
+
+        if commit:
+            user.save()
+        return user
+
+
+class UsuarioAdminCreationForm(forms.ModelForm):
+	password1 = forms.CharField(
+		label="Senha",
+		required=False,
+		widget=forms.PasswordInput,
+		help_text="Opcional. Se vazio, o usuário será criado sem login por senha.",
+	)
+	password2 = forms.CharField(
+		label="Confirmar senha",
+		required=False,
+		widget=forms.PasswordInput,
+	)
+
+	class Meta:
+		model = Usuario
+		fields = (
+			"username",
+			"nome",
+			"email",
+			"cpf",
+			"matricula",
+			"hub_id",
+			"access_profile",
+		)
+
+	def clean(self):
+		cleaned_data = super().clean()
+		password1 = cleaned_data.get("password1") or ""
+		password2 = cleaned_data.get("password2") or ""
+
+		if password1 or password2:
+			if password1 != password2:
+				raise forms.ValidationError("As senhas não coincidem.")
+
+		return cleaned_data
+
+	def save(self, commit=True):
+		user = super().save(commit=False)
+		password = self.cleaned_data.get("password1") or ""
+
+		if password:
+			user.set_password(password)
+		else:
+			user.set_unusable_password()
+
+		if commit:
+			user.save()
+		return user
+
 
 @admin.register(Usuario)
-class UsuarioAdmin(UserAdmin):
+class UsuarioAdmin(admin.ModelAdmin):
     form = UsuarioAdminForm
+    add_form = UsuarioAdminCreationForm
     filter_horizontal = ("user_permissions", "groups")
     fieldsets = (
         (None, {"fields": ("username", "password")}),
