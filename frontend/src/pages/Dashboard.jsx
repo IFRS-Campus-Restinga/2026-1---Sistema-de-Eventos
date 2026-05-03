@@ -129,7 +129,7 @@ export default function DashboardEvento({}) {
         {
             texto: 'Enviar Emails',
             icone: <TbMail color="#0D99FF" size={20} />,
-            to: '#',
+            to: `/dashboard/${eventoId}/enviaremails`,
         },
         {
             texto: 'Emitir Certificados',

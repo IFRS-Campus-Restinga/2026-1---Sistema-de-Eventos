@@ -28,6 +28,7 @@ import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import PresencaEvento from './pages/AlunoCredenciamento';
 import SessaoBoard from './pages/SessaoBoard';
+import EnviarEmails from './pages/EnviarEmails';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -57,7 +58,7 @@ function App() {
             <Routes>
                 {/* Publico / Abertas        */}
                 <Route path="/" element={<Home />} />
-                <Route path="/cadastroComplementar" element={<CadastroComplementar />} />
+                <Route path="/cadastrocomplementar" element={<CadastroComplementar />} />
 
                 {/* Sessao / Autenticacao    */}
                 {/* callback para session/token e auth (SSO) */}
@@ -74,6 +75,9 @@ function App() {
                 <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
                 <Route path="/ListarEventos" element={<ListarEnvento />} />
 
+                {/* Comunicação com Publico (emails) */}
+                <Route path="/dashboard/:id/enviaremails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+
                 {/* Locais & Espacos */}
                 <Route path="/adicionarLocal" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
                 <Route path="/editarLocal/:id" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
@@ -89,14 +93,14 @@ function App() {
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}
-                <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
+                <Route path="/submetertrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
                 <Route path="/usuarioGrupos" element={protegido(<PessoasGrupos />, ADMIN_GROUPS)} />
                 <Route path="/permissoesPessoas" element={protegido(<PermissoesPessoas />, ADMIN_GROUPS)} />
 
-                {/* Modalidades      */}
+                {/* Modalidades */}
                 <Route path="/listarModalidades" element={protegido(<ModalidadesListar />, ADMIN_GROUPS)} />
                 <Route path="/adicionarModalidade" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
                 <Route path="/editarModalidade/:id" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
@@ -112,6 +116,7 @@ function App() {
 
                 {/* Programação / Sessão de Eventos */}
                 <Route path="/sessaoAtribuirData" element={<SessaoBoard />} />
+
 
             </Routes>
         </div>

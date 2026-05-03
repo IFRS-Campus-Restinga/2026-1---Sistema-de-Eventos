@@ -4,7 +4,7 @@ from .enumerations import AreaConhecimentoEscolha, Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
 from .views.arquivo_view import ArquivoListView
-from .views.atracao_view import AtracaoDetailView, AtracaoListView
+from .views.atracao_view import AtracaoDetailView, AtracaoListView, EnviarEmailsView
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
@@ -56,6 +56,7 @@ urlpatterns = [
     path("eventos/<int:pk>/delete/", EventoDeleteView.as_view()),
     path("eventos/<int:pk>/coordenador/", EventoCoordenadorView.as_view()),
     path("eventos/<int:pk>/organizador/", EventoOrganizadorView.as_view()),
+    path("eventos/<int:evento_id>/enviar_emails/", EnviarEmailsView.as_view()),
     path("dashboard/<int:pk>/", DashboardView.as_view()),
 
     # inscricoes
