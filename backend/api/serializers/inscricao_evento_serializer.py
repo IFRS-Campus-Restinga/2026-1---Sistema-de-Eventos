@@ -39,30 +39,46 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
                     {"mensagem": ["Este perfil ja esta inscrito neste evento."]}
                 )
 
-            etapa = getattr(evento, "etapa_evento", None)
+            # Busca APENAS a etapa de inscrição pública
+            etapas_relacionadas = getattr(evento, "etapas", None)
+            etapa = None
+
+            if etapas_relacionadas is not None:
+                # Inscrição só é permitida se INSCRICAO_PUBLICO está configurada
+                etapa = etapas_relacionadas.filter(
+                    tipo_etapa=TipoEtapa.INSCRICAO_PUBLICO
+                ).first()
+
             if etapa is None:
                 raise serializers.ValidationError(
-                    {"mensagem": ["Evento sem etapa configurada para inscrições."]}
+                    {
+                        "mensagem": [
+                            "Evento sem período de inscrição (INSCRICAO_PUBLICO) configurado."
+                        ]
+                    }
                 )
 
-            if etapa.tipo_etapa != TipoEtapa.SUBMISSAO_TRABALHOS:
-                if not (etapa.data_inicio and etapa.data_fim):
-                    raise serializers.ValidationError(
-                        {
-                            "mensagem": [
-                                "Período de inscrições não está configurado para este evento."
-                            ]
-                        }
-                    )
+            # Valida sempre o intervalo de inscrição
+            inicio = getattr(etapa, "data_inicio", None)
+            fim = getattr(etapa, "data_fim", None)
 
-                if not (etapa.data_inicio <= now <= etapa.data_fim):
-                    raise serializers.ValidationError(
-                        {
-                            "mensagem": [
-                                "Inscrição não concluída, o evento não está com as inscrições abertas."
-                            ]
-                        }
-                    )
+            if not (inicio and fim):
+                raise serializers.ValidationError(
+                    {
+                        "mensagem": [
+                            "Período de inscrições não está configurado para este evento."
+                        ]
+                    }
+                )
+
+            if not (inicio <= now <= fim):
+                raise serializers.ValidationError(
+                    {
+                        "mensagem": [
+                            "Inscrição não concluída, o evento não está com as inscrições abertas."
+                        ]
+                    }
+                )
 
         return attrs
 

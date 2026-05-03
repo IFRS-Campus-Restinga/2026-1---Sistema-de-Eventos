@@ -1,6 +1,6 @@
 import React from 'react';
 import Button from 'react-bootstrap/Button';
-import { MdOutlineSearch } from 'react-icons/md';
+import Badge from 'react-bootstrap/Badge';
 import Card from '../common/Card';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
@@ -13,30 +13,37 @@ export default function EventoCard({
     faseAtual,
     corFase = '#106D47',
     descricao,
+    statusInscricao = null,
     textoBotao1 = 'Ver Detalhes',
     textoBotao2 = 'Ver Detalhes',
     onClick1,
     onClick2,
-    Icon1,
+    icon1,
     corBotao1 = '#00a44b',
     varianteBotao2 = 'outline-success',
     desabilitarBotao2 = false,
 }) {
+    const IconeBotao1 = icon1;
+
     return (
         <Card corBorda={corCard}>
-            {/* Esse componente está dividido em 4 linhas (Rows) */}
-            {/* A primeira contém a título e data de realização */}
-            {/* A segunda contém a fase atual  e botão*/}
-            {/* A terceira contém um label para Descrição */}
-            {/* A quarta contém a descrição */}
             <Container fluid>
-                {/* 1 linha título e data */}
                 <Row>
                     <Col>
                         <Row>
                             <Col className="d-flex d-md-flex flex-column ms-md-5 mt-5 align-items-center">
                                 <div className="d-flex w-100  justify-content-md-start">
                                     <h3 className="fw-bold">{titulo}</h3>
+                                </div>
+                                <div className="w-100 my-1">
+                                    {statusInscricao === 'CANCELADA' ? (
+                                        <Badge
+                                            bg="danger"
+                                            className="align-self-start"
+                                        >
+                                            Inscrição cancelada
+                                        </Badge>
+                                    ) : null}
                                 </div>
                                 <div className="d-flex w-100  justify-content-md-start">
                                     <span className="ms-0 fw-bold">
@@ -66,7 +73,6 @@ export default function EventoCard({
                                 <span className="fw-bold">Descrição:</span>
                             </Col>
                         </Row>
-                        {/* 4 linha descrição */}
                         <Row>
                             <Col className="d-flex ms-md-5 m-0 mt-2">
                                 <span className="d-none d-md-flex fw-light text-break ">
@@ -93,11 +99,7 @@ export default function EventoCard({
                                     }}
                                     onClick={onClick1}
                                 >
-                                    {Icon1 ? (
-                                        <Icon1 size={20} />
-                                    ) : (
-                                        <MdOutlineSearch size={20} />
-                                    )}
+                                    {icon1 ? <IconeBotao1 size={20} /> : null}
                                     {textoBotao1}
                                 </Button>
                             </Col>
@@ -119,7 +121,6 @@ export default function EventoCard({
                         </Row>
                     </Col>
                 </Row>
-                {/*  */}
                 <Row className="d-md-none mt-3 ">
                     <Col className="d-flex flex-column gap-2 justify-content-center px-4 ">
                         <Button
@@ -131,11 +132,7 @@ export default function EventoCard({
                             }}
                             onClick={onClick1}
                         >
-                            {Icon1 ? (
-                                <Icon1 size={20} />
-                            ) : (
-                                <MdOutlineSearch size={20} />
-                            )}
+                            {IconeBotao1 ? <IconeBotao1 size={20} /> : null}
                             {textoBotao1}
                         </Button>
                         {textoBotao2 ? (

@@ -1,5 +1,5 @@
-from django.http import Http404
 from django.contrib.auth import get_user_model
+from django.http import Http404
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -13,7 +13,6 @@ from rest_framework.throttling import AnonRateThrottle
 
 from eventos_session.permissions import HasValidSessionToken
 from eventos_session.services.token_service import TokenService, TokenValidationError
-
 
 User = get_user_model()
 
@@ -132,21 +131,33 @@ def renovar_token(request):
 def obter_sessao(request):
     try:
         payload = request.session_payload
+        external_user_id = payload.get("external_user_id")
         groups = payload.get("groups")
         if not isinstance(groups, list):
             groups = []
 
         group_name = groups[0] if groups else "user"
+        perfil_id = None
+
+        if external_user_id:
+            user = User.objects.filter(hub_id=external_user_id).first()
+            if user is None:
+                user = User.objects.filter(username=f"hub_{external_user_id}").first()
+
+            if user is not None:
+                perfil = getattr(user, "perfil", None)
+                perfil_id = getattr(perfil, "id", None)
 
         return Response(
             {
-                "id": payload.get("external_user_id"),
+                "id": external_user_id,
                 "username": payload.get("username"),
                 "display_name": payload.get("display_name") or payload.get("username"),
                 "first_name": payload.get("first_name") or "",
                 "last_name": payload.get("last_name") or "",
                 "email": payload.get("email") or "",
                 "cpf": payload.get("cpf") or "",
+                "perfil_id": perfil_id,
                 "groups": groups,
                 "group": group_name,
             },

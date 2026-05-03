@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -11,12 +12,54 @@ import Alerta from '../components/common/Alerta';
 import { MdOutlineSearch } from 'react-icons/md';
 import { useEventos } from '../hooks/useEventos';
 import useInscricoesEvento from '../hooks/useInscricoesEvento';
+import { redirectToLogin } from '../services/authService';
 
 export default function Home({ campus = 'Campus Restinga' }) {
     const location = useLocation();
     const loginAlert = location.state?.loginAlert ?? null;
-    const { eventos } = useEventos();
-    const { estaInscritoEmEvento } = useInscricoesEvento();
+    const navigate = useNavigate();
+    const [alertaInscricao, setAlertaInscricao] = useState(null);
+
+    const { eventos, possuiEtapaSubmissaoAberta } = useEventos();
+    const {
+        estaInscritoEmEvento,
+        criarInscricao,
+        usuarioLogado,
+        obterStatusInscricao,
+    } = useInscricoesEvento();
+
+    const handleInscrever = async (eventoId) => {
+        if (!usuarioLogado) {
+            redirectToLogin();
+            return;
+        }
+
+        if (!usuarioLogado.perfil_id) {
+            navigate('/cadastroComplementar');
+            return;
+        }
+
+        try {
+            await criarInscricao({
+                perfil_id: usuarioLogado.perfil_id,
+                evento_id: eventoId,
+            });
+            setAlertaInscricao({
+                mensagem: 'Inscrição realizada com sucesso!',
+                variacao: 'success',
+            });
+        } catch (erro) {
+            console.error('Erro ao inscrever:', erro);
+            const mensagem =
+                erro?.response?.data?.mensagem?.[0] ||
+                erro?.message ||
+                'Erro ao realizar inscrição. Tente novamente.';
+            setAlertaInscricao({
+                mensagem,
+                variacao: 'danger',
+            });
+        }
+    };
 
     useEffect(() => {
         if (loginAlert) {
@@ -84,13 +127,27 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                         textoBotao1="Ver Detalhes"
                                         textoBotao2={
                                             estaInscritoEmEvento(evento.id)
-                                                ? 'Inscrito'
-                                                : evento?.status_evento ===
-                                                    'EM_ANDAMENTO'
+                                                ? obterStatusInscricao(
+                                                      evento.id,
+                                                  ) === 'CANCELADA'
+                                                    ? 'Cancelada'
+                                                    : 'Inscrito'
+                                                : possuiEtapaSubmissaoAberta(
+                                                        evento,
+                                                    )
                                                   ? 'Inscreva-se'
                                                   : ''
                                         }
+                                        onClick2={() =>
+                                            handleInscrever(evento.id)
+                                        }
                                         icon1={MdOutlineSearch}
+                                        varianteBotao2={
+                                            obterStatusInscricao(evento.id) ===
+                                            'CANCELADA'
+                                                ? 'danger'
+                                                : 'outline-success'
+                                        }
                                         id={evento.id}
                                         desabilitarBotao2={estaInscritoEmEvento(
                                             evento.id,
@@ -106,6 +163,13 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     </Row>
                 </Container>
             </main>
+            {alertaInscricao && (
+                <Alerta
+                    mensagem={alertaInscricao.mensagem}
+                    variacao={alertaInscricao.variacao}
+                    duracao={3000}
+                />
+            )}
 
             <Footer
                 telefone={'(51) 3333-1234'}
