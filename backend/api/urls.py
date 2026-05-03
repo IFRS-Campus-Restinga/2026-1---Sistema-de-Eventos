@@ -42,6 +42,10 @@ from .views.inscricao_evento_view import (
     MinhasInscricoesEventoListView,
     RegistrarPresencaView,
 )
+from .views.inscricao_atracao_view import (
+    InscricaoAtracaoDetailView,
+    InscricaoAtracaoListView,
+)
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
@@ -71,6 +75,8 @@ urlpatterns = [
     path("inscricoes_eventos/<int:pk>/", InscricaoEventoDetailView.as_view()),
     path("inscricoes_eventos/<int:pk>/marcar_presenca/", RegistrarPresencaView.as_view()),
     path("inscricoes_eventos/<int:pk>/cancelar/", CancelarInscricaoView.as_view()),
+    path("inscricoes_atracoes/", InscricaoAtracaoListView.as_view()),
+    path("inscricoes_atracoes/<int:pk>/", InscricaoAtracaoDetailView.as_view()),
 
     # locais e espacos
     path("locais/", LocalListView.as_view()),

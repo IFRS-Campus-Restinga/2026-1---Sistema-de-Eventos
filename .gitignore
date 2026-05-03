@@ -170,3 +170,7 @@ dist-ssr
 # Ignorar cache do build tool (Vite)
 
 frontend/.vite/
+
+# Arquivos locais de trabalho (notas, relatórios, to-dos pessoais)
+relatorio-*.md
+todo-*.txt

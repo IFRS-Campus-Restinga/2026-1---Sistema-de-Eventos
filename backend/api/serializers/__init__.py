@@ -5,6 +5,7 @@ from .espaco_serializer import *
 from .evento_serializer import *
 from .groups_serializer import *
 from .inscricao_evento_serializer import *
+from .inscricao_atracao_serializer import *
 from .local_serializer import *
 from .modalidade_serializer import *
 from .perms_serializer import *

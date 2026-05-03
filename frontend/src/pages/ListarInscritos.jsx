@@ -1,16 +1,31 @@
-import React, { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import ListaInscritos from '../components/lista_inscritos/ListaInscritos';
 import Alerta from '../components/common/Alerta';
+import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
+import { listarAtracoes, buscarUsuarios } from '../services/atracaoService';
 
 const ITENS_POR_PAGINA = 10;
 
 export default function ListarInscritos() {
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const inscritosIniciais = location.state?.inscritos ?? [];
+    const atracaoIdInicial =
+        location.state?.atracaoId || searchParams.get('atracaoId') || '';
+
+    const {
+        inscricoes,
+        loading,
+        error,
+        setAtracaoId,
+    } = useInscricoesAtracao(atracaoIdInicial);
+
     const [inscritos, setInscritos] = useState(inscritosIniciais);
+    const [atracoes, setAtracoes] = useState([]);
+    const [usuarios, setUsuarios] = useState([]);
     const [paginaAtual, setPaginaAtual] = useState(0);
     const [presencasRegistradas, setPresencasRegistradas] = useState(new Set());
     const [alerta, setAlerta] = useState({
@@ -26,6 +41,64 @@ export default function ListarInscritos() {
             variacao,
             reacao: (prev.reacao || 0) + 1,
         }));
+
+        useEffect(() => {
+            setAtracaoId(atracaoIdInicial || '');
+        }, [atracaoIdInicial, setAtracaoId]);
+
+        useEffect(() => {
+            async function carregarDadosAuxiliares() {
+                try {
+                    const [dadosAtracoes, dadosUsuarios] = await Promise.all([
+                        listarAtracoes(),
+                        buscarUsuarios(),
+                    ]);
+                    setAtracoes(Array.isArray(dadosAtracoes) ? dadosAtracoes : []);
+                    setUsuarios(Array.isArray(dadosUsuarios) ? dadosUsuarios : []);
+                } catch {
+                    mostrarAlerta(
+                        'Não foi possível carregar dados auxiliares dos inscritos.',
+                    );
+                }
+            }
+
+            carregarDadosAuxiliares();
+        }, []);
+
+        useEffect(() => {
+            if (inscritosIniciais.length > 0) {
+                return;
+            }
+
+            const usuariosPorId = new Map(
+                usuarios.map((usuario) => [Number(usuario.id), usuario]),
+            );
+            const atracoesPorId = new Map(
+                atracoes.map((atracao) => [Number(atracao.id), atracao]),
+            );
+
+            const inscritosMapeados = inscricoes.map((inscricao) => {
+                const usuario = usuariosPorId.get(Number(inscricao.perfil_usuario_id));
+                const atracao = atracoesPorId.get(Number(inscricao.atracao_id));
+
+                return {
+                    id: inscricao.id,
+                    nome: usuario?.nome || `Usuário ${inscricao.perfil_usuario_id}`,
+                    cpf: usuario?.cpf || '',
+                    email: usuario?.email || '',
+                    atracao: atracao?.titulo || `Atração ${inscricao.atracao_id}`,
+                    tipo: inscricao.status || 'Inscrito',
+                    presente: Boolean(inscricao.presente),
+                };
+            });
+
+            setInscritos(inscritosMapeados);
+        }, [inscricoes, usuarios, atracoes, inscritosIniciais.length]);
+
+        useEffect(() => {
+            if (!error) return;
+            mostrarAlerta('Não foi possível carregar inscritos da atração.');
+        }, [error]);
 
     const totalPaginas = Math.max(1, Math.ceil(inscritos.length / ITENS_POR_PAGINA));
 
@@ -81,6 +154,9 @@ export default function ListarInscritos() {
                     totalPaginas={totalPaginas}
                     presencasRegistradas={presencasRegistradas}
                 />
+                {loading && (
+                    <p className="text-center text-muted">Carregando inscritos...</p>
+                )}
             </main>
             <Footer 
                 telefone="(51) 3333-1234" 
