@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
 import AdicionarEvento from './pages/AdicionarEvento';
 import ListarEnvento from './pages/ListarEvento';
+import DetalheEvento from './pages/DetalhamentoEvento';
 import SessionTokenCallback from './pages/SessionTokenCallback';
 import Teste from './pages/Teste';
 import ModalidadeFormulario from './pages/ModalidadeFormulario';
@@ -24,12 +25,13 @@ import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
+import MeusEventos from './pages/MeusEventos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import PresencaEvento from './pages/AlunoCredenciamento';
-import SessaoBoard from './pages/SessaoBoard';
+//import SessaoBoard from './pages/SessaoBoard';
 import EnviarEmails from './pages/EnviarEmails';
-
+import SessaoBoard from './pages/sessaoteste';
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
@@ -74,6 +76,7 @@ function App() {
                 <Route path="/adicionarEvento" element={<AdicionarEvento />} />
                 <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
                 <Route path="/ListarEventos" element={<ListarEnvento />} />
+                <Route path="/detalhe-evento/:id" element={<DetalheEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
                 <Route path="/dashboard/:id/enviaremails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
@@ -90,6 +93,7 @@ function App() {
                 <Route path="/listarAtracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/adicionarAtracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listarInscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/meusEventos" element={protegido(<MeusEventos />)} />
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}

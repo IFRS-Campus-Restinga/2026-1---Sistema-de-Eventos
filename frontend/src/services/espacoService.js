@@ -2,7 +2,7 @@ import { API_URL } from '../config';
 import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
-export const pegarEspacos = async (localId = Null) => {
+export const pegarEspacos = async (localId = null) => {
     try {
         let url = `${API_URL}/api/espacos/`;
         if (localId) {

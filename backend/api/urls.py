@@ -5,6 +5,10 @@ from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
 from .views.arquivo_view import ArquivoListView
 from .views.atracao_view import AtracaoDetailView, AtracaoListView, EnviarEmailsView
+from .views.avaliacao_submissao_view import (
+    AvaliacaoSubmissaoDetailView,
+    AvaliacaoSubmissaoListView,
+)
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
@@ -32,8 +36,10 @@ from .views.evento_view import (
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.inscricao_evento_view import (
+    CancelarInscricaoView,
     InscricaoEventoDetailView,
     InscricaoEventoListView,
+    MinhasInscricoesEventoListView,
     RegistrarPresencaView,
 )
 from .views.local_views import LocalDetailView, LocalListView
@@ -61,8 +67,10 @@ urlpatterns = [
 
     # inscricoes
     path("inscricoes_eventos/", InscricaoEventoListView.as_view()),
+    path("inscricoes_eventos/minhas/", MinhasInscricoesEventoListView.as_view()),
     path("inscricoes_eventos/<int:pk>/", InscricaoEventoDetailView.as_view()),
     path("inscricoes_eventos/<int:pk>/marcar_presenca/", RegistrarPresencaView.as_view()),
+    path("inscricoes_eventos/<int:pk>/cancelar/", CancelarInscricaoView.as_view()),
 
     # locais e espacos
     path("locais/", LocalListView.as_view()),
@@ -106,5 +114,9 @@ urlpatterns = [
     path("atracoes/", AtracaoListView.as_view()),
     path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
+
+    # avaliacao de submissoes
+    path("avaliacao-submissao/", AvaliacaoSubmissaoListView.as_view()),
+    path("avaliacao-submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
 ]
 # fmt: on

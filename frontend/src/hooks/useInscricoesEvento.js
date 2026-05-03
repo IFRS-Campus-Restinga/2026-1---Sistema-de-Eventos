@@ -32,25 +32,22 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
         carregarUsuario();
     }, []);
 
-    const carregarInscricoes = useCallback(
-        async (idEvento = eventoId) => {
-            setLoading(true);
-            setError(null);
+    const carregarInscricoes = useCallback(async (idEvento = '') => {
+        setLoading(true);
+        setError(null);
 
-            try {
-                const data = await listarInscricoesEventos(idEvento);
-                setInscricoes(data);
-                return data;
-            } catch (erro) {
-                setError(erro);
-                setInscricoes([]);
-                throw erro;
-            } finally {
-                setLoading(false);
-            }
-        },
-        [eventoId],
-    );
+        try {
+            const data = await listarInscricoesEventos(idEvento);
+            setInscricoes(data);
+            return data;
+        } catch (erro) {
+            setError(erro);
+            setInscricoes([]);
+            throw erro;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     const criarInscricao = useCallback(
         async (dados) => {
@@ -62,7 +59,7 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
 
                 const eventoAtual =
                     dados?.evento_id ?? inscricaoCriada?.evento_id;
-                if (eventoAtual && Number(eventoAtual) === Number(eventoId)) {
+                if (eventoAtual) {
                     await carregarInscricoes(eventoAtual);
                 } else if (inscricaoCriada) {
                     setInscricoes((prev) => [inscricaoCriada, ...prev]);
@@ -76,7 +73,7 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
                 setLoading(false);
             }
         },
-        [carregarInscricoes, eventoId],
+        [carregarInscricoes],
     );
 
     useEffect(() => {
@@ -94,13 +91,30 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
                 return false;
             }
 
+            const perfilIdSessao = usuarioLogado.perfil_id;
+
             return inscricoes.some(
                 (inscricao) =>
                     Number(inscricao.evento_id) ===
                         Number(eventoParaVerificar) &&
-                    Number(inscricao.perfil_usuario_id) ===
-                        Number(usuarioLogado.id),
+                    Number(inscricao.perfil_id) === Number(perfilIdSessao),
             );
+        },
+        [inscricoes, usuarioLogado],
+    );
+
+    const obterStatusInscricao = useCallback(
+        (eventoParaVerificar) => {
+            const perfilIdSessao = usuarioLogado?.perfil_id;
+            if (!perfilIdSessao || !eventoParaVerificar) return null;
+
+            const inscricao = inscricoes.find(
+                (i) =>
+                    Number(i.evento_id) === Number(eventoParaVerificar) &&
+                    Number(i.perfil_id) === Number(perfilIdSessao),
+            );
+
+            return inscricao ? inscricao.status : null;
         },
         [inscricoes, usuarioLogado],
     );
@@ -117,5 +131,6 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
         carregarInscricoes,
         criarInscricao,
         estaInscritoEmEvento,
+        obterStatusInscricao,
     };
 }
