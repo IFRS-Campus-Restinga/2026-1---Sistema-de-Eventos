@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
@@ -60,6 +60,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
             });
         }
     };
+   
 
     useEffect(() => {
         if (loginAlert) {
@@ -125,6 +126,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                         }
                                         descricao={evento?.descricao}
                                         textoBotao1="Ver Detalhes"
+                                        onClick1={()=>{navigate(`/detalhe-evento/${evento.id}`)}}
                                         textoBotao2={
                                             estaInscritoEmEvento(evento.id)
                                                 ? obterStatusInscricao(

@@ -155,34 +155,39 @@ ETAPAS_DATA = [
     },
 ]
 
+# Atualize esta lista no seu arquivo de seed
 AREAS_DATA = [
     {
-        "area": "CIENCIAS_EXATAS_E_DA_TERRA",
-        "descricao": "Ciências que estudam a matéria, energia e as leis da natureza.",
+        "area": "CIENCIAS_EXATAS_E_DA_TERRA", 
+        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos."
     },
     {
-        "area": "CIENCIAS_BIOLOGICAS",
-        "descricao": "Estudo dos seres vivos e dos processos biológicos.",
+        "area": "CIENCIAS_BIOLOGICAS", 
+        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução."
     },
     {
-        "area": "ENGENHARIAS",
-        "descricao": "Aplicação de conhecimentos técnicos para criação de soluções.",
+        "area": "ENGENHARIAS", 
+        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura."
     },
     {
-        "area": "CIENCIAS_DA_SAUDE",
-        "descricao": "Área voltada à promoção, prevenção e cuidado com a saúde.",
+        "area": "CIENCIAS_DA_SAUDE", 
+        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças."
     },
     {
-        "area": "CIENCIAS_SOCIAIS_APLICADAS",
-        "descricao": "Estudo das relações sociais, instituições e políticas públicas.",
+        "area": "CIENCIAS_AGRARIAS", 
+        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais."
     },
     {
-        "area": "CIENCIAS_HUMANAS",
-        "descricao": "Estudo do comportamento, cultura e sociedade humana.",
+        "area": "CIENCIAS_SOCIAIS_APLICADAS", 
+        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas."
     },
     {
-        "area": "LINGUISTICA_LETRAS_E_ARTES",
-        "descricao": "Estudo das linguagens, literatura e manifestações artísticas.",
+        "area": "CIENCIAS_HUMANAS", 
+        "descricao": "Investigação do comportamento, cultura, história e sociedade humana."
+    },
+    {
+        "area": "LINGUISTICA_LETRAS_E_ARTES", 
+        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais."
     },
 ]
 

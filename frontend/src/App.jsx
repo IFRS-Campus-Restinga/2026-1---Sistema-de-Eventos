@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
 import AdicionarEvento from './pages/AdicionarEvento';
 import ListarEnvento from './pages/ListarEvento';
+import DetalheEvento from './pages/DetalhamentoEvento';
 import SessionTokenCallback from './pages/SessionTokenCallback';
 import Teste from './pages/Teste';
 import ModalidadeFormulario from './pages/ModalidadeFormulario';
@@ -74,6 +75,7 @@ function App() {
                 <Route path="/adicionarEvento" element={<AdicionarEvento />} />
                 <Route path="/editarEvento/:id" element={<AdicionarEvento />} />
                 <Route path="/ListarEventos" element={<ListarEnvento />} />
+                <Route path="/detalhe-evento/:id" element={<DetalheEvento />} />
 
                 {/* Locais & Espacos */}
                 <Route path="/adicionarLocal" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
