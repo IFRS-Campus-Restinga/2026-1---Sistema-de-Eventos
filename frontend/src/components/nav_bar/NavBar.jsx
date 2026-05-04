@@ -52,10 +52,10 @@ export default function NavBar() {
                             <Nav.Link href="/" className="text-white fw-bold">
                                 Home
                             </Nav.Link>
-                            <Nav.Link href="#" className="text-white fw-bold">
+                            <Nav.Link href="/ListarEventos" className="text-white fw-bold">
                                 Meus Eventos
                             </Nav.Link>
-                            <Nav.Link href="#" className="text-white fw-bold">
+                            <Nav.Link href="/avaliar-submissao" className="text-white fw-bold">
                                 Avaliações
                             </Nav.Link>
                             <Nav.Link

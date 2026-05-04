@@ -26,6 +26,7 @@ import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
+import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
 import SessaoBoard from './pages/SessaoBoard';
 
@@ -90,6 +91,7 @@ function App() {
 
                 {/* Submissões e Avaliações */}
                 <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
+                <Route path="/avaliar-submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoesGrupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
