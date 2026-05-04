@@ -14,3 +14,4 @@ from .visao_geral_view import *
 from .perms_generic_view import *
 from .cadastro_complementar_view import *
 from .inscricao_evento_view import *
+from .inscricao_atracao_view import *

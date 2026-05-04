@@ -18,7 +18,7 @@ class InscricaoEvento(Base):
         default=StatusInscricao.FILA_DE_ESPERA,
     )
 
-    data_hora = models.DateField(
+    data_hora = models.DateTimeField(
         verbose_name=_("Data e hora"),
         help_text=_("Data e hora das inscrição"),
         default=timezone.now,
@@ -59,27 +59,32 @@ class InscricaoEvento(Base):
 
         if self.evento_id:
             evento = getattr(self, "evento", None)
-            etapa = getattr(evento, "etapa_evento", None)
+            etapas_relacionadas = getattr(evento, "etapas", None)
+            etapa = None
+
+            if etapas_relacionadas is not None:
+                # Inscrição só é permitida se INSCRICAO_PUBLICO está configurada
+                etapa = etapas_relacionadas.filter(
+                    tipo_etapa=TipoEtapa.INSCRICAO_PUBLICO
+                ).first()
 
             if etapa is None:
                 errors["evento"] = _(
-                    "Evento sem etapa configurada para inscrições. Contate o organizador."
+                    "Evento sem período de inscrição (INSCRICAO_PUBLICO) configurado. Contate o organizador."
                 )
             else:
-                tipo = getattr(etapa, "tipo_etapa", None)
                 inicio = getattr(etapa, "data_inicio", None)
                 fim = getattr(etapa, "data_fim", None)
 
-                if tipo != TipoEtapa.SUBMISSAO_TRABALHOS:
-                    if not (inicio and fim):
+                if not (inicio and fim):
+                    errors["evento"] = _(
+                        "Período de inscrições não está configurado para este evento."
+                    )
+                else:
+                    if not (inicio <= now <= fim):
                         errors["evento"] = _(
-                            "Período de inscrições não está configurado para este evento."
+                            "Inscrição não concluída, o evento não está com as inscrições abertas."
                         )
-                    else:
-                        if not (inicio <= now <= fim):
-                            errors["evento"] = _(
-                                "Inscrição não concluída, o evento não está com as inscrições abertas."
-                            )
 
         if errors:
             raise ValidationError(errors)

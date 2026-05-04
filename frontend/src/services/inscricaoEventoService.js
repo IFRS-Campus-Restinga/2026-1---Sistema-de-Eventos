@@ -16,6 +16,17 @@ export const listarInscricoesEventos = async (eventoId) => {
     );
 };
 
+export const listarMinhasInscricoesEventos = async () => {
+    const response = await axios.get(
+        `${API_URL}/api/inscricoes_eventos/minhas/`,
+        {
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
 export const criarInscricaoEvento = async (dados) => {
     if (!dados?.perfil_id || !dados?.evento_id) {
         throw new Error('perfil_id e evento_id são obrigatórios');
@@ -31,6 +42,24 @@ export const criarInscricaoEvento = async (dados) => {
             headers: {
                 'X-CSRFToken': csrfToken,
             },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const cancelarInscricaoEvento = async (inscricaoId) => {
+    if (!inscricaoId) throw new Error('inscricaoId é obrigatório');
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.post(
+        `${API_URL}/api/inscricoes_eventos/${inscricaoId}/cancelar/`,
+        {},
+        {
+            headers: { 'X-CSRFToken': csrfToken },
             withCredentials: true,
         },
     );

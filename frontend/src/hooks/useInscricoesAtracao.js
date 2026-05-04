@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    criarInscricaoEvento,
-    listarInscricoesEventos,
-} from '../services/inscricaoEventoService';
+    criarInscricaoAtracao,
+    listarInscricoesAtracoes,
+} from '../services/inscricaoAtracaoService';
 import { checkSession } from '../services/authService';
 
-export default function useInscricoesEvento(eventoIdInicial = '') {
-    const [eventoId, setEventoId] = useState(String(eventoIdInicial || ''));
+export default function useInscricoesAtracao(atracaoIdInicial = '') {
+    const [atracaoId, setAtracaoId] = useState(String(atracaoIdInicial || ''));
     const [inscricoes, setInscricoes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -32,12 +32,12 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
         carregarUsuario();
     }, []);
 
-    const carregarInscricoes = useCallback(async (idEvento = '') => {
+    const carregarInscricoes = useCallback(async (idAtracao = '') => {
         setLoading(true);
         setError(null);
 
         try {
-            const data = await listarInscricoesEventos(idEvento);
+            const data = await listarInscricoesAtracoes(idAtracao);
             setInscricoes(data);
             return data;
         } catch (erro) {
@@ -55,12 +55,12 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
             setError(null);
 
             try {
-                const inscricaoCriada = await criarInscricaoEvento(dados);
+                const inscricaoCriada = await criarInscricaoAtracao(dados);
 
-                const eventoAtual =
-                    dados?.evento_id ?? inscricaoCriada?.evento_id;
-                if (eventoAtual) {
-                    await carregarInscricoes(eventoAtual);
+                const atracaoAtual =
+                    dados?.atracao_id ?? inscricaoCriada?.atracao_id;
+                if (atracaoAtual) {
+                    await carregarInscricoes(atracaoAtual);
                 } else if (inscricaoCriada) {
                     setInscricoes((prev) => [inscricaoCriada, ...prev]);
                 }
@@ -77,17 +77,17 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
     );
 
     useEffect(() => {
-        carregarInscricoes(eventoId);
-    }, [eventoId, carregarInscricoes]);
+        carregarInscricoes(atracaoId);
+    }, [atracaoId, carregarInscricoes]);
 
     const presentes = useMemo(
         () => inscricoes.filter((i) => Boolean(i.presente)),
         [inscricoes],
     );
 
-    const estaInscritoEmEvento = useCallback(
-        (eventoParaVerificar) => {
-            if (!usuarioLogado?.id || !eventoParaVerificar) {
+    const estaInscritoEmAtracao = useCallback(
+        (atracaoParaVerificar) => {
+            if (!usuarioLogado?.id || !atracaoParaVerificar) {
                 return false;
             }
 
@@ -95,8 +95,8 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
 
             return inscricoes.some(
                 (inscricao) =>
-                    Number(inscricao.evento_id) ===
-                        Number(eventoParaVerificar) &&
+                    Number(inscricao.atracao_id) ===
+                        Number(atracaoParaVerificar) &&
                     Number(inscricao.perfil_id) === Number(perfilIdSessao),
             );
         },
@@ -104,13 +104,13 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
     );
 
     const obterStatusInscricao = useCallback(
-        (eventoParaVerificar) => {
+        (atracaoParaVerificar) => {
             const perfilIdSessao = usuarioLogado?.perfil_id;
-            if (!perfilIdSessao || !eventoParaVerificar) return null;
+            if (!perfilIdSessao || !atracaoParaVerificar) return null;
 
             const inscricao = inscricoes.find(
                 (i) =>
-                    Number(i.evento_id) === Number(eventoParaVerificar) &&
+                    Number(i.atracao_id) === Number(atracaoParaVerificar) &&
                     Number(i.perfil_id) === Number(perfilIdSessao),
             );
 
@@ -120,8 +120,8 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
     );
 
     return {
-        eventoId,
-        setEventoId,
+        atracaoId,
+        setAtracaoId,
         inscricoes,
         presentes,
         loading,
@@ -130,7 +130,7 @@ export default function useInscricoesEvento(eventoIdInicial = '') {
         carregandoUsuario,
         carregarInscricoes,
         criarInscricao,
-        estaInscritoEmEvento,
+        estaInscritoEmAtracao,
         obterStatusInscricao,
     };
 }

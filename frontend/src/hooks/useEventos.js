@@ -135,6 +135,23 @@ export function useEventos() {
         }
     }, []);
 
+    const possuiEtapaSubmissaoAberta = useCallback((evento) => {
+        const etapas = evento?.etapas || [];
+        const etapa = etapas.find(
+            (e) =>
+                e.tipo_etapa === 'INSCRICAO' ||
+                e.tipo_etapa === 'INSCRICAO_PUBLICO',
+        );
+
+        if (!etapa || !etapa.data_inicio || !etapa.data_fim) return false;
+
+        const now = new Date();
+        const inicio = new Date(etapa.data_inicio);
+        const fim = new Date(etapa.data_fim);
+
+        return inicio <= now && now <= fim;
+    }, []);
+
     return {
         eventos,
         loading,
@@ -142,5 +159,6 @@ export function useEventos() {
         criarEventos,
         atualizarEventos,
         deletarEventos,
+        possuiEtapaSubmissaoAberta,
     };
 }

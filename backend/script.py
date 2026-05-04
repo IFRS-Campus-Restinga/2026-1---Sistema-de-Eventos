@@ -2,7 +2,14 @@ import os
 import django
 
 
-GROUP_NAMES = ["Administrador", "Coordenador", "Organizador", "Convidado", "Aluno", "Servidor"]
+GROUP_NAMES = [
+    "Administrador",
+    "Coordenador",
+    "Organizador",
+    "Convidado",
+    "Aluno",
+    "Servidor",
+]
 
 LOCAIS_DATA = [
     {"nome": "Campus Restinga", "endereco": "Rua Alberto Hoffmann, 285"},
@@ -118,44 +125,70 @@ ARQUIVOS_DATA = [
     {
         "nome_arquivo": "Edital da Mostra Científica",
         "evento_nome": "Mostra de Extensão",
-        "caminho_fake": "editais/mostra_2025.pdf"
+        "caminho_fake": "editais/mostra_2025.pdf",
     },
     {
         "nome_arquivo": "Cronograma de Tecnologia",
         "evento_nome": "Semana Acadêmica de Tecnologia",
-        "caminho_fake": "docs/cronograma.pdf"
-    }
+        "caminho_fake": "docs/cronograma.pdf",
+    },
 ]
 
 ETAPAS_DATA = [
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
-        "tipo_etapa": "INSCRICAO", 
+        "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2025-09-01 08:00:00",
         "data_fim": "2025-10-15 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
-        "tipo_etapa": "REALIZACAO",
+        "tipo_etapa": "REALIZACAO_EVENTO",
         "data_inicio": "2025-10-20 08:00:00",
         "data_fim": "2025-10-22 18:00:00",
     },
     {
         "evento_nome": "Mostra de Extensão",
-        "tipo_etapa": "INSCRICAO",
+        "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2025-08-10 00:00:00",
         "data_fim": "2025-09-10 23:59:59",
-    }
+    },
 ]
 
+# Atualize esta lista no seu arquivo de seed
 AREAS_DATA = [
-    {"area": "CIENCIAS_EXATAS_E_DA_TERRA", "descricao": "Ciências que estudam a matéria, energia e as leis da natureza."},
-    {"area": "CIENCIAS_BIOLOGICAS", "descricao": "Estudo dos seres vivos e dos processos biológicos."},
-    {"area": "ENGENHARIAS", "descricao": "Aplicação de conhecimentos técnicos para criação de soluções."},
-    {"area": "CIENCIAS_DA_SAUDE", "descricao": "Área voltada à promoção, prevenção e cuidado com a saúde."},
-    {"area": "CIENCIAS_SOCIAIS_APLICADAS", "descricao": "Estudo das relações sociais, instituições e políticas públicas."},
-    {"area": "CIENCIAS_HUMANAS", "descricao": "Estudo do comportamento, cultura e sociedade humana."},
-    {"area": "LINGUISTICA_LETRAS_E_ARTES", "descricao": "Estudo das linguagens, literatura e manifestações artísticas."},
+    {
+        "area": "CIENCIAS_EXATAS_E_DA_TERRA", 
+        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos."
+    },
+    {
+        "area": "CIENCIAS_BIOLOGICAS", 
+        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução."
+    },
+    {
+        "area": "ENGENHARIAS", 
+        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura."
+    },
+    {
+        "area": "CIENCIAS_DA_SAUDE", 
+        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças."
+    },
+    {
+        "area": "CIENCIAS_AGRARIAS", 
+        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais."
+    },
+    {
+        "area": "CIENCIAS_SOCIAIS_APLICADAS", 
+        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas."
+    },
+    {
+        "area": "CIENCIAS_HUMANAS", 
+        "descricao": "Investigação do comportamento, cultura, história e sociedade humana."
+    },
+    {
+        "area": "LINGUISTICA_LETRAS_E_ARTES", 
+        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais."
+    },
 ]
 
 ATRACOES_DATA = [
@@ -220,6 +253,7 @@ ATRACOES_DATA = [
         "status": "CONFIRMADA",
     },
 ]
+
 
 def setup_django():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
@@ -328,14 +362,14 @@ def seed_modalidades():
     print(f"Criados: {created if created else 'nenhum'}")
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
 
+
 def seed_areas():
     from api.models.area_conhecimento import AreaConhecimento
-    
+
     created_count = 0
     for item in AREAS_DATA:
         area, created = AreaConhecimento.objects.get_or_create(
-            area_conhecimento=item["area"],
-            defaults={"descricao": item["descricao"]}
+            area_conhecimento=item["area"], defaults={"descricao": item["descricao"]}
         )
         if created:
             created_count += 1
@@ -350,7 +384,7 @@ def seed_eventos():
 
     for item in EVENTOS_DATA:
         local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
-        
+
         # Primeiro, tentamos buscar o evento exatamente pelo nome
         evento = Evento.objects.filter(nome__iexact=item["nome"]).first()
         created = False
@@ -371,10 +405,12 @@ def seed_eventos():
         # Vincular N:N (Sempre rodar para garantir que os vínculos existam)
         mods = Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
         evento.modalidades.set(mods)
-        
-        areas = AreaConhecimento.objects.filter(area_conhecimento__in=item["areas_conhecimento"])
-        evento.area_conhecimento.set(areas) 
-        
+
+        areas = AreaConhecimento.objects.filter(
+            area_conhecimento__in=item["areas_conhecimento"]
+        )
+        evento.area_conhecimento.set(areas)
+
         status = "criado" if created else "já existia"
         print(f"Evento '{evento.nome}' {status} com {areas.count()} áreas.")
 
@@ -390,15 +426,23 @@ def seed_atracoes():
     for item in ATRACOES_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'."
+            )
             continue
 
-        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade_nome"]).first()
+        modalidade = Modalidade.objects.filter(
+            nome__iexact=item["modalidade_nome"]
+        ).first()
         if not modalidade:
-            print(f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'."
+            )
             continue
 
-        atracao = Atracao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
+        atracao = Atracao.objects.filter(
+            titulo__iexact=item["titulo"], evento=evento
+        ).first()
         if atracao:
             existing.append(atracao.titulo)
             continue
@@ -428,6 +472,7 @@ def seed_etapas():
     from api.models.etapa_evento import EtapaEvento
     from api.models.evento import Evento
     from django.utils.dateparse import parse_datetime
+    from django.utils import timezone
 
     created_count = 0
     existing_count = 0
@@ -435,17 +480,27 @@ def seed_etapas():
     for item in ETAPAS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}.")
+            print(
+                f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}."
+            )
             continue
 
-       
+        data_inicio = parse_datetime(item["data_inicio"])
+        data_fim = parse_datetime(item["data_fim"])
+
+        # Convert naive datetimes to timezone-aware
+        if data_inicio and timezone.is_naive(data_inicio):
+            data_inicio = timezone.make_aware(data_inicio)
+        if data_fim and timezone.is_naive(data_fim):
+            data_fim = timezone.make_aware(data_fim)
+
         etapa, created = EtapaEvento.objects.update_or_create(
             evento=evento,
             tipo_etapa=item["tipo_etapa"],
             defaults={
-                "data_inicio": parse_datetime(item["data_inicio"]),
-                "data_fim": parse_datetime(item["data_fim"]),
-            }
+                "data_inicio": data_inicio,
+                "data_fim": data_fim,
+            },
         )
 
         if created:
@@ -460,7 +515,6 @@ def seed_etapas():
 def seed_arquivos():
     from api.models.arquivo import Arquivo
     from api.models.evento import Evento
-    from django.core.files import File # Caso queira manipular arquivos reais
 
     created = []
     existing = []
@@ -468,12 +522,13 @@ def seed_arquivos():
     for item in ARQUIVOS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo.")
+            print(
+                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo."
+            )
             continue
 
         arquivo_obj = Arquivo.objects.filter(
-            nome_arquivo__iexact=item["nome_arquivo"], 
-            evento=evento
+            nome_arquivo__iexact=item["nome_arquivo"], evento=evento
         ).first()
 
         if arquivo_obj:
@@ -483,7 +538,7 @@ def seed_arquivos():
         arquivo_obj = Arquivo(
             nome_arquivo=item["nome_arquivo"],
             evento=evento,
-            arquivo=item["caminho_fake"] 
+            arquivo=item["caminho_fake"],
         )
         arquivo_obj.save()
         created.append(item["nome_arquivo"])
@@ -491,6 +546,7 @@ def seed_arquivos():
     print("Seed de arquivos finalizada.")
     print(f"Criados: {created if created else 'nenhum'}")
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
+
 
 def seed_admin_user():
     """Cria um superusuário padrão 'admin' com senha 'admin' e o adiciona ao grupo 'Administrador'."""
@@ -531,8 +587,8 @@ if __name__ == "__main__":
     seed_locais()
     seed_espacos()
     seed_modalidades()
-    seed_areas()       
-    seed_eventos()     
+    seed_areas()
+    seed_eventos()
     seed_atracoes()
     seed_arquivos()
     seed_etapas()

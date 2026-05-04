@@ -741,6 +741,9 @@ class TokenService:
         sync_group_from_access_profile(user, user.access_profile)
 
         metadata = TokenMetadataService.get(user)
+        token_metadata = {
+            "groups": metadata.get("groups", []),
+        }
 
         access_payload = {
             "iat": now,
@@ -753,7 +756,7 @@ class TokenService:
             "last_name": user.last_name,
             "email": user.email,
             "cpf": user.cpf,
-            **metadata,
+            **token_metadata,
         }
 
         refresh_payload = {
@@ -767,7 +770,7 @@ class TokenService:
             "last_name": user.last_name,
             "email": user.email,
             "cpf": user.cpf,
-            **metadata,
+            **token_metadata,
         }
 
         access_token = jwt.encode(access_payload, jwt_secret, algorithm=jwt_algorithm)

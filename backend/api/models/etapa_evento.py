@@ -28,6 +28,8 @@ class EtapaEvento(Base):
         on_delete=models.RESTRICT,
         verbose_name=_("Evento"),
         related_name="etapas",
+        null=True,
+        blank=False,
     )
 
     class Meta:
