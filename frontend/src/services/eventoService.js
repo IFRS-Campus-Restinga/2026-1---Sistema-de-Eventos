@@ -173,3 +173,13 @@ export const listarOrganizadoresEvento = async (eventoId) => {
 
     return response.data;
 };
+
+export const listarInscritosEventos = async () => {
+    const response = await axios.get(
+        `${API_URL}/api/eventos/inscritos/`,
+        {
+            withCredentials: true,
+        },
+    );
+    return response.data;
+};

@@ -122,7 +122,7 @@ urlpatterns = [
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
 
     # avaliacao de submissoes
-    path("avaliacao-submissao/", AvaliacaoSubmissaoListView.as_view()),
-    path("avaliacao-submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
+    path("avaliacao_submissao/", AvaliacaoSubmissaoListView.as_view()),
+    path("avaliacao_submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
 ]
 # fmt: on
