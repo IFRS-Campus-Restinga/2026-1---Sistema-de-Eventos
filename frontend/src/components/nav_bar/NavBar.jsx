@@ -58,7 +58,7 @@ export default function NavBar() {
                             >
                                 Meus Eventos
                             </Nav.Link>
-                            <Nav.Link href="#" className="text-white fw-bold">
+                            <Nav.Link href="/avaliar-submissao" className="text-white fw-bold">
                                 Avaliações
                             </Nav.Link>
                             <Nav.Link

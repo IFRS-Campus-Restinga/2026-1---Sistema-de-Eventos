@@ -28,6 +28,7 @@ import ListarInscritos from './pages/ListarInscritos';
 import MeusEventos from './pages/MeusEventos';
 import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
+import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
 //import SessaoBoard from './pages/SessaoBoard';
 import EnviarEmails from './pages/EnviarEmails';
@@ -97,7 +98,8 @@ function App() {
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}
-                <Route path="/submetertrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
+                <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
+                <Route path="/avaliar-submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
