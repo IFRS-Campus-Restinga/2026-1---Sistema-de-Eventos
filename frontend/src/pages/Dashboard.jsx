@@ -119,12 +119,12 @@ export default function DashboardEvento({}) {
         {
             texto: 'Editar Informações do Evento',
             icone: <BiSolidEdit color="#727272" size={20} />,
-            to: eventoId ? `/editarEvento/${eventoId}` : '#',
+            to: eventoId ? `/editar_evento/${eventoId}` : '#',
         },
         {
             texto: 'Definir Locais de Trabalhos',
             icone: <TbMapPinFilled color="#f00" size={20} />,
-            to: '/listarLocaisEspacos',
+            to: '/listar_locais_espacos',
         },
         {
             texto: 'Enviar Emails',
@@ -139,22 +139,22 @@ export default function DashboardEvento({}) {
         {
             texto: 'Gerenciar Organizadores',
             icone: <RiTeamFill color="#00A44B" size={20} />,
-            to: '/atribuirOrganizador',
+            to: '/atribuir_organizador',
         },
         {
             texto: 'Adicionar um Novo Evento',
             icone: <RiAddBoxFill color="#016B3F" size={20} />,
-            to: '/adicionarEvento',
+            to: '/adicionar_evento',
         },
         {
             texto: 'Gerenciar Modalidades',
             icone: <IoMdSchool color="#00f" size={20} />,
-            to: '/listarModalidades',
+            to: '/listar_modalidades',
         },
         {
             texto: 'Definir Sessões da Programação do Evento',
             icone: <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />,
-            to: '/sessaoAtribuirData',
+            to: '/sessao_atribuir_data',
         },
     ];
 

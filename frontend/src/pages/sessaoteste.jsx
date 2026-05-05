@@ -345,6 +345,19 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                 <option value="2025-11-26">Dia 26/11</option>
                             </Form.Select>
                         </Col>
+                        <Col md={2}>
+                            {/* BOTÃO ADICIONAR ESPAÇO*/}
+                            <Button
+                                className="w-100 mt-2 fw-bold"
+                                style={{
+                                    backgroundColor: '#0d6efd',
+                                    border: 'none',
+                                    fontSize: '14px',
+                                }}
+                            >
+                                + Adicionar Espaço
+                            </Button>
+                        </Col>
 
                         {/* Botões de ação */}
                         <Col className="d-flex justify-content-end gap-2">
@@ -366,53 +379,6 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     {/* Quadro de espaços */}
                     <DndContext onDragEnd={handleDragEnd}>
                         <Row className="g-3">
-                            {/* COLUNA ESQUERDA */}
-                            <Col md={3}>
-                                <div className="p-2 border rounded bg-white h-100">
-                                    {/* CONTADOR DE ATRAÇÕES NÃO ALOCADAS */}
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <strong style={{ fontSize: '12px' }}>
-                                            AGUARDANDO ALOCAÇÃO (
-                                            {atracoesNaoAlocadas.length})
-                                        </strong>
-                                    </div>
-
-                                    {/* BUSCA */}
-                                    <Form.Control
-                                        size="sm"
-                                        type="text"
-                                        placeholder="Buscar por títulos..."
-                                        className="mb-2"
-                                    />
-
-                                    {/* LISTA */}
-                                    <div
-                                        style={{
-                                            maxHeight: '60vh',
-                                            overflowY: 'auto',
-                                        }}
-                                    >
-                                        {atracoesNaoAlocadas.map((atracao) => (
-                                            <AtracaoLivreDrag
-                                                key={atracao.id}
-                                                atracao={atracao}
-                                            />
-                                        ))}
-                                    </div>
-
-                                    {/* BOTÃO */}
-                                    <Button
-                                        className="w-100 mt-2 fw-bold"
-                                        style={{
-                                            backgroundColor: '#0d6efd',
-                                            border: 'none',
-                                        }}
-                                    >
-                                        + Adicionar Espaço
-                                    </Button>
-                                </div>
-                            </Col>
-
                             {/* COLUNAS DE ESPAÇO */}
                             <Col md={9}>
                                 <Row className="g-3">
@@ -470,6 +436,42 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                         </Col>
                                     ))}
                                 </Row>
+                            </Col>
+                        </Row>
+                        <Row className="g-3 mt-4">
+                            <Col>
+                                <div className="p-2 border rounded bg-white h-100">
+                                    {/* CONTADOR DE ATRAÇÕES NÃO ALOCADAS */}
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <strong style={{ fontSize: '12px' }}>
+                                            AGUARDANDO ALOCAÇÃO (
+                                            {atracoesNaoAlocadas.length})
+                                        </strong>
+                                    </div>
+
+                                    {/* BUSCA */}
+                                    <Form.Control
+                                        size="sm"
+                                        type="text"
+                                        placeholder="Buscar por títulos..."
+                                        className="mb-2"
+                                    />
+
+                                    {/* LISTA */}
+                                    <div
+                                        style={{
+                                            maxHeight: '60vh',
+                                            overflowY: 'auto',
+                                        }}
+                                    >
+                                        {atracoesNaoAlocadas.map((atracao) => (
+                                            <AtracaoLivreDrag
+                                                key={atracao.id}
+                                                atracao={atracao}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </Col>
                         </Row>
                     </DndContext>

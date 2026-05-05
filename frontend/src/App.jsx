@@ -76,7 +76,7 @@ function App() {
                 <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
                 <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
-                <Route path="/Listar_eventos" element={<ListarEnvento />} />
+                <Route path="/listar_eventos" element={<ListarEnvento />} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
@@ -99,7 +99,7 @@ function App() {
 
                 {/* Submissões e Avaliações */}
                 <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
-                <Route path="/avaliar-submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
+                <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
