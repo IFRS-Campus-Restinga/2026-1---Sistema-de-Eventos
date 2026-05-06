@@ -9,6 +9,7 @@ import useLocais from '../hooks/useLocais';
 import Card from '../components/common/Card';
 import { useNavigate } from 'react-router-dom';
 import ModalPopup from '../components/common/ModalPopup';
+import Alerta from '../components/common/Alerta';
 
 export default function LocaisListar() {
     const { locais, loading, error, excluiLocal } = useLocais();
@@ -48,6 +49,17 @@ export default function LocaisListar() {
                     </div>
                 </Container>
             </main>
+            {error && (
+                <Alerta
+                    mensagem={
+                        typeof error === 'string'
+                            ? error
+                            : 'Erro ao salvar ou carregar dados'
+                    }
+                    variacao="danger"
+                    duracao={7000}
+                />
+            )}
 
             <ModalPopup
                 show={mostrarModal}

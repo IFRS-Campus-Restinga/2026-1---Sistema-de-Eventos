@@ -79,7 +79,7 @@ class LocalDetailView(APIView):
                     {"erro": "Não é possível excluir um local com espaços vinculados."},
                     status=400,
                 )
-            if local.eventos.exists():
+            if local.evento_set.exists():
                 return Response(
                     {"erro": "Não é possível excluir um local com eventos vinculados."},
                     status=400,

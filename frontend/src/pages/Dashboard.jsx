@@ -173,7 +173,7 @@ export default function DashboardEvento({}) {
                                 <Button
                                     variant="secondary"
                                     as={Link}
-                                    to="/ListarEventos"
+                                    to="/listar_eventos"
                                     className="d-flex align-items-center justify-content-center"
                                 >
                                     Mudar de Evento
@@ -190,7 +190,7 @@ export default function DashboardEvento({}) {
                                     variant="success"
                                     style={{ background: '#05C978' }}
                                     as={Link}
-                                    to="/listarInscritos"
+                                    to="/listar_inscritos"
                                     className="d-flex align-items-center border-0 justify-content-center"
                                 >
                                     Inscrições Evento

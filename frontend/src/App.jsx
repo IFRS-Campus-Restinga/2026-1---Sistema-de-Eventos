@@ -98,7 +98,7 @@ function App() {
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}
-                <Route path="/SubmeterTrabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
+                <Route path="/submeter_trabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
