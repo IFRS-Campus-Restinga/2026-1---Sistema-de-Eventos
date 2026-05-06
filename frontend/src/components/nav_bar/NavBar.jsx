@@ -53,12 +53,15 @@ export default function NavBar() {
                                 Home
                             </Nav.Link>
                             <Nav.Link
-                                href="/meusEventos"
+                                href="/meus_eventos"
                                 className="text-white fw-bold"
                             >
                                 Meus Eventos
                             </Nav.Link>
-                            <Nav.Link href="/avaliar-submissao" className="text-white fw-bold">
+                            <Nav.Link
+                                href="/avaliar-submissao"
+                                className="text-white fw-bold"
+                            >
                                 Avaliações
                             </Nav.Link>
                             <Nav.Link

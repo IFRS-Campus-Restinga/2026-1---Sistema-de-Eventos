@@ -33,6 +33,8 @@ import PresencaEvento from './pages/AlunoCredenciamento';
 //import SessaoBoard from './pages/SessaoBoard';
 import EnviarEmails from './pages/EnviarEmails';
 import SessaoBoard from './pages/sessaoteste';
+import ListarInscritosEvento from './pages/ListarInscritosEvento';
+
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
@@ -93,6 +95,7 @@ function App() {
                 {/* Atracoes & Inscritos */}
                 <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
+                <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />

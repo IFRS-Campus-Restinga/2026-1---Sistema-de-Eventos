@@ -18,6 +18,7 @@ export default function ListaInscritos({
     usuarios = [],
     habilitarPresenca = false,
     onRegistrarPresenca,
+    onRetirarPresenca,
     onExcluir,
     onVoltar,
     paginaAnterior,
@@ -26,17 +27,60 @@ export default function ListaInscritos({
     totalPaginas,
     presencasRegistradas: presencasExternas,
 }) {
-    const temAcaoPresenca = habilitarPresenca && typeof onRegistrarPresenca === 'function';
+    const temAcaoRegistrar =
+        habilitarPresenca && typeof onRegistrarPresenca === 'function';
+    const temAcaoRetirar =
+        habilitarPresenca && typeof onRetirarPresenca === 'function';
     const temAcaoExcluir = typeof onExcluir === 'function';
-    const temAcoes = temAcaoPresenca || temAcaoExcluir;
+    const temAcoes = temAcaoRegistrar || temAcaoRetirar || temAcaoExcluir;
     const [presencasLocais, setPresencasLocais] = useState(new Set());
-    
+
     // Usar presenças externas se fornecidas, caso contrário usar as locais
-    const presencasRegistradas = presencasExternas instanceof Set 
-        ? presencasExternas 
-        : (typeof presencasExternas === 'object' && presencasExternas !== null 
-            ? new Set(Object.keys(presencasExternas).filter(k => presencasExternas[k]))
-            : presencasLocais);
+    const presencasRegistradas =
+        presencasExternas instanceof Set
+            ? presencasExternas
+            : typeof presencasExternas === 'object' &&
+                presencasExternas !== null
+              ? new Set(
+                    Object.keys(presencasExternas).filter(
+                        (k) => presencasExternas[k],
+                    ),
+                )
+              : presencasLocais;
+
+    const registrarPresencaUsuario = async (usuario) => {
+        if (!temAcaoRegistrar || presencasRegistradas.has(usuario.id)) {
+            return;
+        }
+
+        await onRegistrarPresenca(usuario);
+
+        setPresencasLocais((prev) => {
+            const novoSet = new Set(prev);
+            novoSet.add(usuario.id);
+            return novoSet;
+        });
+    };
+    const retirarPresencaUsuario = async (usuario) => {
+        if (!temAcaoRetirar || !presencasRegistradas.has(usuario.id)) {
+            return;
+        }
+
+        await onRetirarPresenca(usuario);
+
+        setPresencasLocais((prev) => {
+            const novoSet = new Set(prev);
+            novoSet.delete(usuario.id);
+            return novoSet;
+        });
+    };
+
+    // n queria fzr toggle
+    const togglePresenca = (usuario) => {
+        return presencasRegistradas.has(usuario.id)
+            ? retirarPresencaUsuario(usuario)
+            : registrarPresencaUsuario(usuario);
+    };
 
     return (
         <Container>
@@ -188,31 +232,31 @@ export default function ListaInscritos({
                                     {temAcoes && (
                                         <td className="px-4 py-3 text-center">
                                             <div className="d-flex justify-content-center gap-2">
-                                                {temAcaoPresenca && (
+                                                {(temAcaoRegistrar ||
+                                                    temAcaoRetirar) && (
                                                     <Button
                                                         variant="secondary"
                                                         className="p-1 border-0 d-inline-flex align-items-center justify-content-center"
-                                                        disabled={presencasRegistradas.has(usuario.id)}
+                                                        onClick={() =>
+                                                            togglePresenca(
+                                                                usuario,
+                                                            )
+                                                        }
                                                         style={{
                                                             borderRadius: '4px',
                                                             width: '34px',
                                                             height: '34px',
                                                             backgroundColor:
                                                                 presencasRegistradas.has(
-                                                                    usuario.id
+                                                                    usuario.id,
                                                                 )
                                                                     ? '#38A149'
                                                                     : '#6c757d',
-                                                            cursor: presencasRegistradas.has(usuario.id) 
-                                                                ? 'not-allowed' 
-                                                                : 'pointer',
-                                                            opacity: presencasRegistradas.has(usuario.id) 
-                                                                ? 1 
-                                                                : 1,
                                                         }}
-                                                        
                                                     >
-                                                        <MdCheckCircle size={18} />
+                                                        <MdCheckCircle
+                                                            size={18}
+                                                        />
                                                     </Button>
                                                 )}
 
@@ -227,8 +271,10 @@ export default function ListaInscritos({
                                                             borderRadius: '4px',
                                                             width: '34px',
                                                             height: '34px',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
+                                                            display:
+                                                                'inline-flex',
+                                                            alignItems:
+                                                                'center',
                                                             justifyContent:
                                                                 'center',
                                                         }}
