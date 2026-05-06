@@ -6,8 +6,7 @@ from rest_framework.views import APIView
 
 from ..models.espaco import Espaco
 from ..serializers import EspacoSerializer
-
-from .perms_generic_view import IsAdmin, PodeCriarEspaco, PodeAtribuirEspaco
+from .perms_generic_view import IsAdmin
 
 
 class EspacoListView(APIView):
@@ -82,4 +81,4 @@ class EspacoDetailView(APIView):
         espaco.ativo = False
         espaco.save()
 
-        return Response({"message": "Removido com sucesso"}, status=200)
+        return Response({"message": "Removido com sucesso"}, status=204)

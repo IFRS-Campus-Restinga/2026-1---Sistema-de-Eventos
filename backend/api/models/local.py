@@ -1,10 +1,10 @@
+from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .base import Base
-from django.contrib import admin
 
 
 class Local(Base):
@@ -12,6 +12,7 @@ class Local(Base):
     endereco = models.CharField(
         max_length=150, validators=[MinLengthValidator(10)], verbose_name=_("Endereço")
     )
+    ativo = models.BooleanField(default=True)
     # fazer relação com espaço(no model espaço)
 
     class Meta:
@@ -49,4 +50,4 @@ class Local(Base):
 
 
 class LocalAdmin(admin.ModelAdmin):
-    list_display = ("id", "nome")
+    list_display = ("id", "nome", "ativo")

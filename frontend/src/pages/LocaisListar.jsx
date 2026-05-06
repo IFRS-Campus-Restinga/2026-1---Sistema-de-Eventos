@@ -8,10 +8,13 @@ import Footer from '../components/footer/Footer';
 import useLocais from '../hooks/useLocais';
 import Card from '../components/common/Card';
 import { useNavigate } from 'react-router-dom';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function LocaisListar() {
-    const { locais, loading, error } = useLocais();
+    const { locais, loading, error, excluiLocal } = useLocais();
     const navigate = useNavigate();
+    const [mostrarModal, setMostrarModal] = useState(false);
+    const [idSelecionado, setIdSelecionado] = useState(null);
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -25,9 +28,12 @@ export default function LocaisListar() {
                         itens={locais}
                         loading={loading}
                         error={error}
-                        rotaAdicionar="/adicionarLocal"
-                        rotaEditarBase="/editarLocal"
-                        onDeletar={(id) => console.log('Deletar', id)}
+                        rotaAdicionar="/adicionar_local"
+                        rotaEditarBase="/editar_local"
+                        onDeletar={(id) => {
+                            setMostrarModal(true);
+                            setIdSelecionado(id);
+                        }}
                     />
                     {/* Botão Voltar Inferior */}{' '}
                     {/*implementar rota para voltar*/}
@@ -42,6 +48,18 @@ export default function LocaisListar() {
                     </div>
                 </Container>
             </main>
+
+            <ModalPopup
+                show={mostrarModal}
+                titulo="Aviso!"
+                tituloSecundario="Excluir Local"
+                onAcao={() => {
+                    excluiLocal(idSelecionado);
+                    setMostrarModal(false);
+                }}
+                onFechar={() => setMostrarModal(false)}
+                textoAcao="Excluir"
+            />
 
             <Footer
                 telefone="(51) 3333-1234"

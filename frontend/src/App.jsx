@@ -86,7 +86,7 @@ function App() {
                 <Route path="/adicionar_local" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
                 <Route path="/editar_local/:id" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
                 <Route path="/listar_locais_espacos" element={protegido(<LocaisEspacosListar />, ADMIN_GROUPS)} />
-                <Route path="/listarLocais" element={protegido(<LocaisListar />, ADMIN_GROUPS)} />
+                <Route path="/listar_locais" element={protegido(<LocaisListar />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_espaco" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
                 <Route path="/editar_espaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
 

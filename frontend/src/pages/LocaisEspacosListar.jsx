@@ -89,7 +89,7 @@ export default function LocaisEspacosListar() {
                         </Dropdown>
 
                         <Button
-                            href="adicionarLocal"
+                            href="adicionar_local"
                             variant="primary"
                             className="d-flex align-items-center gap-1 shadow-sm"
                         >
@@ -127,52 +127,6 @@ export default function LocaisEspacosListar() {
                                         {localSelecionado.nome}
                                     </h2>
                                 </Row>
-                                {/*
-                                <ListGroup variant="flush" className="mb-3">
-                                    {espacos.map((espaco, index) => (
-                                        <ListGroup.Item
-                                            key={espaco.id}
-                                            className="d-flex justify-content-between align-items-center mb-2 border rounded shadow-sm py-3"
-                                            style={{ backgroundColor: '#fff' }}
-                                        >
-                                            <div className="fs-5 text-muted">
-                                                <span className="me-2">
-                                                    {index + 1}.
-                                                </span>
-                                                {espaco.nome}
-                                            </div>
-                                            <div className="d-flex gap-3">
-                                                <MdEdit
-                                                    size={22}
-                                                    className="text-secondary cursor-pointer"
-                                                    style={{
-                                                        cursor: 'pointer',
-                                                    }}
-                                                    onClick={() =>
-                                                        console.log(
-                                                            'Editar',
-                                                            espaco.id,
-                                                        )
-                                                    }
-                                                />
-                                                <MdDelete
-                                                    size={22}
-                                                    className="text-danger cursor-pointer"
-                                                    style={{
-                                                        cursor: 'pointer',
-                                                    }}
-                                                    onClick={() =>
-                                                        console.log(
-                                                            'Deletar',
-                                                            espaco.id,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                                */}
 
                                 <Table
                                     striped
@@ -238,7 +192,7 @@ export default function LocaisEspacosListar() {
                                                             }}
                                                             onClick={() => {
                                                                 navigate(
-                                                                    `/editarEspaco/${espaco.id}`,
+                                                                    `/editar_espaco/${espaco.id}`,
                                                                     {
                                                                         state: {
                                                                             localId:
@@ -288,7 +242,7 @@ export default function LocaisEspacosListar() {
                                             'Adicionar espaço ao local',
                                             localSelecionado.id,
                                         );
-                                        navigate('/adicionarEspaco', {
+                                        navigate('/adicionar_espaco', {
                                             state: {
                                                 localId: idLocalSelecionado,
                                             },
