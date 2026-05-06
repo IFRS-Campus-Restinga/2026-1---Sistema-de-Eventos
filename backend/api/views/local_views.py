@@ -1,23 +1,23 @@
+from django.db.models.deletion import RestrictedError
 from rest_framework import status
-
-# from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .perms_generic_view import IsAdmin
-from rest_framework.permissions import AllowAny #provisório, apenas para eu conseguir mapear no form de evento
 
 from ..models.local import Local
 from ..serializers import LocalSerializer
+from .perms_generic_view import IsAdmin
 
 
 class LocalListView(APIView):
     queryset = Local.objects.all()
     serializer_class = LocalSerializer
-    #permission_classes = [IsAdmin]  # modificado
-    permission_classes = [AllowAny] #provisório
+    permission_classes = [IsAdmin]  # modificado
+    # permission_classes = [AllowAny]  # provisório
 
     def get(self, request, *args, **kwargs):
-        locals = Local.objects.all()
+        locals = Local.objects.filter(
+            ativo=True
+        )  # por causa da deleção lógica, para listar apenas os locais ativos
         serializer = LocalSerializer(locals, many=True)
         return Response(serializer.data)
 
@@ -66,11 +66,31 @@ class LocalDetailView(APIView):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
+        # deleção lógica
         local = self.get_object(pk)
         if not local:
             return Response({"erro": "Local não encontrado"}, status=404)
 
         self.check_object_permissions(request, local)
 
-        local.delete()
-        return Response({"msg": "Deletado com sucesso"}, status=204)
+        try:
+            if local.espacos.exists():
+                return Response(
+                    {"erro": "Não é possível excluir um local com espaços vinculados."},
+                    status=400,
+                )
+            if local.eventos.exists():
+                return Response(
+                    {"erro": "Não é possível excluir um local com eventos vinculados."},
+                    status=400,
+                )
+            local.ativo = False
+            local.save()
+            return Response({"message": "Removido com sucesso"}, status=200)
+        except RestrictedError:
+            return Response(
+                {
+                    "erro": "Não é possível excluir este local pois existem registros vinculados."
+                },
+                status=400,
+            )

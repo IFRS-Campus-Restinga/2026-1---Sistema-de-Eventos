@@ -104,7 +104,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
 
         if (dados.sucesso) {
             const timeout = setTimeout(() => {
-                navigate('/listarLocaisEspacos');
+                navigate('/listar_locais_espacos');
             }, 3000);
         } else {
             if (dados.erro) {
@@ -160,7 +160,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
                                         variant="secondary"
                                         className="fw-bold"
                                         onClick={() =>
-                                            navigate('/listarLocaisEspacos')
+                                            navigate('/listar_locais_espacos')
                                         }
                                     >
                                         <MdArrowBack

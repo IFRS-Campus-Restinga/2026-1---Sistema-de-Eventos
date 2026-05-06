@@ -5,6 +5,7 @@ import {
     pegarLocal,
     criarLocal,
     atualizarLocal,
+    excluirLocal,
 } from '../services/localService';
 
 export default function useLocais() {
@@ -109,6 +110,33 @@ export default function useLocais() {
         }
     };
 
+    const excluiLocal = async (id) => {
+        setLoading(true);
+        setError(null);
+        setMessage('');
+
+        try {
+            const sucesso = await excluirLocal(id);
+            if (sucesso) {
+                setLocais((prev) => prev.filter((local) => local.id !== id));
+            }
+            setMessage('Local excluído com sucesso!');
+            return true;
+        } catch (erro) {
+            console.error('Erro ao excluir local:', erro);
+
+            const mensagem =
+                erro.response?.data?.erro ||
+                erro.response?.data?.detail ||
+                'Erro ao excluir local';
+
+            setError(mensagem);
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSave = async (dados) => {
         setError(null);
         setMessage('');
@@ -153,6 +181,7 @@ export default function useLocais() {
         buscarLocal,
         adicionaLocal,
         editarLocal,
+        excluiLocal,
 
         handleSave,
     };

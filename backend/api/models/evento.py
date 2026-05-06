@@ -1,17 +1,18 @@
+from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxLengthValidator,
     MaxValueValidator,
     MinValueValidator,
 )
 from django.db import models
-from django.contrib import admin
-from ..enumerations.status_evento import StatusEvento
+
 from ..enumerations.setor import Setor
-from .base import Base
-from .modalidade import Modalidade
-from .local import Local
+from ..enumerations.status_evento import StatusEvento
 from .area_conhecimento import AreaConhecimento
-from django.core.exceptions import ValidationError
+from .base import Base
+from .local import Local
+from .modalidade import Modalidade
 
 
 class Evento(Base):
@@ -49,7 +50,7 @@ class Evento(Base):
         max_length=100,
         validators=[MaxLengthValidator(100)],
     )
-    local = models.ForeignKey(Local, on_delete=models.CASCADE, null=False, blank=False)
+    local = models.ForeignKey(Local, on_delete=models.RESTRICT, null=False, blank=False)
     modalidades = models.ManyToManyField(
         Modalidade, related_name="eventos", null=False, blank=False
     )
@@ -57,6 +58,7 @@ class Evento(Base):
         AreaConhecimento,
         related_name="eventos",
         verbose_name="áreas de conhecimento",
+        null=False,
         blank=False,
     )
 

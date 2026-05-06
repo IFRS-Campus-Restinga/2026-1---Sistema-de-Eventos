@@ -50,8 +50,8 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                         titulo="Modalidades"
                         itens={modalidades}
                         textoAdicionar="Adicionar Modalidade"
-                        rotaAdicionar="/adicionarModalidade"
-                        rotaEditarBase="/editarModalidade"
+                        rotaAdicionar="/adicionar_modalidade"
+                        rotaEditarBase="/editar_modalidade"
                         onDeletar={(id) => {
                             setMostrarModal(true);
                             setIdSelecionado(id);
