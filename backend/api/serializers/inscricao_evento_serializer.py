@@ -8,6 +8,11 @@ from ..models.perfil import Perfil
 
 
 class InscricaoEventoSerializer(serializers.ModelSerializer):
+    # para fins de criar uma lista mais bonitinha
+    perfil_usuario_nome = serializers.CharField(
+        source="perfil.usuario.nome", read_only=True
+    )
+
     perfil_usuario_id = serializers.IntegerField(
         source="perfil.usuario.id", read_only=True
     )
@@ -102,6 +107,7 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "data_hora",
+            "perfil_usuario_nome",
             "perfil_usuario_id",
             "perfil_id",
             "evento_id",

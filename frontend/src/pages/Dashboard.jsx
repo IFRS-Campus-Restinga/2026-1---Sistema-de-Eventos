@@ -190,7 +190,7 @@ export default function DashboardEvento({}) {
                                     variant="success"
                                     style={{ background: '#05C978' }}
                                     as={Link}
-                                    to="/listar_inscritos"
+                                    to="/listar_inscritos_evento"
                                     className="d-flex align-items-center border-0 justify-content-center"
                                 >
                                     Inscrições Evento
