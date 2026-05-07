@@ -6,18 +6,42 @@ import Form from 'react-bootstrap/Form';
 
 import { MdArrowBack, MdSave, MdPublish } from 'react-icons/md';
 
-import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import Alerta from '../components/common/Alerta';
-
+import { buscarEventoPorId } from '../services/eventoService';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 
 export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const eventoId = String(
+        location.state?.eventoId || searchParams.get('eventoId') || '',
+    );
+    const [evento, setEvento] = useState(null);
+
+    useEffect(() => {
+        async function carregarEvento() {
+            if (!eventoId) return;
+
+            try {
+                const data = await buscarEventoPorId(eventoId);
+
+                setEvento(data);
+
+                console.log('Evento:', data);
+            } catch (erro) {
+                console.error('Erro ao buscar evento:', erro);
+            }
+        }
+
+        carregarEvento();
+    }, [eventoId]);
 
     // MOCK DE DADOS
     const [atracoesNaoAlocadas, setAtracoesNaoAlocadas] = useState([
@@ -107,74 +131,26 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 },
             ],
         },
+        {
+            id: 3,
+            nome: 'Ginásio',
+            capacidade: 200,
+            sessoes: [
+                {
+                    id: 30,
+                    data_horario_inicio: '08:00',
+                    data_horario_fim: '10:30',
+                    ordem_apresentacoes: [],
+                },
+            ],
+        },
     ]);
 
     // MOCK DE ALERTAS
     const [message] = useState(null);
     const [error] = useState(null);
 
-    // Para mover cards entre as colunas
-    /*
-    function handleDragEnd(event) {
-        const { active, over } = event;
-
-        if (!over) return;
-
-        const apresentacaoId = active.id;
-        const novoEspacoId = parseInt(
-            over.id.toString().replace('espaco-', ''),
-        );
-
-        let apresentacaoMovida;
-
-        const novosEspacos = espacos.map((espaco) => {
-            return {
-                ...espaco,
-                sessoes: espaco.sessoes.map((sessao) => {
-                    const encontrada = sessao.ordem_apresentacoes.find(
-                        (a) => a.id === apresentacaoId,
-                    );
-
-                    if (encontrada) {
-                        apresentacaoMovida = encontrada;
-
-                        return {
-                            ...sessao,
-                            ordem_apresentacoes:
-                                sessao.ordem_apresentacoes.filter(
-                                    (a) => a.id !== apresentacaoId,
-                                ),
-                        };
-                    }
-
-                    return sessao;
-                }),
-            };
-        });
-
-        const resultado = novosEspacos.map((espaco) => {
-            if (espaco.id === novoEspacoId) {
-                return {
-                    ...espaco,
-                    sessoes: [
-                        {
-                            ...espaco.sessoes[0], // simplificação: 1 sessão por espaço
-                            ordem_apresentacoes: [
-                                ...espaco.sessoes[0].ordem_apresentacoes,
-                                apresentacaoMovida,
-                            ],
-                        },
-                    ],
-                };
-            }
-            return espaco;
-        });
-
-        setEspacos(resultado);
-    }
-    */
-
-    // tornar arratavel para todos os casos
+    // para mover os cards entre as colunas
     function handleDragEnd(event) {
         const { active, over } = event;
 
@@ -187,7 +163,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
         const novoEspacoId = parseInt(overId.replace('espaco-', ''));
 
-        // 👉 CASO 1: veio da lista (não alocada)
+        // CASO 1: veio da lista (não alocada)
         if (active.id.toString().startsWith('livre-')) {
             const atracaoId = parseInt(active.id.replace('livre-', ''));
 
@@ -196,7 +172,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             if (!atracao) return;
 
             const novaApresentacao = {
-                id: Date.now(), // mock id
+                id: Date.now(),
                 horario_inicio: '00:00',
                 horario_fim: '00:00',
                 ordem: 999,
@@ -231,7 +207,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             return;
         }
 
-        // 👉 CASO 2: mover entre espaços (seu código atual)
+        // CASO 2: mover entre espaços
         const apresentacaoId = active.id;
 
         let apresentacaoMovida;
@@ -262,15 +238,14 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             if (espaco.id === novoEspacoId) {
                 return {
                     ...espaco,
-                    sessoes: [
-                        {
-                            ...espaco.sessoes[0],
-                            ordem_apresentacoes: [
-                                ...espaco.sessoes[0].ordem_apresentacoes,
-                                apresentacaoMovida,
-                            ],
-                        },
-                    ],
+                    sessoes: espaco.sessoes.map((sessao) => ({
+                        // ← Mapeia TODAS as sessões
+                        ...sessao,
+                        ordem_apresentacoes: [
+                            ...sessao.ordem_apresentacoes,
+                            ...(apresentacaoMovida ? [apresentacaoMovida] : []),
+                        ],
+                    })),
                 };
             }
             return espaco;
@@ -281,21 +256,25 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
     // Card atração arrastável
     function AtracaoArrastavel({ ordem_apresentacoes }) {
-        const { attributes, listeners, setNodeRef, transform } = useDraggable({
-            id: ordem_apresentacoes.id,
-        });
+        const { attributes, listeners, setNodeRef, transform, isDragging } =
+            useDraggable({
+                id: ordem_apresentacoes.id,
+            });
 
         const style = {
             transform: transform
                 ? `translate(${transform.x}px, ${transform.y}px)`
                 : undefined,
             cursor: 'grab',
+            opacity: isDragging ? 0.5 : 1,
+            zIndex: isDragging ? 1000 : 0,
         };
 
         return (
             <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-                <Card
-                    className="mb-2"
+                <div
+                    className="mb-2 p-2 bg-white"
+                    ref={setNodeRef}
                     style={{
                         borderLeft: '6px solid #198754',
                         borderRadius: '12px',
@@ -310,10 +289,12 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                         {ordem_apresentacoes.horario_fim}
                     </small>
 
-                    <h6>{ordem_apresentacoes.atracao.titulo}</h6>
+                    <h6 className="mt-1 mb-1">
+                        {ordem_apresentacoes.atracao.titulo}
+                    </h6>
 
                     <small>{ordem_apresentacoes.atracao.autor}</small>
-                </Card>
+                </div>
             </div>
         );
     }
@@ -321,7 +302,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     // Card arrastável para atrações não alocadas
     function AtracaoLivreDrag({ atracao }) {
         const { attributes, listeners, setNodeRef, transform } = useDraggable({
-            id: atracao.id,
+            id: `livre-${atracao.id}`,
         });
 
         const style = {
@@ -333,21 +314,30 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
         return (
             <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-                <Card corBorda="#198754">
+                <div
+                    className="mb-2 p-2 bg-white"
+                    style={{
+                        borderLeft: '6px solid #198754',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    }}
+                >
                     <small className="text-muted">#{atracao.id}</small>
 
-                    <div style={{ fontWeight: '500' }}>{atracao.titulo}</div>
+                    <div style={{ fontWeight: '500', marginTop: '0.25rem' }}>
+                        {atracao.titulo}
+                    </div>
 
                     <small>{atracao.autor}</small>
-                </Card>
+                </div>
             </div>
         );
     }
 
     // Colunas do quadro(espaço)
-    function EspacoDrop({ espaco, children }) {
+    function EspacoDrop({ espacoId, children }) {
         const { setNodeRef } = useDroppable({
-            id: espaco.id,
+            id: `espaco-${espacoId}`,
         });
 
         return (
@@ -360,12 +350,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     return (
         <>
             <NavBar />
-
+            {console.log('Evento ID:', eventoId)}
             <main className="flex-fill">
                 <Container className="mx-auto">
                     {/* Menu de datas */}
                     {/* PUXARA AS DATAS DE EXECUÇÃO DO EVENTO- FICARÁ AQUI! */}
                     <Row className="mx-auto my-4 align-items-center">
+                        <h1>{evento.nome}</h1>
                         <Col md={4}>
                             <Form.Select
                                 value={dataSelecionada}
@@ -378,6 +369,19 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                 </option>
                                 <option value="2025-11-26">Dia 26/11</option>
                             </Form.Select>
+                        </Col>
+                        <Col md={2}>
+                            {/* BOTÃO ADICIONAR ESPAÇO*/}
+                            <Button
+                                className="w-100 mt-2 fw-bold"
+                                style={{
+                                    backgroundColor: '#0d6efd',
+                                    border: 'none',
+                                    fontSize: '14px',
+                                }}
+                            >
+                                + Adicionar Espaço
+                            </Button>
                         </Col>
 
                         {/* Botões de ação */}
@@ -397,118 +401,103 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                         </Col>
                     </Row>
 
-                    {/* teste*/}
-                    <Row className="g-3">
-                        {/* COLUNA ESQUERDA */}
-                        <Col md={3}>
-                            <div className="p-2 border rounded bg-white h-100">
-                                {/* CONTADOR DE ATRAÇÕES NÃO ALOCADAS */}
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <strong style={{ fontSize: '12px' }}>
-                                        AGUARDANDO ALOCAÇÃO (12)
-                                    </strong>
-                                </div>
-
-                                {/* BUSCA */}
-                                <Form.Control
-                                    size="sm"
-                                    type="text"
-                                    placeholder="Buscar por títulos..."
-                                    className="mb-2"
-                                />
-
-                                {/* LISTA */}
-                                <div
-                                    style={{
-                                        maxHeight: '60vh',
-                                        overflowY: 'auto',
-                                    }}
-                                >
-                                    {atracoesNaoAlocadas.map((atracao) => (
-                                        <AtracaoLivreDrag
-                                            key={atracao.id}
-                                            atracao={atracao}
-                                        />
-                                    ))}
-                                </div>
-
-                                {/* BOTÃO */}
-                                <Button
-                                    className="w-100 mt-2 fw-bold"
-                                    style={{
-                                        backgroundColor: '#0d6efd',
-                                        border: 'none',
-                                    }}
-                                >
-                                    + Adicionar Espaço
-                                </Button>
-                            </div>
-                        </Col>
-
-                        {/* COLUNAS DE ESPAÇO */}
-                        <Col md={9}>
-                            <Row className="g-3">
-                                {espacos.map((espaco) => (
-                                    <Col key={espaco.id} md={4}>
-                                        <EspacoDrop espaco={espaco}>
-                                            {/* conteúdo igual */}
-                                        </EspacoDrop>
-                                    </Col>
-                                ))}
-                            </Row>
-                        </Col>
-                    </Row>
-
                     {/* Quadro de espaços */}
                     <DndContext onDragEnd={handleDragEnd}>
                         <Row className="g-3">
-                            {espacos.map((espaco) => (
-                                <Col key={espaco.id} md={4}>
-                                    <EspacoDrop espaco={espaco.id} md={4}>
-                                        {/* HEADER DA SALA */}
-                                        <div
-                                            className="p-2 rounded text-white mb-2"
-                                            style={{
-                                                backgroundColor: '#198754',
-                                            }}
-                                        >
-                                            <strong>{espaco.nome}</strong>
-                                            <br />
-                                            <small>
-                                                Capacidade: {espaco.capacidade}
-                                            </small>
-                                        </div>
+                            {/* COLUNAS DE ESPAÇO */}
+                            <Col md={9}>
+                                <Row className="g-3">
+                                    {espacos.map((espaco) => (
+                                        <Col key={espaco.id} md={4}>
+                                            <EspacoDrop espacoId={espaco.id}>
+                                                {/* HEADER DA SALA */}
+                                                <div
+                                                    className="p-2 rounded text-white mb-2"
+                                                    style={{
+                                                        backgroundColor:
+                                                            '#198754',
+                                                    }}
+                                                >
+                                                    <strong>
+                                                        {espaco.nome}
+                                                    </strong>
+                                                    <br />
+                                                    <small>
+                                                        Capacidade:{' '}
+                                                        {espaco.capacidade}
+                                                    </small>
+                                                </div>
 
-                                        {/* Cards */}
-                                        {espaco.sessoes.map((sessao) =>
-                                            sessao.ordem_apresentacoes.map(
-                                                (ordem_apresentacao) => (
-                                                    <AtracaoArrastavel
-                                                        key={
-                                                            ordem_apresentacao.id
-                                                        }
-                                                        ordem_apresentacoes={
-                                                            ordem_apresentacao
-                                                        }
-                                                    />
-                                                ),
-                                            ),
-                                        )}
+                                                {/* Cards */}
+                                                {espaco.sessoes.map((sessao) =>
+                                                    sessao.ordem_apresentacoes.map(
+                                                        (
+                                                            ordem_apresentacao,
+                                                        ) => (
+                                                            <AtracaoArrastavel
+                                                                key={
+                                                                    ordem_apresentacao.id
+                                                                }
+                                                                ordem_apresentacoes={
+                                                                    ordem_apresentacao
+                                                                }
+                                                            />
+                                                        ),
+                                                    ),
+                                                )}
 
-                                        {/* Drop area */}
-                                        <div
-                                            className="mt-2 text-center"
-                                            style={{
-                                                border: '2px dashed #ccc',
-                                                padding: '10px',
-                                                borderRadius: '5px',
-                                            }}
-                                        >
-                                            Arraste aqui
-                                        </div>
-                                    </EspacoDrop>
-                                </Col>
-                            ))}
+                                                {/* Drop area */}
+                                                <div
+                                                    className="mt-2 text-center"
+                                                    style={{
+                                                        border: '2px dashed #ccc',
+                                                        padding: '10px',
+                                                        borderRadius: '5px',
+                                                    }}
+                                                >
+                                                    Arraste aqui
+                                                </div>
+                                            </EspacoDrop>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Row className="g-3 mt-4">
+                            <Col>
+                                <div className="p-2 border rounded bg-white h-100">
+                                    {/* CONTADOR DE ATRAÇÕES NÃO ALOCADAS */}
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <strong style={{ fontSize: '12px' }}>
+                                            AGUARDANDO ALOCAÇÃO (
+                                            {atracoesNaoAlocadas.length})
+                                        </strong>
+                                    </div>
+
+                                    {/* BUSCA */}
+                                    <Form.Control
+                                        size="sm"
+                                        type="text"
+                                        placeholder="Buscar por títulos..."
+                                        className="mb-2"
+                                    />
+
+                                    {/* LISTA */}
+                                    <div
+                                        style={{
+                                            maxHeight: '60vh',
+                                            overflowY: 'auto',
+                                        }}
+                                    >
+                                        {atracoesNaoAlocadas.map((atracao) => (
+                                            <AtracaoLivreDrag
+                                                key={atracao.id}
+                                                atracao={atracao}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </Col>
                         </Row>
                     </DndContext>
 

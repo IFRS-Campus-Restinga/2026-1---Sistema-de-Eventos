@@ -17,24 +17,27 @@ import {
     MdAccessTime,
     MdBusiness,
     MdInfoOutline,
-    MdLocationOn
+    MdLocationOn,
 } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { listarEventos, deletarEvento,atualizarEvento } from '../services/eventoService';
+import {
+    listarEventos,
+    deletarEvento,
+    atualizarEvento,
+} from '../services/eventoService';
 import { API_URL } from '../config';
 import eArray from '../utils/eArray';
-import Alerta from '../components/common/Alerta'
-import ModalPopup from '../components/common/ModalPopup'
-
+import Alerta from '../components/common/Alerta';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
-    const [alerta,setAlerta] = useState('')
+    const [alerta, setAlerta] = useState('');
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
@@ -58,57 +61,56 @@ export default function EventosListar() {
     const confirmarExclusao = (evento) => {
         setEventoParaExcluir(evento);
         setShowModal(true);
-        
     };
 
     const excluirEvento = async () => {
         if (!eventoParaExcluir?.id) return;
 
         try {
-            const data = await deletarEvento(eventoParaExcluir.id)
+            const data = await deletarEvento(eventoParaExcluir.id);
             setShowModal(false);
-            setEventos((prev) => prev.filter((e) => e.id !== eventoParaExcluir.id));
+            setEventos((prev) =>
+                prev.filter((e) => e.id !== eventoParaExcluir.id),
+            );
             setAlerta('success');
-            setMensagem(data.msg || "Evento excluído!");
+            setMensagem(data.msg || 'Evento excluído!');
 
-        // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
+            // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
             setTimeout(() => {
                 setEventoParaExcluir(null);
             }, 300);
-            
-        
         } catch (error) {
-            console.error("Erro na exclusão:", error);
-            setAlerta('danger')
-            const erroMsg = error.response?.data?.erro || 'Erro ao processar a exclusão';
+            console.error('Erro na exclusão:', error);
+            setAlerta('danger');
+            const erroMsg =
+                error.response?.data?.erro || 'Erro ao processar a exclusão';
             setMensagem(erroMsg);
         }
     };
 
     const editarEvento = async (id, dados) => {
-            setMensagem("")
-            try {
-                const eventoAtualizado = await atualizarEvento(id, dados);
-    
-                // atualiza lista
-                setEventos((prev) =>
-                    prev.map((evento) =>
-                        evento.id === id ? eventoAtualizado : evento,
-                    ),
-                );
-    
-                setMensagem('evento atualizado com sucesso!');
-                return true;
-            } catch (erro) {
-                console.error('Erro ao atualizar local:', erro);
-    
-                setError(erro.response?.data || 'Erro ao atualizar local');
-                return false;
-            } finally {
-                setLoading(false);
-            }
-        };
-    
+        setMensagem('');
+        try {
+            const eventoAtualizado = await atualizarEvento(id, dados);
+
+            // atualiza lista
+            setEventos((prev) =>
+                prev.map((evento) =>
+                    evento.id === id ? eventoAtualizado : evento,
+                ),
+            );
+
+            setMensagem('evento atualizado com sucesso!');
+            return true;
+        } catch (erro) {
+            console.error('Erro ao atualizar local:', erro);
+
+            setError(erro.response?.data || 'Erro ao atualizar local');
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -195,7 +197,9 @@ export default function EventosListar() {
                                                             <strong>
                                                                 Local:
                                                             </strong>{' '}
-                                                            {evento.local?.nome || "Carregando..."}
+                                                            {evento.local
+                                                                ?.nome ||
+                                                                'Carregando...'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -231,19 +235,24 @@ export default function EventosListar() {
                                                         variant="danger"
                                                         size="sm"
                                                         onClick={() =>
-                                                            confirmarExclusao(evento)
+                                                            confirmarExclusao(
+                                                                evento,
+                                                            )
                                                         }
                                                     >
-                                                        <MdDelete size={22}/>
+                                                        <MdDelete size={22} />
                                                     </Button>
 
                                                     <Button
-                                                    variant='warning'
-                                                    size='sm'
-                                                    onClick={()=>
-                                                        navigate(`/editarEvento/${evento.id}`)
-                                                    }>
-                                                       <MdEdit size={22}/> 
+                                                        variant="warning"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/editar_evento/${evento.id}`,
+                                                            )
+                                                        }
+                                                    >
+                                                        <MdEdit size={22} />
                                                     </Button>
                                                 </div>
                                             </ListGroup.Item>
@@ -263,7 +272,7 @@ export default function EventosListar() {
                             <div className="mt-4">
                                 <Button
                                     as={Link}
-                                    to="/adicionarEvento"
+                                    to="/adicionar_evento"
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                                     style={{
@@ -277,8 +286,7 @@ export default function EventosListar() {
                         </Container>
                     </Card>
 
-                    
-                    {mensagem &&(
+                    {mensagem && (
                         <div>
                             <Alerta
                                 mensagem={mensagem}
@@ -299,14 +307,13 @@ export default function EventosListar() {
             <ModalPopup
                 show={showModal}
                 titulo={`${eventoParaExcluir?.nome}` || 'Excluir Evento'}
-                tituloSecundario=''
-                texto='Quer realmente excluir o evento?'
-                textoFechar='Voltar'
-                onFechar={()=> setShowModal(false)}
-                textoAcao='excluir'
+                tituloSecundario=""
+                texto="Quer realmente excluir o evento?"
+                textoFechar="Voltar"
+                onFechar={() => setShowModal(false)}
+                textoAcao="excluir"
                 onAcao={excluirEvento}
-                variante='danger'
-
+                variante="danger"
             />
         </div>
     );

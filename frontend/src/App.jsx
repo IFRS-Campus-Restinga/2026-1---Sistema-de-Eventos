@@ -30,9 +30,8 @@ import SemResultado from './pages/SemResultado';
 import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
-//import SessaoBoard from './pages/SessaoBoard';
 import EnviarEmails from './pages/EnviarEmails';
-import SessaoBoard from './pages/sessaoteste';
+import SessaoBoard from './pages/SessaoBoard';
 import ListarInscritosEvento from './pages/ListarInscritosEvento';
 
 function App() {

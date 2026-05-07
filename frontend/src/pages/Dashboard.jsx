@@ -155,6 +155,7 @@ export default function DashboardEvento({}) {
             texto: 'Definir Sessões da Programação do Evento',
             icone: <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />,
             to: '/sessao_atribuir_data',
+            state: { eventoId },
         },
     ];
 
