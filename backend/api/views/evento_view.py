@@ -9,7 +9,7 @@ from ..models.evento import Evento
 from django.contrib.auth.models import Group
 
 # from api.permissions import IsAdmin, PodeGerenciarEvento
-from .perms_generic_view import PodeCoordenarEvento, PodeGerenciarEquipeEvento
+from .perms_generic_view import PodeGerenciarEquipeEvento
 
 
 def _serializar_usuarios(usuarios):
@@ -105,6 +105,7 @@ def _serializar_usuarios(usuarios):
         {
             "id": user.id,
             "username": user.username,
+            "nome": user.nome,
             "email": user.email,
         }
         for user in usuarios
@@ -138,7 +139,6 @@ class EventoCoordenadorView(APIView):
         )
 
     def patch(self, request, pk):
-
         try:
             evento = Evento.objects.get(pk=pk, ativo=True)
             self.check_object_permissions(request, evento)
@@ -184,7 +184,6 @@ class EventoCoordenadorView(APIView):
         )
 
     def delete(self, request, pk):
-
         try:
             evento = Evento.objects.get(pk=pk, ativo=True)
             self.check_object_permissions(request, evento)

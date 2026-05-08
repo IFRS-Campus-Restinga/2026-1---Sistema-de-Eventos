@@ -32,6 +32,7 @@ export default function DefinirCoordenadorEvento({
     } = useCoordenadorEvento();
 
     const [selectedEventoId, setSelectedEventoId] = useState('');
+    const [search, setSearch] = useState('');
 
     // aq é onde tu acha qual o evento q tu ta atribuindo coordenador
     const eventoSelecionado = eventos.find(
@@ -58,11 +59,22 @@ export default function DefinirCoordenadorEvento({
         coordenadores.map((coordenador) => String(coordenador.id)),
     );
 
-    const dadosDisponiveis = usuariosServidor.filter(
-        (user) => !idsCoordenadores.has(String(user.id)),
-    );
+    // const dadosDisponiveis = usuariosServidor.filter(
+    //     (user) => !idsCoordenadores.has(String(user.id)),
+    // );
 
     const dadosSelecionados = coordenadores;
+
+    // é o jeito de fzr o filtro dar certo sem mudar mto a lógica de atribuição
+    const usuariosFiltrados = usuariosServidor.filter((user) =>
+        `${user.nome || ''} ${user.email || ''}`
+            .toLowerCase()
+            .includes(search.toLowerCase()),
+    );
+
+    const dadosDisponiveis = usuariosFiltrados.filter(
+        (user) => !idsCoordenadores.has(String(user.id)),
+    );
 
     return (
         <>
@@ -76,16 +88,29 @@ export default function DefinirCoordenadorEvento({
                             </h1>
                         </Col>
                     </Row>
-
-                    <Row>
-                        <Col md={6} className="mx-auto">
-                            <h4 className="mb-3 text-success fw-bold">
-                                Evento:{' '}
-                                {eventoSelecionado?.nome ||
-                                    (loadingEventos
-                                        ? 'Carregando evento...'
-                                        : 'Evento não encontrado')}
-                            </h4>
+                    <Row className="mt-3">
+                        <h4 className="mb-3 text-success fw-bold">
+                            Evento:{' '}
+                            {eventoSelecionado?.nome ||
+                                (loadingEventos
+                                    ? 'Carregando evento...'
+                                    : 'Evento não encontrado')}
+                        </h4>
+                        <Col>
+                            <span className="fs-5 fw-semibold">
+                                Buscar usuários
+                            </span>
+                            <input
+                                className="form-control"
+                                type="text"
+                                placeholder="Digite para filtrar usuários"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </Col>
+                    </Row>
+                    <Row className="mt-3">
+                        <Col md={0} className="mx-auto">
                             <Vinculo
                                 cabecario1="Usuários disponíveis"
                                 cabecario2="Coordenadores escolhidos"
@@ -93,14 +118,28 @@ export default function DefinirCoordenadorEvento({
                                 corCabecario="#006B3F"
                                 dados1={dadosDisponiveis}
                                 dados2={dadosSelecionados}
-                                onAcao2={(id) =>
-                                    handleDefinirCoordenador(selectedEventoId, id)
-                                }
-                                onAcao1={(id) =>
-                                    handleRemoverCoordenador(selectedEventoId, id)
-                                }
+                                onAcao2={(id) => {
+                                    const usuario = users.find(
+                                        (u) => String(u.id) === String(id),
+                                    );
+                                    handleDefinirCoordenador(
+                                        selectedEventoId,
+                                        id,
+                                        usuario?.nome || 'Usuário',
+                                    );
+                                }}
+                                onAcao1={(id) => {
+                                    const usuario = users.find(
+                                        (u) => String(u.id) === String(id),
+                                    );
+                                    handleRemoverCoordenador(
+                                        selectedEventoId,
+                                        id,
+                                        usuario?.nome || 'Usuário',
+                                    );
+                                }}
                                 selecionado={selectedEventoId}
-                                renderItem={(user) => user.nome || user.username}
+                                renderItem={(user) => user.nome}
                             />
 
                             <div className="d-flex gap-3 mt-3">
@@ -112,8 +151,6 @@ export default function DefinirCoordenadorEvento({
                                     Voltar
                                 </Button>
                             </div>
-
-                            
                         </Col>
                     </Row>
                 </Container>

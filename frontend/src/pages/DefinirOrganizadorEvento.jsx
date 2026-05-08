@@ -19,106 +19,142 @@ export default function DefinirOrganizadorEvento({
     campus = 'Campus Restinga',
 }) {
     const [searchParams] = useSearchParams();
-        const eventoIdDaUrl = searchParams.get('eventoId') || '';
-    
-        const { eventos, loading: loadingEventos } = useEventos();
-        const { users } = useUsers();
-        const {
-            handleDefinirOrganizador,
-            handleRemoverOrganizador,
-            carregarOrganizadores,
-            organizadores,
-            loading,
-            message,
-        } = useOrganizadorEvento();
-    
-        const [selectedEventoId, setSelectedEventoId] = useState('');
-    
-        // aq é onde tu acha qual o evento q tu ta atribuindo coordenador
-        const eventoSelecionado = eventos.find(
-            (evento) => String(evento.id) === String(selectedEventoId),
-        );
-    
-        const navegate = useNavigate();
-    
-        useEffect(() => {
-            if (eventoIdDaUrl) {
-                setSelectedEventoId(eventoIdDaUrl);
-            }
-        }, [eventoIdDaUrl]);
-    
-        useEffect(() => {
-            carregarOrganizadores(selectedEventoId);
-        }, [selectedEventoId]);
-    
-        const usuariosServidor = users.filter(
-            (user) => user.access_profile === 'servidor',
-        );
-    
-        const idsOrganizadores = new Set(
-            organizadores.map((organizador) => String(organizador.id)),
-        );
-    
-        const dadosDisponiveis = usuariosServidor.filter(
-            (user) => !idsOrganizadores.has(String(user.id)),
-        );
-    
-        const dadosSelecionados = organizadores;
-    
-        return (
-            <>
-                <NavBar />
-                <main className="flex-fill mb-5">
-                    <Container fluid className="px-5">
-                        <Row>
-                            <Col className="text-center my-5">
-                                <h1 className="fw-bold text-success">
-                                    Definir Organizador de Evento
-                                </h1>
-                            </Col>
-                        </Row>
-    
-                        <Row>
-                            <Col md={6} className="mx-auto">
-                                <h4 className="mb-3 text-success fw-bold">
-                                    Evento:{' '}
-                                    {eventoSelecionado?.nome ||
-                                        (loadingEventos
-                                            ? 'Carregando evento...'
-                                            : 'Evento não encontrado')}
-                                </h4>
-                                <Vinculo
-                                    cabecario1="Usuários disponíveis"
-                                    cabecario2="Organizadores escolhidos"
-                                    corTexto="#fff"
-                                    corCabecario="#006B3F"
-                                    dados1={dadosDisponiveis}
-                                    dados2={dadosSelecionados}
-                                    onAcao2={(id) =>
-                                        handleDefinirOrganizador(selectedEventoId, id)
-                                    }
-                                    onAcao1={(id) =>
-                                        handleRemoverOrganizador(selectedEventoId, id)
-                                    }
-                                    selecionado={selectedEventoId}
-                                    renderItem={(user) => user.nome || user.username}
-                                />
-    
-                                <div className="d-flex gap-3 mt-3">
-                                    <Button
-                                        variant="secondary"
-                                        className="fw-bold text-white text-decoration-none"
-                                        onClick={() => navegate(-1)}
-                                    >
-                                        Voltar
-                                    </Button>
-                                </div>
-    
-                                
-                            </Col>
-                        </Row>
-                    </Container>
-                </main>
+    const eventoIdDaUrl = searchParams.get('eventoId') || '';
+
+    const { eventos, loading: loadingEventos } = useEventos();
+    const { users } = useUsers();
+    const {
+        handleDefinirOrganizador,
+        handleRemoverOrganizador,
+        carregarOrganizadores,
+        organizadores,
+        loading,
+        message,
+    } = useOrganizadorEvento();
+
+    const [selectedEventoId, setSelectedEventoId] = useState('');
+    const [search, setSearch] = useState('');
+    // aq é onde tu acha qual o evento q tu ta atribuindo coordenador
+    const eventoSelecionado = eventos.find(
+        (evento) => String(evento.id) === String(selectedEventoId),
+    );
+
+    const navegate = useNavigate();
+
+    useEffect(() => {
+        if (eventoIdDaUrl) {
+            setSelectedEventoId(eventoIdDaUrl);
+        }
+    }, [eventoIdDaUrl]);
+
+    useEffect(() => {
+        carregarOrganizadores(selectedEventoId);
+    }, [selectedEventoId]);
+
+    const usuariosServidor = users.filter(
+        (user) => user.access_profile === 'servidor',
+    );
+
+    const idsOrganizadores = new Set(
+        organizadores.map((organizador) => String(organizador.id)),
+    );
+
+    // const dadosDisponiveis = usuariosServidor.filter(
+    //     (user) => !idsOrganizadores.has(String(user.id)),
+    // );
+
+    const dadosSelecionados = organizadores;
+
+    // é o jeito de fzr o filtro dar certo sem mudar mto a lógica de atribuição
+    const usuariosFiltrados = usuariosServidor.filter((user) =>
+        `${user.nome || ''} ${user.email || ''}`
+            .toLowerCase()
+            .includes(search.toLowerCase()),
+    );
+
+    const dadosDisponiveis = usuariosFiltrados.filter(
+        (user) => !idsOrganizadores.has(String(user.id)),
+    );
+
+    return (
+        <>
+            <NavBar />
+            <main className="flex-fill mb-5">
+                <Container fluid className="px-5">
+                    <Row>
+                        <Col className="text-center my-5">
+                            <h1 className="fw-bold text-success">
+                                Definir Organizador de Evento
+                            </h1>
+                        </Col>
+                    </Row>
+                    <Row className="mt-3">
+                        <h4 className="mb-3 text-success fw-bold">
+                            Evento:{' '}
+                            {eventoSelecionado?.nome ||
+                                (loadingEventos
+                                    ? 'Carregando evento...'
+                                    : 'Evento não encontrado')}
+                        </h4>
+                        <Col>
+                            <span className="fs-5 fw-semibold">
+                                Buscar usuários
+                            </span>
+                            <input
+                                className="form-control"
+                                type="text"
+                                placeholder="Digite para filtrar usuários"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </Col>
+                    </Row>
+                    <Row className="mt-3">
+                        <Col md={0} className="mx-auto">
+                            <Vinculo
+                                cabecario1="Usuários disponíveis"
+                                cabecario2="Organizadores escolhidos"
+                                corTexto="#fff"
+                                corCabecario="#006B3F"
+                                dados1={dadosDisponiveis}
+                                dados2={dadosSelecionados}
+                                onAcao2={(id) => {
+                                    const usuario = users.find(
+                                        (u) => String(u.id) === String(id),
+                                    );
+                                    handleDefinirOrganizador(
+                                        selectedEventoId,
+                                        id,
+                                        usuario?.nome || 'Usuário',
+                                    );
+                                }}
+                                onAcao1={(id) => {
+                                    const usuario = users.find(
+                                        (u) => String(u.id) === String(id),
+                                    );
+                                    handleRemoverOrganizador(
+                                        selectedEventoId,
+                                        id,
+                                        usuario?.nome || 'Usuário',
+                                    );
+                                }}
+                                selecionado={selectedEventoId}
+                                renderItem={(user) => user.nome}
+                            />
+
+                            <div className="d-flex gap-3 mt-3">
+                                <Button
+                                    variant="secondary"
+                                    className="fw-bold text-white text-decoration-none"
+                                    onClick={() => navegate(-1)}
+                                >
+                                    Voltar
+                                </Button>
+                            </div>
+                        </Col>
+                    </Row>
+                </Container>
+            </main>
 
             {message && (
                 <Alerta
