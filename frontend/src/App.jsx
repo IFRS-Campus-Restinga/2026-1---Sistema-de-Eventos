@@ -33,6 +33,7 @@ import PresencaEvento from './pages/AlunoCredenciamento';
 import EnviarEmails from './pages/EnviarEmails';
 import SessaoBoard from './pages/SessaoBoard';
 import ListarInscritosEvento from './pages/ListarInscritosEvento';
+import AvaliacoesAtracoes from './pages/AvaliacoesAtracoes';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -102,6 +103,7 @@ function App() {
                 {/* Submissões e Avaliações */}
                 <Route path="/submeter_trabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
+                <Route path="/avaliar_atracao" element={protegido(<AvaliacoesAtracoes />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
