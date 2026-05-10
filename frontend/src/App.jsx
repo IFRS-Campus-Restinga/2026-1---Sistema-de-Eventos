@@ -33,7 +33,9 @@ import PresencaEvento from './pages/AlunoCredenciamento';
 import EnviarEmails from './pages/EnviarEmails';
 import SessaoBoard from './pages/SessaoBoard';
 import ListarInscritosEvento from './pages/ListarInscritosEvento';
-import AvaliacoesAtracoes from './pages/AvaliacoesAtracoes';
+import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
+import AvaliarAtracao from './pages/AvaliarAtracao';
+import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -101,9 +103,11 @@ function App() {
                 <Route path="/credenciamento/:eventoId" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
 
                 {/* Submissões e Avaliações */}
+                <Route path="/gerenciar_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/submeter_trabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
-                <Route path="/avaliar_atracao" element={protegido(<AvaliacoesAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/minhas_avaliacoes" element={protegido(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
+                <Route path="/avaliar_atracao" element={protegido(<AvaliarAtracao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />

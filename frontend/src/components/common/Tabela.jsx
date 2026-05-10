@@ -3,15 +3,15 @@ import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
 
 export default function Tabela({
-    cabecarios,
-    cabecarioCor,
-    dados,
-    className,
-    style,
-    pageSize,
+    cabecarios = [],
+    cabecarioCor = '',
+    dados = [],
+    className = '',
+    style = {},
     tamanhoPagina,
+    titulo = '',
 }) {
-    const tamanhoPaginaFinal = tamanhoPagina ?? pageSize ?? 5;
+    const tamanhoPaginaFinal = tamanhoPagina ?? 5;
     const dadosSeguros = Array.isArray(dados) ? dados : [];
     const totalPaginas = Math.max(
         1,
@@ -31,6 +31,11 @@ export default function Tabela({
         <div>
             <Table hover className={className} style={style}>
                 <thead>
+                    {titulo && (
+                        <tr>
+                            <th colSpan={cabecarios.length}>{titulo}</th>
+                        </tr>
+                    )}
                     <tr>
                         {cabecarios.map((c, index) => (
                             <th
