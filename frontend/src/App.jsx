@@ -13,7 +13,7 @@ import EspacoForm from './pages/EspacoForm';
 import Dashboard from './pages/Dashboard';
 import CadastroComplementar from './pages/CadastroComplementar';
 import AdicionarEvento from './pages/AdicionarEvento';
-import ListarEnvento from './pages/ListarEvento';
+import ListarEvento from './pages/ListarEvento';
 import DetalheEvento from './pages/DetalhamentoEvento';
 import SessionTokenCallback from './pages/SessionTokenCallback';
 import Teste from './pages/Teste';
@@ -80,7 +80,7 @@ function App() {
                 <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
                 <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
-                <Route path="/listar_eventos" element={<ListarEnvento />} />
+                <Route path="/listar_eventos" element={<ListarEvento />} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
 
                 {/* Comunicação com Publico (emails) */}

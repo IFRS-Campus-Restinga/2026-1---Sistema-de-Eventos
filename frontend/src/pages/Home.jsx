@@ -126,7 +126,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                         }
                                         descricao={evento?.descricao}
                                         textoBotao1="Ver Detalhes"
-                                        onClick1={()=>{navigate(`/detalhe-evento/${evento.id}`)}}
+                                        onClick1={()=>{navigate(`/detalhe_evento/${evento.id}`)}}
                                         textoBotao2={
                                             estaInscritoEmEvento(evento.id)
                                                 ? obterStatusInscricao(

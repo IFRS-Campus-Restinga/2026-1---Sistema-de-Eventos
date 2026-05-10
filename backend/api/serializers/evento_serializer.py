@@ -76,3 +76,21 @@ class EventoSerializer(serializers.ModelSerializer):
 
     def get_modalidades(self, obj):
         return list(obj.modalidades.values_list("id", flat=True))
+
+    def update(self, instance, validated_data):
+        # 1. Extrai os dados das etapas enviados pelo React (se houver)
+        etapas_data = validated_data.pop('etapas', None)
+        
+        # 2. Atualiza todos os outros campos normais do Evento
+        instance = super().update(instance, validated_data)
+
+        # 3. Se a lista de etapas veio na requisição, atualizamos os registros filhos
+        if etapas_data is not None:
+            # Estratégia simples e segura: remove as etapas antigas do evento...
+            instance.etapas.all().delete()
+            
+            # ...e recria as que foram enviadas agora
+            for etapa_data in etapas_data:
+                EtapaEvento.objects.create(evento=instance, **etapa_data)
+        
+        return instance

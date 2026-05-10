@@ -29,6 +29,9 @@ export default function CriarEvento() {
     const [listaAreasDisponiveis, setListaAreasDisponiveis] = useState([]);
     const [etapaId,setEtapaId] = useState('')
     const [areaConhecimentoId,setAreaConhecimentoId] = useState('')
+    const [modalidades,setModalidades] = useState([])
+    const [modalidadesSelecionadas,setModalidadesSelecionadas] = useState([])
+
 
     
     useEffect(() => {
@@ -70,18 +73,8 @@ export default function CriarEvento() {
         setExibirErro(false);
 
         // ✅ 1. Preparar IDs das áreas (Array de números)
-        const area_conhecimento = areasSelecionadas
-        .map(a => {
-            const valorString = a.area_id; // Ex: "EXATAS_TERRA"
-            
-            // Procura na lista que veio do banco o objeto que tem essa string
-            const areaEncontrada = listaAreasDisponiveis.find(
-                areaBanco => areaBanco.area_conhecimento === valorString
-            );
-
-            // Retorna o ID numérico (ex: 1) ou o próprio valor se já for número
-            return areaEncontrada ? areaEncontrada.id : parseInt(valorString);
-        })
+       const area_conhecimento = areasSelecionadas
+        .map(a => parseInt(a.area_id))
         .filter(id => !isNaN(id));
         
         const etapasValidadas = etapas
@@ -116,7 +109,7 @@ export default function CriarEvento() {
 
             setExibirSucesso(true);
             setTimeout(() => {
-                navigate('/ListarEventos');
+                navigate('/listar_eventos');
             }, 2000);
 
         } catch (erro) {
@@ -166,6 +159,11 @@ export default function CriarEvento() {
                                 setEtapas={setEtapas}
                                 listaAreasDisponiveis={listaAreasDisponiveis}
                                 setListaAreasDisponiveis={setListaAreasDisponiveis}
+                                modalidades={modalidades}
+                                setModalidades={setModalidades}
+                                modalidadesSelecionadas={modalidadesSelecionadas}
+                                setModalidadesSelecionadas={setModalidadesSelecionadas}
+
                             />
                         </Col>
                     </Row>

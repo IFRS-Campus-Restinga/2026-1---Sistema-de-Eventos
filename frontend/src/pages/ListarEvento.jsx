@@ -244,15 +244,12 @@ export default function EventosListar() {
                                                     </Button>
 
                                                     <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/editar_evento/${evento.id}`,
-                                                            )
-                                                        }
-                                                    >
-                                                        <MdEdit size={22} />
+                                                    variant='warning'
+                                                    size='sm'
+                                                    onClick={()=>
+                                                        navigate(`/editar_evento/${evento.id}`)
+                                                    }>
+                                                       <MdEdit size={22}/> 
                                                     </Button>
                                                 </div>
                                             </ListGroup.Item>
