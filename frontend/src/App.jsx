@@ -123,7 +123,7 @@ function App() {
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
 
                 {/* Programação / Sessão de Eventos */}
-                <Route path="/sessao_atribuir_data" element={<SessaoBoard />} />
+                <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
 
 
             </Routes>
