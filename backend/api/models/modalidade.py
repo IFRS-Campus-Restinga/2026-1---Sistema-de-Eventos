@@ -56,7 +56,7 @@ class Modalidade(Base):
     def clean(self):
         errors = {}
 
-        if ((not self.requer_avaliacao) or (not self.requer_avaliacao_submissao)) and (
+        if ((not self.requer_avaliacao) and (not self.requer_avaliacao_submissao)) and (
             self.limite_avaliadores and self.limite_avaliadores > 0
         ):
             errors["limite_avaliadores"] = _(
