@@ -1,7 +1,7 @@
 /* Font Opens Sans Padrão para o projeto */
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
-*{
-    font-family: "Open Sans";
+* {
+    font-family: 'Open Sans';
 }
 
 .nav-login-button {
@@ -11,4 +11,35 @@
     padding: 0;
     font: inherit;
     text-decoration: none;
+}
+
+.avaliar-criterio-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.avaliar-criterio-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+}
+
+.score-input {
+    width: 90px;
+    height: 52px;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 14px;
+    text-align: center;
+    transition: 0.2s;
+}
+
+.score-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
 }

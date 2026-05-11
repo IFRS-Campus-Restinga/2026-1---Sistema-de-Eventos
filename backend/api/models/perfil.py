@@ -11,12 +11,10 @@ class Perfil(Base):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil"
     )
 
-    nivel_ensino = models.CharField(
-        max_length=50, choices=NivelEnsino.choices, blank=True, null=True
-    )
+    nivel_ensino = models.CharField(max_length=50, choices=NivelEnsino.choices)
 
     area_conhecimento = models.CharField(
-        max_length=50, choices=AreaConhecimentoEscolha.choices, blank=True, null=True
+        max_length=50, choices=AreaConhecimentoEscolha.choices
     )
 
     class Meta:

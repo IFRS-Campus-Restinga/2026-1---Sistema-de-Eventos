@@ -139,7 +139,7 @@ export default function DashboardEvento({}) {
         {
             texto: 'Gerenciar Organizadores',
             icone: <RiTeamFill color="#00A44B" size={20} />,
-            to: '/atribuir_organizador',
+            to: eventoId ? `/atribuir_organizador?eventoId=${eventoId}` : '#',
         },
         {
             texto: 'Adicionar um Novo Evento',
@@ -200,7 +200,7 @@ export default function DashboardEvento({}) {
                                     as={Link}
                                     to={
                                         eventoId
-                                            ? `/atribuirCoordenador?eventoId=${eventoId}`
+                                            ? `/atribuir_coordenador?eventoId=${eventoId}`
                                             : '#'
                                     }
                                     className="d-flex align-items-center justify-content-center"
