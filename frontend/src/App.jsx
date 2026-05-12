@@ -27,7 +27,6 @@ import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
 import MeusEventos from './pages/MeusEventos';
 import SemResultado from './pages/SemResultado';
-import SubmeterTrabalho from './pages/SubmeterTrabalho';
 import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
 import EnviarEmails from './pages/EnviarEmails';
@@ -104,7 +103,6 @@ function App() {
 
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
-                <Route path="/submeter_trabalho" element={protegido(<SubmeterTrabalho />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
                 <Route path="/minhas_avaliacoes" element={protegido(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_atracao" element={protegido(<AvaliarAtracao />, ADMIN_GROUPS)} />
@@ -129,7 +127,7 @@ function App() {
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
 
                 {/* Programação / Sessão de Eventos */}
-                <Route path="/sessao_atribuir_data" element={<SessaoBoard />} />
+                <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
 
 
             </Routes>

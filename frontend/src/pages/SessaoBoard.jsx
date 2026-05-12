@@ -6,42 +6,43 @@ import Form from 'react-bootstrap/Form';
 
 import { MdArrowBack, MdSave, MdPublish } from 'react-icons/md';
 
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import {
+    useNavigate,
+    useLocation,
+    useSearchParams,
+    useParams,
+} from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import Alerta from '../components/common/Alerta';
-import { buscarEventoPorId } from '../services/eventoService';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import useSessoes from '../hooks/useSessoes';
 
 export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const eventoId = String(
-        location.state?.eventoId || searchParams.get('eventoId') || '',
-    );
-    const [evento, setEvento] = useState(null);
+    const { id: eventoId } = useParams(); //pega o id da url para carregar o evento correto
+    const { evento, espaco, dias, loading, error, message, carregarEvento } =
+        useSessoes();
+    const [dataSelecionada, setDataSelecionada] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    //const [evento, setEvento] = useState(null);
 
     useEffect(() => {
-        async function carregarEvento() {
-            if (!eventoId) return;
-
-            try {
-                const data = await buscarEventoPorId(eventoId);
-
-                setEvento(data);
-
-                console.log('Evento:', data);
-            } catch (erro) {
-                console.error('Erro ao buscar evento:', erro);
-            }
+        if (eventoId) {
+            carregarEvento(eventoId);
         }
-
-        carregarEvento();
     }, [eventoId]);
+
+    useEffect(() => {
+        if (dias.length > 0) {
+            setDataSelecionada(formatarDataLabel(dias[0]));
+        }
+    }, [dias]);
 
     // MOCK DE DADOS
     const [atracoesNaoAlocadas, setAtracoesNaoAlocadas] = useState([
@@ -57,7 +58,6 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         },
     ]);
 
-    const [dataSelecionada, setDataSelecionada] = useState('2025-11-25');
     const [espacos, setEspacos] = useState([
         {
             id: 1,
@@ -146,9 +146,17 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         },
     ]);
 
-    // MOCK DE ALERTAS
-    const [message] = useState(null);
-    const [error] = useState(null);
+    // formata data para value do select
+    function formatarData(data) {
+        return data.toISOString().split('T')[0];
+    }
+    // formata data para label do select
+    function formatarDataLabel(data) {
+        return data.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+        });
+    }
 
     // para mover os cards entre as colunas
     function handleDragEnd(event) {
@@ -350,13 +358,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     return (
         <>
             <NavBar />
-            {console.log('Evento ID:', eventoId)}
             <main className="flex-fill">
                 <Container className="mx-auto">
                     {/* Menu de datas */}
                     {/* PUXARA AS DATAS DE EXECUÇÃO DO EVENTO- FICARÁ AQUI! */}
                     <Row className="mx-auto my-4 align-items-center">
-                        <h1>{evento.nome}</h1>
+                        <h1>{evento?.nome || 'Carregando evento...'}</h1>
+
                         <Col md={4}>
                             <Form.Select
                                 value={dataSelecionada}
@@ -364,10 +372,14 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                     setDataSelecionada(e.target.value)
                                 }
                             >
-                                <option value="2025-11-25">
-                                    Dia 25/11 (Manhã)
-                                </option>
-                                <option value="2025-11-26">Dia 26/11</option>
+                                {dias.map((dia, index) => (
+                                    <option
+                                        key={index}
+                                        value={formatarData(dia)}
+                                    >
+                                        {formatarDataLabel(dia)}
+                                    </option>
+                                ))}
                             </Form.Select>
                         </Col>
                         <Col md={2}>

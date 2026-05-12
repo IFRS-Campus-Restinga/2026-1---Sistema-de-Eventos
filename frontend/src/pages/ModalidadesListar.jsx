@@ -33,7 +33,7 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
         try {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
-            navigate('/listarModalidades');
+            navigate('/listar_modalidades');
         } catch {
             mostrarAlerta('Não foi possível excluir a modalidade.');
         }

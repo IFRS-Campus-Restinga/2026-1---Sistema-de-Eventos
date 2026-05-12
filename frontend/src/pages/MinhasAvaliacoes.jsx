@@ -99,14 +99,14 @@ export default function AvaliacoesAtracoes({}) {
                             </Card>
                         </Col>
                     </Row>
-                    <Row className="w-100 ps-4">
+                    <Row className="w-75 mt-4 ps-4">
                         <Col>
                             <span className="text-start fw-bold fs-4">
                                 Minhas Avaliações
                             </span>
                         </Col>
                     </Row>
-                    <Row className="w-100 px-4">
+                    <Row className="w-75 px-4">
                         <Col>
                             <Tabela
                                 className="rounded-4 "

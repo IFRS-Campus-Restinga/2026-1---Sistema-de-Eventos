@@ -11,6 +11,7 @@ export default function ModalPopup({
     textoAcao = '',
     onAcao,
     variante = 'danger',
+    children,
 }) {
     const variantes = { danger: 'danger', success: 'success' };
 
@@ -32,8 +33,14 @@ export default function ModalPopup({
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <h4>{tituloSecundario}</h4>
-                <p>{texto}</p>
+                {children ? (
+                    children
+                ) : (
+                    <>
+                        <h4>{tituloSecundario}</h4>
+                        <p>{texto}</p>
+                    </>
+                )}
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onFechar}>
