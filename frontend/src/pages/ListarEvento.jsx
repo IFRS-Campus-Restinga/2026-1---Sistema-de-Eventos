@@ -32,6 +32,11 @@ import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
+import {
+    clearSelectedEventoId,
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
@@ -74,6 +79,14 @@ export default function EventosListar() {
             );
             setAlerta('success');
             setMensagem(data.msg || 'Evento excluído!');
+
+            const eventoSelecionado = getSelectedEventoId();
+            if (
+                eventoSelecionado &&
+                Number(eventoSelecionado) === Number(eventoParaExcluir.id)
+            ) {
+                clearSelectedEventoId();
+            }
 
             // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
             setTimeout(() => {
@@ -220,6 +233,11 @@ export default function EventosListar() {
                                                         size="sm"
                                                         as={Link}
                                                         to={`/dashboard/${evento.id}`}
+                                                        onClick={() =>
+                                                            setSelectedEventoId(
+                                                                evento.id,
+                                                            )
+                                                        }
                                                     >
                                                         Dashboard
                                                     </Button>

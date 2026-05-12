@@ -3,7 +3,7 @@ import { Container, Row, Col, Button } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import BarrasStatus from '../components/barras_status/BarrasStatus';
 import MenuColuna from '../components/menu_coluna/MenuColuna';
 import { PiChecks } from 'react-icons/pi';
@@ -17,52 +17,15 @@ import { RiAddBoxFill } from 'react-icons/ri';
 import { IoCalendarOutline } from 'react-icons/io5';
 
 import { getDashboardEvento } from '../services/dashboardService';
+import {
+    clearSelectedEventoId,
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
 
 export default function DashboardEvento({}) {
-    // comentei pra n dar conflito, mas meio q ficou assim, agr ele funciona com dados reais. -Breno
-
-    // //Pegar da api, apenas placeholder
-    // const { totalSubmissoes, semAvaliador, desistencias } = {
-    //     totalSubmissoes: 87,
-    //     semAvaliador: 2,
-    //     desistencias: 3,
-    // };
-
-    // //Pegar da api, apenas placeholder
-    // const dados = [
-    //     {
-    //         titulo: 'Ciências Exatas e da Terra',
-    //         valorAtual: 25,
-    //         total: 30,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Ciências Humanas',
-    //         valorAtual: 12,
-    //         total: 30,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    // ];
-
     const { id: eventoId } = useParams();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [erro, setErro] = useState('');
     const [dashboard, setDashboard] = useState(null);
@@ -70,10 +33,18 @@ export default function DashboardEvento({}) {
     useEffect(() => {
         async function carregarDashboard() {
             if (!eventoId) {
-                setErro('Selecione um evento para visualizar o dashboard.');
-                setDashboard(null);
+                const eventoSalvo = getSelectedEventoId();
+
+                if (eventoSalvo) {
+                    navigate(`/dashboard/${eventoSalvo}`, { replace: true });
+                    return;
+                }
+
+                navigate('/listar_eventos', { replace: true });
                 return;
             }
+
+            setSelectedEventoId(eventoId);
 
             setLoading(true);
             setErro('');
@@ -81,6 +52,13 @@ export default function DashboardEvento({}) {
                 const data = await getDashboardEvento(eventoId);
                 setDashboard(data);
             } catch (error) {
+                const status = error?.response?.status;
+                if (status === 404) {
+                    clearSelectedEventoId();
+                    navigate('/listar_eventos', { replace: true });
+                    return;
+                }
+
                 setDashboard(null);
                 setErro(
                     error?.message || 'Erro ao carregar dashboard do evento.',
@@ -91,7 +69,7 @@ export default function DashboardEvento({}) {
         }
 
         carregarDashboard();
-    }, [eventoId]);
+    }, [eventoId, navigate]);
 
     const metricas = dashboard?.metricas || {};
     const totalSubmissoes = metricas.totalSubmissoes || 0;
