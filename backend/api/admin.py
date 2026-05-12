@@ -1,34 +1,33 @@
 from django.contrib import admin
 
 from .models import (
-    Atracao,
     AreaConhecimento,
     Arquivo,
-    Cronograma,
-    Evento,
-    Local,
+    Atracao,
+    AvaliacaoSubmissao,
     CampoFormulario,
-    CriterioAvaliacao,
+    CriterioAvaliacaoAtracao,
+    Cronograma,
     Espaco,
+    EtapaEvento,
+    Evento,
+    InscricaoEvento,
+    Local,
     Modalidade,
+    Perfil,
     Resposta,
     Sessao,
-    Perfil,
-    InscricaoEvento,
-    EtapaEvento,
-    AvaliacaoSubmissao,
 )
-
+from .models.area_conhecimento import AreaConhecimentoAdmin
 from .models.arquivo import ArquivoAdmin
 from .models.cronograma import CronogramaAdmin
 from .models.evento import EventoAdmin
-from .models.area_conhecimento import AreaConhecimentoAdmin
 from .models.local import LocalAdmin
 
 # simples: registros sem ModelAdmin customizado
 admin.site.register(Modalidade)
 admin.site.register(CampoFormulario)
-admin.site.register(CriterioAvaliacao)
+admin.site.register(CriterioAvaliacaoAtracao)
 admin.site.register(Resposta)
 admin.site.register(Espaco)
 admin.site.register(Sessao)

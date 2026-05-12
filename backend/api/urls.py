@@ -16,9 +16,9 @@ from .views.campo_formulario_view import (
 )
 from .views.choices_atracao_view import AtracaoOpcoesView
 from .views.choices_evento_view import OpcoesFormularioView
-from .views.criterio_avaliacao_view import (
-    CriterioAvaliacaoDetailView,
-    CriterioAvaliacaoListView,
+from .views.criterio_avaliacao_atracao_view import (
+    CriterioAvaliacaoAtracaoDetailView,
+    CriterioAvaliacaoAtracaoListView,
 )
 from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.espaco_view import EspacoDetailView, EspacoListView
@@ -35,16 +35,16 @@ from .views.evento_view import (
     EventoUpdateView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
+from .views.inscricao_atracao_view import (
+    InscricaoAtracaoDetailView,
+    InscricaoAtracaoListView,
+)
 from .views.inscricao_evento_view import (
     CancelarInscricaoView,
     InscricaoEventoDetailView,
     InscricaoEventoListView,
     MinhasInscricoesEventoListView,
     RegistrarPresencaView,
-)
-from .views.inscricao_atracao_view import (
-    InscricaoAtracaoDetailView,
-    InscricaoAtracaoListView,
 )
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
@@ -91,8 +91,8 @@ urlpatterns = [
     path("tipo_etapa/", TipoEtapaListView.as_view()),
     path("campo_formulario/", CampoFormularioListView.as_view()),
     path("campo_formulario/<int:pk>/", CampoFormularioDetailView.as_view()),
-    path("criterio_avaliacao/", CriterioAvaliacaoListView.as_view()),
-    path("criterio_avaliacao/<int:pk>/", CriterioAvaliacaoDetailView.as_view()),
+    path("criterio_avaliacao/", CriterioAvaliacaoAtracaoListView.as_view()),
+    path("criterio_avaliacao/<int:pk>/", CriterioAvaliacaoAtracaoDetailView.as_view()),
     path("etapas_evento/", EtapaEventoListView.as_view()),
     path("etapas_evento/<int:pk>/", EtapaEventoDetailView.as_view()),
     path('areas_conhecimento/', EnumChoicesAPIView.as_view(enum_class=AreaConhecimentoEscolha)),

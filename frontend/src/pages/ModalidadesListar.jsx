@@ -56,7 +56,7 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                             setMostrarModal(true);
                             setIdSelecionado(id);
                         }}
-                        paginacao={3}
+                        paginacao={5}
                     />
                     <div className="d-flex justify-content-end mt-4">
                         <Button

@@ -18,7 +18,7 @@ import { useModalidades } from '../hooks/useModalidades';
 import { useTipoCampo } from '../hooks/useTipoCampo';
 import { pegarModalidade } from '../services/modalidadeService';
 import { pegarCampoFormulario } from '../services/campoFormularioService';
-import { pegarCriterioAvaliacao } from '../services/criterioAvaliacaoService';
+import { pegarCriterioAvaliacaoAtracao } from '../services/criterioAvaliacaoAtracaoService';
 import eArray from '../utils/eArray';
 
 export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
@@ -94,7 +94,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                     await Promise.all([
                         pegarModalidade(id),
                         pegarCampoFormulario(),
-                        pegarCriterioAvaliacao(),
+                        pegarCriterioAvaliacaoAtracao(),
                     ]);
 
                 const campos = paraArray(campoData);
@@ -202,7 +202,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                     },
                                     {
                                         name: 'requer_avaliacao',
-                                        titulo: 'Requer Avaliação',
+                                        titulo: 'Requer Avaliação da atração',
                                         tipo: 'switch',
                                         preValue: requerAvaliacao,
                                         onChange: (e) => setRequerAvaliacao(e),

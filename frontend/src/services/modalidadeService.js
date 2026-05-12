@@ -63,5 +63,7 @@ export const validarModalidade = async (payload, method = 'POST') =>
 export const validarCampoFormulario = async (payload, method = 'POST') =>
     validarComOptions('/api/campo_formulario/', payload, method);
 
-export const validarCriterioAvaliacao = async (payload, method = 'POST') =>
-    validarComOptions('/api/criterio_avaliacao/', payload, method);
+export const validarCriterioAvaliacaoAtracao = async (
+    payload,
+    method = 'POST',
+) => validarComOptions('/api/criterio_avaliacao/', payload, method);

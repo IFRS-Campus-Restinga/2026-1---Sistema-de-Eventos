@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import eArray from '../utils/eArray';
 import {
-    pegarCriterioAvaliacao,
-    criarCriterioAvaliacao,
-} from '../services/criterioAvaliacaoService';
+    pegarCriterioAvaliacaoAtracao,
+    criarCriterioAvaliacaoAtracao,
+} from '../services/criterioAvaliacaoAtracaoService';
 
-export const useCriterioAvaliacao = () => {
+export const useCriterioAvaliacaoAtracao = () => {
     const [campoFormulario, setCampoFormulario] = useState([]);
 
     useEffect(() => {
         async function buscarMCriteriosAvalicao() {
             try {
-                const data = await pegarCriterioAvaliacao();
+                const data = await pegarCriterioAvaliacaoAtracao();
                 const listaModalidades = eArray(data)
                     ? data
                     : eArray(data?.results)
@@ -26,14 +26,14 @@ export const useCriterioAvaliacao = () => {
         buscarMCriteriosAvalicao();
     }, []);
 
-    const criarCriteriosAvaliacao = async (e) => {
+    const criarCriteriosAvaliacaoAtracao = async (e) => {
         try {
-            const response = await criarCriterioAvaliacao(e);
+            const response = await criarCriterioAvaliacaoAtracao(e);
 
             return response;
         } catch (erro) {
             console.log(erro);
         }
     };
-    return { campoFormulario, criarCriteriosAvaliacao };
+    return { campoFormulario, criarCriteriosAvaliacaoAtracao };
 };

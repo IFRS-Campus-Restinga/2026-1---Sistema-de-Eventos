@@ -7,7 +7,7 @@ import {
     deletarModalidade,
     validarModalidade,
     validarCampoFormulario,
-    validarCriterioAvaliacao,
+    validarCriterioAvaliacaoAtracao,
 } from '../services/modalidadeService';
 import {
     criarCampoFormulario,
@@ -16,11 +16,11 @@ import {
     pegarCampoFormulario,
 } from '../services/campoFormularioService';
 import {
-    criarCriterioAvaliacao,
-    atualizarCriterioAvaliacao,
-    deletarCriterioAvaliacao,
-    pegarCriterioAvaliacao,
-} from '../services/criterioAvaliacaoService';
+    criarCriterioAvaliacaoAtracao,
+    atualizarCriterioAvaliacaoAtracao,
+    deletarCriterioAvaliacaoAtracao,
+    pegarCriterioAvaliacaoAtracao,
+} from '../services/criterioAvaliacaoAtracaoService';
 
 const paraLista = (data) =>
     eArray(data) ? data : eArray(data?.results) ? data.results : [];
@@ -121,7 +121,7 @@ export const useModalidades = () => {
 
             await Promise.allSettled(
                 criterios.map((criterio) =>
-                    criarCriterioAvaliacao({
+                    criarCriterioAvaliacaoAtracao({
                         ...criterio,
                         modalidade: createdModalidade.id,
                     }),
@@ -142,7 +142,7 @@ export const useModalidades = () => {
     ) => {
         const [todosCampos, todosCriterios] = await Promise.all([
             pegarCampoFormulario(),
-            pegarCriterioAvaliacao(),
+            pegarCriterioAvaliacaoAtracao(),
         ]);
 
         const camposAtuais = filtrarPorModalidade(
@@ -167,9 +167,9 @@ export const useModalidades = () => {
             existentes: criteriosAtuais,
             recebidos: criterios,
             modalidadeId,
-            criar: criarCriterioAvaliacao,
-            atualizar: atualizarCriterioAvaliacao,
-            deletar: deletarCriterioAvaliacao,
+            criar: criarCriterioAvaliacaoAtracao,
+            atualizar: atualizarCriterioAvaliacaoAtracao,
+            deletar: deletarCriterioAvaliacaoAtracao,
         });
     };
 
@@ -238,7 +238,7 @@ export const useModalidades = () => {
 
         const errosCriterios = await validarLista(
             criteriosConsiderados,
-            validarCriterioAvaliacao,
+            validarCriterioAvaliacaoAtracao,
         );
         if (Object.keys(errosCriterios).length > 0) {
             erros.criterios = errosCriterios;

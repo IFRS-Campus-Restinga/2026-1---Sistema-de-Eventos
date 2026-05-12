@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from ..models.modalidade import Modalidade
 from .campo_formulario_serializer import CampoFormularioSerializer
-from .criterio_avaliacao_serializer import CriterioAvaliacaoSerializer
+from .criterio_avaliacao_atracao_serializer import CriterioAvaliacaoAtracaoSerializer
 
 
 class ModalidadeSerializer(serializers.ModelSerializer):
@@ -17,9 +17,9 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         read_only=True,
         source="evento_set",
     )
-    criterios = CriterioAvaliacaoSerializer(
+    criterios = CriterioAvaliacaoAtracaoSerializer(
         many=True,
-        source="criterioavaliacao_set",
+        source="criterioavaliacaoatracao_set",
         read_only=True,
         required=False,
     )
