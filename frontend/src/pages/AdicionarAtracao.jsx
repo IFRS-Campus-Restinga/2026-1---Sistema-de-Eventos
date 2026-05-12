@@ -4,14 +4,20 @@ import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import CriarAtracaoCard from '../components/common/criarAtracaoCard';
-import { criarAtracao, buscarOpcoesAtracao, buscarEventos, buscarUsuarios, salvarRascunho } from '../services/atracaoService';
+import {
+    criarAtracao,
+    buscarOpcoesAtracao,
+    buscarEventos,
+    buscarUsuarios,
+    salvarRascunho,
+} from '../services/atracaoService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 export default function AdicionarAtracao() {
     const navigate = useNavigate();
-    
+
     const [formState, setFormState] = useState({
         titulo: '',
         resumo: '',
@@ -25,15 +31,15 @@ export default function AdicionarAtracao() {
         acessibilidade: false,
         evento: '',
         status: 'PREVISTA',
-        equipe: [{ nome: '', instituicao_curso: '', funcao: 'COAUTOR' }]
+        equipe: [{ nome: '', instituicao_curso: '', funcao: 'COAUTOR' }],
     });
 
-    const [opcoes, setOpcoes] = useState({ 
-        modalidades: [], 
-        niveis_ensino: [], 
-        areas_conhecimento: [], 
+    const [opcoes, setOpcoes] = useState({
+        modalidades: [],
+        niveis_ensino: [],
+        areas_conhecimento: [],
         funcoes_equipe: [],
-        status: [] 
+        status: [],
     });
     const [eventos, setEventos] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
@@ -63,21 +69,31 @@ export default function AdicionarAtracao() {
             if (dadosOpcoes.status === 'fulfilled') {
                 setOpcoes(dadosOpcoes.value);
             } else {
-                console.error('Erro ao carregar opções de atração:', dadosOpcoes.reason);
-                mostrarAlerta('Não foi possível carregar as opções da atração.');
+                console.error(
+                    'Erro ao carregar opções de atração:',
+                    dadosOpcoes.reason,
+                );
+                mostrarAlerta(
+                    'Não foi possível carregar as opções da atração.',
+                );
             }
 
             if (dadosEventos.status === 'fulfilled') {
                 setEventos(dadosEventos.value);
             } else {
                 console.error('Erro ao carregar eventos:', dadosEventos.reason);
-                mostrarAlerta('Não foi possível carregar os eventos disponíveis.');
+                mostrarAlerta(
+                    'Não foi possível carregar os eventos disponíveis.',
+                );
             }
 
             if (dadosUsuarios.status === 'fulfilled') {
                 setUsuarios(dadosUsuarios.value);
             } else {
-                console.error('Erro ao carregar usuários (orientador):', dadosUsuarios.reason);
+                console.error(
+                    'Erro ao carregar usuários (orientador):',
+                    dadosUsuarios.reason,
+                );
                 mostrarAlerta(
                     'Lista de orientadores indisponível no momento. Você ainda pode preencher o restante do formulário.',
                     'warning',
@@ -89,26 +105,40 @@ export default function AdicionarAtracao() {
 
     const handleSalvarRascunho = async () => {
         const dadosRascunho = { ...formState, status: 'RASCUNHO' };
-        
+
         try {
             await salvarRascunho(dadosRascunho);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listarAtracoes'), 1500);
+            setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
-            const msg = erro.response?.data?.detail || JSON.stringify(erro.response?.data) || 'Erro ao salvar rascunho. Por favor, tente novamente.';
+            const msg =
+                erro.response?.data?.detail ||
+                JSON.stringify(erro.response?.data) ||
+                'Erro ao salvar rascunho. Por favor, tente novamente.';
             mostrarAlerta(msg);
         }
     };
 
     const handleSubmeter = async () => {
-        if (!formState.titulo || !formState.resumo || !formState.modalidade || !formState.nivel_ensino || !formState.area_conhecimento || !formState.evento) {
-            mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
+        if (
+            !formState.titulo ||
+            !formState.resumo ||
+            !formState.modalidade ||
+            !formState.nivel_ensino ||
+            !formState.area_conhecimento ||
+            !formState.evento
+        ) {
+            mostrarAlerta(
+                'Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.',
+            );
             return;
         }
 
         if (formState.equipe.length === 0 || !formState.equipe[0].nome) {
-            mostrarAlerta('Por favor, adicione pelo menos um autor na seção de Equipe.');
+            mostrarAlerta(
+                'Por favor, adicione pelo menos um autor na seção de Equipe.',
+            );
             return;
         }
 
@@ -116,10 +146,13 @@ export default function AdicionarAtracao() {
             const dadosSubmissao = { ...formState, status: 'PREVISTA' };
             await criarAtracao(dadosSubmissao);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listarAtracoes'), 1500);
+            setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
-            const msg = erro.response?.data?.detail || JSON.stringify(erro.response?.data) || 'Erro ao cadastrar. Por favor, tente novamente.';
+            const msg =
+                erro.response?.data?.detail ||
+                JSON.stringify(erro.response?.data) ||
+                'Erro ao cadastrar. Por favor, tente novamente.';
             mostrarAlerta(msg);
         }
     };
@@ -151,11 +184,11 @@ export default function AdicionarAtracao() {
                     </Row>
                 </Container>
             </main>
-            <Footer 
-                telefone="(51) 3333-1234" 
-                endereco="Rua Alberto Hoffmann, 285" 
-                ano={2026} 
-                campus="Campus Restinga" 
+            <Footer
+                telefone="(51) 3333-1234"
+                endereco="Rua Alberto Hoffmann, 285"
+                ano={2026}
+                campus="Campus Restinga"
             />
         </div>
     );

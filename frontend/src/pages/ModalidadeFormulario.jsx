@@ -162,7 +162,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             'success',
         );
         setTimeout(() => {
-            navigate('/listarModalidades');
+            navigate('/listar_modalidades');
         }, 3000);
     }
 
@@ -173,7 +173,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
             setTimeout(() => {
-                navigate('/listarModalidades');
+                navigate('/listar_modalidades');
             }, 3000);
         } catch {
             mostrarAlerta('Não foi possível excluir a modalidade.');
