@@ -10,6 +10,7 @@ from .etapa_evento_serializer import EtapaEventoSerializer
 
 
 class EventoSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(read_only=True)
     local = LocalSerializer(read_only=True)
     local_id = serializers.PrimaryKeyRelatedField(
         queryset=Local.objects.all(),
@@ -34,18 +35,31 @@ class EventoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evento
         fields = [
-            "id", "nome", "descricao", "status_evento", "carga_horaria",
-            "setor", "tema", "local", "local_id", "etapas", 
-            "modalidades", "area_conhecimento", "modalidade_ids",
+            "id",
+            "nome",
+            "descricao",
+            "status_evento",
+            "carga_horaria",
+            "setor",
+            "tema",
+            "slug",
+            "local",
+            "local_id",
+            "etapas",
+            "modalidades",
+            "area_conhecimento",
+            "modalidade_ids",
         ]
 
     def create(self, validated_data):
         # 1. Extração segura dos dados
         # O DRF coloca os dados de M2M com 'source' na chave do source
-        etapas_data = validated_data.pop('etapas', [])
-        areas_data = validated_data.pop('area_conhecimento', [])
+        etapas_data = validated_data.pop("etapas", [])
+        areas_data = validated_data.pop("area_conhecimento", [])
         print(f"Conteúdo de etapas_data: {areas_data}")
-        modalidades_data = validated_data.pop('modalidades', []) # Devido ao source="modalidades"
+        modalidades_data = validated_data.pop(
+            "modalidades", []
+        )  # Devido ao source="modalidades"
 
         # 2. Uso de Transação Atômica
         # Se as etapas falharem, o evento não é criado (evita lixo no banco)
@@ -58,14 +72,14 @@ class EventoSerializer(serializers.ModelSerializer):
                 # Importante: usar .set() para listas de objetos/IDs
                 if areas_data:
                     evento.area_conhecimento.set(areas_data)
-                
+
                 if modalidades_data:
                     evento.modalidades.set(modalidades_data)
 
                 # 4. Criação das Etapas (Relacionamento 1:N)
                 for etapa_data in etapas_data:
                     # Removemos o evento_id se o front enviou, pois o vínculo é manual aqui
-                    etapa_data.pop('evento', None) 
+                    etapa_data.pop("evento", None)
                     EtapaEvento.objects.create(evento=evento, **etapa_data)
 
                 return evento

@@ -24,6 +24,7 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
         queryset=Evento.objects.all(),
         source="evento",
     )
+    evento_slug = serializers.CharField(source="evento.slug", read_only=True)
 
     def validate(self, attrs):
         perfil = attrs.get("perfil") or getattr(self.instance, "perfil", None)
@@ -111,5 +112,6 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "perfil_usuario_id",
             "perfil_id",
             "evento_id",
+            "evento_slug",
             "presente",
         ]

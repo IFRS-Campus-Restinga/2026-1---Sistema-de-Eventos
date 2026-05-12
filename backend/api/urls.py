@@ -73,7 +73,7 @@ urlpatterns = [
     path("inscricoes_eventos/", InscricaoEventoListView.as_view()),
     path("inscricoes_eventos/minhas/", MinhasInscricoesEventoListView.as_view()),
     path("inscricoes_eventos/<int:pk>/", InscricaoEventoDetailView.as_view()),
-    path("inscricoes_eventos/<int:pk>/marcar_presenca/", RegistrarPresencaView.as_view()),
+    path("inscricoes_eventos/<slug:slug>/marcar_presenca/", RegistrarPresencaView.as_view()),
     path("inscricoes_eventos/<int:pk>/cancelar/", CancelarInscricaoView.as_view()),
     path("inscricoes_atracoes/", InscricaoAtracaoListView.as_view()),
     path("inscricoes_atracoes/<int:pk>/", InscricaoAtracaoDetailView.as_view()),

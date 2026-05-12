@@ -227,7 +227,7 @@ export default function EventosListar() {
                                                         variant="success"
                                                         size="sm"
                                                         as={Link}
-                                                        to={`/credenciamento/${evento.id}`}
+                                                        to={`/credenciamento/${evento.slug}`}
                                                     >
                                                         Presença
                                                     </Button>

@@ -14,6 +14,8 @@ from .base import Base
 from .local import Local
 from .modalidade import Modalidade
 
+from django.utils.text import slugify
+
 
 class Evento(Base):
     nome = models.CharField(
@@ -61,6 +63,11 @@ class Evento(Base):
         null=False,
         blank=False,
     )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        default="",
+    )
 
     # futuramente, fazer relacionamento com local
     class Meta:
@@ -99,6 +106,11 @@ class Evento(Base):
 
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self.slug is None or self.slug == "":
+            self.slug = slugify(self.nome)
+        super().save(*args, **kwargs)
 
 
 class EventoAdmin(admin.ModelAdmin):

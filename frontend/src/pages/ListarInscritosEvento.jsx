@@ -180,6 +180,12 @@ export default function ListarInscritosEvento() {
                             onRegistrarPresenca={registrarPresenca}
                             onRetirarPresenca={retirarPresenca}
                             onVoltar={() => navigate(-1)}
+                            colunasVisiveis={[
+                                'usuario',
+                                'cpf',
+                                'email',
+                                'acoes',
+                            ]}
                             paginaAnterior={paginaAnterior}
                             proximaPagina={proximaPagina}
                             paginaAtual={paginaAtual}

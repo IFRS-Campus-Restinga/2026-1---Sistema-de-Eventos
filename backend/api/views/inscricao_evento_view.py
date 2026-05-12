@@ -87,11 +87,21 @@ class InscricaoEventoDetailView(APIView):
 class RegistrarPresencaView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, pk=None):
-        evento_id = pk
+    def post(self, request, pk=None, slug=None):
+        if slug:
+            # Busca evento pelo slug para pegar o ID
+            from ..models.evento import Evento
+
+            try:
+                evento = Evento.objects.get(slug=slug)
+                evento_id = evento.id
+            except Evento.DoesNotExist:
+                return Response({"erro": "Evento não encontrado"}, status=404)
+        else:
+            evento_id = pk
 
         if not evento_id:
-            return Response({"erro": "evento_id é obrigatório."}, status=404)
+            return Response({"erro": "evento_id ou slug é obrigatório."}, status=404)
 
         try:
             perfil = Perfil.objects.get(usuario=request.user)
