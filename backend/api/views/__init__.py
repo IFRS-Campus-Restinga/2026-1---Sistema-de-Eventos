@@ -2,6 +2,7 @@
 from .cadastro_complementar_view import *
 from .campo_formulario_view import *
 from .criterio_avaliacao_atracao_view import *
+from .criterio_avaliacao_submissao_view import *
 from .csrf_token_view import *
 from .enum_view import *
 from .espaco_view import *

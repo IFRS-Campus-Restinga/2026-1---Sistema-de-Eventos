@@ -20,6 +20,10 @@ from .views.criterio_avaliacao_atracao_view import (
     CriterioAvaliacaoAtracaoDetailView,
     CriterioAvaliacaoAtracaoListView,
 )
+from .views.criterio_avaliacao_submissao_view import (
+    CriterioAvaliacaoSubmissaoDetailView,
+    CriterioAvaliacaoSubmissaoListView,
+)
 from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.espaco_view import EspacoDetailView, EspacoListView
 from .views.etapa_evento_view import (
@@ -93,6 +97,14 @@ urlpatterns = [
     path("campo_formulario/<int:pk>/", CampoFormularioDetailView.as_view()),
     path("criterio_avaliacao/", CriterioAvaliacaoAtracaoListView.as_view()),
     path("criterio_avaliacao/<int:pk>/", CriterioAvaliacaoAtracaoDetailView.as_view()),
+    path(
+        "criterio_avaliacao_submissao/",
+        CriterioAvaliacaoSubmissaoListView.as_view(),
+    ),
+    path(
+        "criterio_avaliacao_submissao/<int:pk>/",
+        CriterioAvaliacaoSubmissaoDetailView.as_view(),
+    ),
     path("etapas_evento/", EtapaEventoListView.as_view()),
     path("etapas_evento/<int:pk>/", EtapaEventoDetailView.as_view()),
     path('areas_conhecimento/', EnumChoicesAPIView.as_view(enum_class=AreaConhecimentoEscolha)),

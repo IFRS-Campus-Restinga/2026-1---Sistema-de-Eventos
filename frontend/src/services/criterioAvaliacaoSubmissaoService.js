@@ -1,0 +1,61 @@
+import { API_URL } from '../config';
+import axios from 'axios';
+import { pegarTokenCsrf } from './csrfService';
+
+export const pegarCriterioAvaliacaoSubmissao = async () => {
+    const response = await axios.get(
+        `${API_URL}/api/criterio_avaliacao_submissao/`,
+    );
+    return response.data;
+};
+
+export const criarCriterioAvaliacaoSubmissao = async (dados) => {
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.post(
+        `${API_URL}/api/criterio_avaliacao_submissao/`,
+        dados,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+    return response.data;
+};
+
+export const atualizarCriterioAvaliacaoSubmissao = async (id, dados) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.put(
+        `${API_URL}/api/criterio_avaliacao_submissao/${id}/`,
+        dados,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+
+    return response.data;
+};
+
+export const deletarCriterioAvaliacaoSubmissao = async (id) => {
+    if (!id) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+    const response = await axios.delete(
+        `${API_URL}/api/criterio_avaliacao_submissao/${id}/`,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+        },
+    );
+
+    return response.data;
+};
+
+export const pegarOptionsCriterioAvaliacaoSubmissao = async () => {
+    const response = await axios.options(
+        `${API_URL}/api/criterio_avaliacao_submissao/`,
+    );
+    return response.data;
+};

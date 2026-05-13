@@ -7,6 +7,7 @@ from .models import (
     AvaliacaoSubmissao,
     CampoFormulario,
     CriterioAvaliacaoAtracao,
+    CriterioAvaliacaoSubmissao,
     Cronograma,
     Espaco,
     EtapaEvento,
@@ -28,6 +29,7 @@ from .models.local import LocalAdmin
 admin.site.register(Modalidade)
 admin.site.register(CampoFormulario)
 admin.site.register(CriterioAvaliacaoAtracao)
+admin.site.register(CriterioAvaliacaoSubmissao)
 admin.site.register(Resposta)
 admin.site.register(Espaco)
 admin.site.register(Sessao)
