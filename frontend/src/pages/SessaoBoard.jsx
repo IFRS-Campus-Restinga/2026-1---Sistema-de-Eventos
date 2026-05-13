@@ -20,17 +20,32 @@ import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import Alerta from '../components/common/Alerta';
 import useSessoes from '../hooks/useSessoes';
+import useEspacos from '../hooks/useEspacos';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const { id: eventoId } = useParams(); //pega o id da url para carregar o evento correto
+    // dados gerais de evento, dias, sessoes, espaços
     const { evento, espaco, dias, loading, error, message, carregarEvento } =
         useSessoes();
+    const { espacos, setEspacos, localSelecionado, fetchEspacos } =
+        useEspacos();
+    // data selecionada no dropdown
     const [dataSelecionada, setDataSelecionada] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    //const [evento, setEvento] = useState(null);
+    // modal de escolha de espaço
+    const [mostrarModalEspacos, setMostrarModalEspacos] = useState(false);
+    // armazenamento de espaços do board e espaços disponíveis para alocação
+    const [boardPorDia, setBoardPorDia] = useState({}); // de todos os dias do evento: estrutura: { '2024-10-01': [espacos], '2024-10-02': [espacos], ... }
+    const [boardAtual, setBoardAtual] = useState([]); // de acordo com a data selecionada: estrutura: [espacos]
+
+    const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
+    const [espacosExistentes, setEspacosExistentes] = useState([]); // teste, busca todos os espaços do local
+    const [alterado, setAlterado] = useState(false); // estdo do board, botão
+    // pesquisa no modalEspacos
+    const [buscaEspaco, setBuscaEspaco] = useState('');
 
     useEffect(() => {
         if (eventoId) {
@@ -39,10 +54,24 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     }, [eventoId]);
 
     useEffect(() => {
+        async function carregar() {
+            if (evento?.local) {
+                const dados = await fetchEspacos(evento.local.id);
+                setEspacosExistentes(dados || []);
+            }
+        }
+        carregar();
+    }, [evento]);
+
+    useEffect(() => {
         if (dias.length > 0) {
-            setDataSelecionada(formatarDataLabel(dias[0]));
+            setDataSelecionada(formatarData(dias[0]));
         }
     }, [dias]);
+
+    useEffect(() => {
+        setBoardAtual(boardPorDia[dataSelecionada] || []);
+    }, [boardPorDia, dataSelecionada]);
 
     // MOCK DE DADOS
     const [atracoesNaoAlocadas, setAtracoesNaoAlocadas] = useState([
@@ -58,6 +87,8 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         },
     ]);
 
+    {
+        /*
     const [espacos, setEspacos] = useState([
         {
             id: 1,
@@ -145,6 +176,58 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             ],
         },
     ]);
+    */
+    }
+
+    useEffect(() => {
+        const salvo = localStorage.getItem(`board_evento_${eventoId}`);
+        if (salvo) {
+            setBoardPorDia(JSON.parse(salvo));
+        }
+    }, [eventoId]);
+
+    {
+        /* solução que o chatgpt trouxe */
+    }
+    function salvarRascunho() {
+        localStorage.setItem(
+            `board_evento_${eventoId}`,
+            JSON.stringify(boardPorDia),
+        );
+
+        setAlterado(false);
+    }
+
+    function atualizarBoardAtual(novoBoard) {
+        setBoardPorDia((prev) => ({
+            ...prev,
+            [dataSelecionada]: novoBoard,
+        }));
+
+        setAlterado(true);
+    }
+
+    // ao selecionar um espaço no modal, adiciona ao board do dia
+    const handleSelecionarEspaco = (espacoSelecionado) => {
+        // evita duplicado
+        if (boardAtual.some((e) => e.id === espacoSelecionado.id)) return;
+        const novoEspaco = {
+            id: espacoSelecionado.id,
+            nome: espacoSelecionado.nome,
+            capacidade: espacoSelecionado.capacidade,
+            sessoes: [
+                {
+                    id: Date.now(),
+                    data_horario_inicio: '',
+                    data_horario_fim: '',
+                    ordem_apresentacoes: [],
+                },
+            ],
+        };
+
+        atualizarBoardAtual([...boardAtual, novoEspaco]);
+        setMostrarModalEspacos(false);
+    };
 
     // formata data para value do select
     function formatarData(data) {
@@ -187,25 +270,29 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 atracao,
             };
 
-            const novosEspacos = espacos.map((espaco) => {
+            const novosEspacos = boardAtual.map((espaco) => {
                 if (espaco.id === novoEspacoId) {
                     return {
                         ...espaco,
-                        sessoes: [
-                            {
-                                ...espaco.sessoes[0],
-                                ordem_apresentacoes: [
-                                    ...espaco.sessoes[0].ordem_apresentacoes,
-                                    novaApresentacao,
-                                ],
-                            },
-                        ],
+                        sessoes: espaco.sessoes.map((sessao, index) => {
+                            // adiciona na primeira sessão (por enquanto)
+                            if (index === 0) {
+                                return {
+                                    ...sessao,
+                                    ordem_apresentacoes: [
+                                        ...sessao.ordem_apresentacoes,
+                                        novaApresentacao,
+                                    ],
+                                };
+                            }
+                            return sessao;
+                        }),
                     };
                 }
                 return espaco;
             });
 
-            setEspacos(novosEspacos);
+            atualizarBoardAtual(novosEspacos);
 
             // remove da lista da esquerda
             setAtracoesNaoAlocadas((prev) =>
@@ -214,17 +301,14 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
             return;
         }
-
         // CASO 2: mover entre espaços
-        const apresentacaoId = active.id;
+        let apresentacaoMovida = null;
 
-        let apresentacaoMovida;
-
-        const novosEspacos = espacos.map((espaco) => ({
+        const novosEspacos = boardAtual.map((espaco) => ({
             ...espaco,
             sessoes: espaco.sessoes.map((sessao) => {
                 const encontrada = sessao.ordem_apresentacoes.find(
-                    (a) => a.id === apresentacaoId,
+                    (a) => a.id === active.id,
                 );
 
                 if (encontrada) {
@@ -233,7 +317,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     return {
                         ...sessao,
                         ordem_apresentacoes: sessao.ordem_apresentacoes.filter(
-                            (a) => a.id !== apresentacaoId,
+                            (a) => a.id !== active.id,
                         ),
                     };
                 }
@@ -243,23 +327,27 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         }));
 
         const resultado = novosEspacos.map((espaco) => {
-            if (espaco.id === novoEspacoId) {
+            if (espaco.id === novoEspacoId && apresentacaoMovida) {
                 return {
                     ...espaco,
-                    sessoes: espaco.sessoes.map((sessao) => ({
-                        // ← Mapeia TODAS as sessões
-                        ...sessao,
-                        ordem_apresentacoes: [
-                            ...sessao.ordem_apresentacoes,
-                            ...(apresentacaoMovida ? [apresentacaoMovida] : []),
-                        ],
-                    })),
+                    sessoes: espaco.sessoes.map((sessao, index) => {
+                        if (index === 0) {
+                            return {
+                                ...sessao,
+                                ordem_apresentacoes: [
+                                    ...sessao.ordem_apresentacoes,
+                                    apresentacaoMovida,
+                                ],
+                            };
+                        }
+                        return sessao;
+                    }),
                 };
             }
             return espaco;
         });
 
-        setEspacos(resultado);
+        atualizarBoardAtual(resultado);
     }
 
     // Card atração arrastável
@@ -391,6 +479,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                     border: 'none',
                                     fontSize: '14px',
                                 }}
+                                onClick={() => setMostrarModalEspacos(true)}
                             >
                                 + Adicionar Espaço
                             </Button>
@@ -401,6 +490,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             <Button
                                 variant="outline-secondary"
                                 className="fw-bold"
+                                onClick={salvarRascunho}
                             >
                                 <MdSave className="me-1" />
                                 Salvar rascunho
@@ -419,7 +509,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             {/* COLUNAS DE ESPAÇO */}
                             <Col md={9}>
                                 <Row className="g-3">
-                                    {espacos.map((espaco) => (
+                                    {boardAtual.map((espaco) => (
                                         <Col key={espaco.id} md={4}>
                                             <EspacoDrop espacoId={espaco.id}>
                                                 {/* HEADER DA SALA */}
@@ -441,7 +531,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                 </div>
 
                                                 {/* Cards */}
-                                                {espaco.sessoes.map((sessao) =>
+                                                {espaco.sessoes?.map((sessao) =>
                                                     sessao.ordem_apresentacoes.map(
                                                         (
                                                             ordem_apresentacao,
@@ -529,6 +619,56 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     </Row>
                 </Container>
             </main>
+            <ModalPopup
+                show={mostrarModalEspacos}
+                titulo="Adicionar Espaço"
+                textoFechar="Cancelar"
+                onFechar={() => setMostrarModalEspacos(false)}
+                textoAcao="" // não usamos botão de ação
+            >
+                <div>
+                    <Form.Control
+                        size="sm"
+                        type="text"
+                        placeholder="Buscar espaço..."
+                        className="mb-2"
+                        value={buscaEspaco}
+                        onChange={(e) => setBuscaEspaco(e.target.value)}
+                    />
+
+                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                        {espacosExistentes.length === 0 && (
+                            <p className="text-muted">
+                                Nenhum espaço disponível
+                            </p>
+                        )}
+
+                        {espacosExistentes
+                            .filter((e) =>
+                                e.nome
+                                    .toLowerCase()
+                                    .includes(buscaEspaco.toLowerCase()),
+                            )
+                            .map((espaco) => (
+                                <div
+                                    key={espaco.id}
+                                    onClick={() =>
+                                        handleSelecionarEspaco(espaco)
+                                    }
+                                    className="p-2 mb-1 border rounded"
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div style={{ fontWeight: 450 }}>
+                                        {espaco.nome}
+                                    </div>
+                                    <small className="text-muted">
+                                        Cap: {espaco.capacidade}
+                                    </small>
+                                </div>
+                            ))}
+                    </div>
+                </div>
+            </ModalPopup>
 
             {/* ALERTAS MOCK */}
             {message && (
@@ -538,6 +678,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             {error && (
                 <Alerta mensagem={error} variacao="danger" duracao={5000} />
             )}
+
             <Footer
                 telefone={'(51) 3333-1234'}
                 endereco={'Rua Alberto Hoffmann, 285'}

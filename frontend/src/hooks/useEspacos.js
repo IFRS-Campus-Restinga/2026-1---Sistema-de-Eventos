@@ -33,6 +33,7 @@ export default function useEspacos() {
                   ? data.results
                   : [];
             setEspacos(listaEspacos);
+            return listaEspacos;
         } catch (erro) {
             console.error('erro ao listar espaços: ', erro);
             setError('Erro ao carregar espaços');
