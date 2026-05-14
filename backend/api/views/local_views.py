@@ -2,7 +2,7 @@ from django.db.models.deletion import RestrictedError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.permissions import AllowAny
 from ..models.local import Local
 from ..serializers import LocalSerializer
 from .perms_generic_view import IsAdmin
@@ -11,8 +11,8 @@ from .perms_generic_view import IsAdmin
 class LocalListView(APIView):
     queryset = Local.objects.all()
     serializer_class = LocalSerializer
-    permission_classes = [IsAdmin]  # modificado
-    # permission_classes = [AllowAny]  # provisório
+    #permission_classes = [IsAdmin]  # modificado
+    permission_classes = [AllowAny]  # provisório
 
     def get(self, request, *args, **kwargs):
         locals = Local.objects.filter(
@@ -32,7 +32,7 @@ class LocalListView(APIView):
 
 class LocalDetailView(APIView):
     # nível de objetos: local específico
-    permission_classes = [IsAdmin]  # modificado
+    permission_classes = [AllowAny]  # modificado
 
     def get_object(self, pk):
         # função "básica" para pegar o local específico, caso exista. Se não existir, retorna None

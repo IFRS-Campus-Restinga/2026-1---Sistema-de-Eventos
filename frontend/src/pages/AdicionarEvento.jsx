@@ -83,10 +83,11 @@ export default function CriarEvento() {
         const areas_conhecimento = areasSelecionadas.map((area)=>area.id)
             // Remove o que não foi encontrado
 
-
+        const modalidades_salvas = modalidadesSelecionadas.map((modalidade)=>modalidade.id)
         console.log("O que tem dentro da lista do banco?", listaAreasDisponiveis[0]);
         console.log("areas selecionadas: ", areasSelecionadas)
         console.log("areas filtradas: ", areas_conhecimento)
+        console.log("areas filtradas: ", modalidades_salvas)
 
         const etapasValidadas = etapas
             .filter((e) => e.tipo_etapa)
@@ -105,8 +106,10 @@ export default function CriarEvento() {
             setor,
             tema,
             local_id: parseInt(localId),
-            area_conhecimento: areas_conhecimento, // ✅ Usa a variável tratada acima
+            area_conhecimento: areas_conhecimento,
+            modalidades: modalidades_salvas,// ✅ Usa a variável tratada acima
             etapas: etapasValidadas,
+            link_edital: linkEdital
         };
 
         console.log('Dados enviados:', dadosEvento);

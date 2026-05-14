@@ -270,6 +270,7 @@ export default function AdicionarEvento({
                                                 onChange={(e) => {
                                                     if (typeof atualizarArea === 'function') {
                                                         atualizarArea(index, e.target.value);
+                                                        console.log(areasSelecionadas)
                                                     }
                                                 }}
                                                 isInvalid={!!errors?.area_conhecimento}

@@ -23,6 +23,8 @@ export default function DetalheEvento() {
                 // Faz a chamada ao backend (Django) passando o ID
                 const dados = await buscarEventoPorId(id);
                 setEvento(dados);
+                console.log("Dados que chegaram da API:", dados.area_conhecimento)
+                console.log("modalidades que chegaram da API:", dados.modalidades)
             } catch (error) {
                 console.error("Erro ao buscar detalhes do evento:", error);
             } finally {
@@ -65,6 +67,17 @@ export default function DetalheEvento() {
                                 <MdSearch className="me-2" /> Consultar Programação
                             </Button>
                         </div>
+                        {/* Verifique se a chave agora é 'area_conhecimento_detalhes' ou similar */}
+                        {evento?.area_conhecimento_detalhes?.map((area, index) => (
+                            <Badge 
+                                key={area.id || index} 
+                                bg="success" 
+                                className="me-2 px-3 py-2"
+                            >
+                                {/* Lembre-se: 'area_conhecimento' é o código, '_display' é o nome bonito */}
+                                {area.area_conhecimento_display || area.area_conhecimento}
+                            </Badge>
+                        ))}
                     </Container>
                 </section>
 

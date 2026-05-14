@@ -7,6 +7,8 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.area_conhecimento import AreaConhecimento
 from .local_serializer import LocalSerializer
 from .etapa_evento_serializer import EtapaEventoSerializer
+from .area_conhecimento_serializer import AreaConhecimentoSerializer
+from .modalidade_serializer import ModalidadeSerializer
 
 class EventoSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(read_only=True)
@@ -14,7 +16,12 @@ class EventoSerializer(serializers.ModelSerializer):
     etapas = EtapaEventoSerializer(many=True, required=False)
     
     # Campo para exibir IDs das modalidades no GET
-    modalidades = serializers.SerializerMethodField()
+    modalidades = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Modalidade.objects.all(),
+        required=False
+    )
+
 
     # Campos de Escrita (Recebem IDs do Frontend)
     local_id = serializers.PrimaryKeyRelatedField(
@@ -23,6 +30,12 @@ class EventoSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     
+    # Para o GET: Mostra o objeto completo (id, nome, etc)
+    # Para o POST: Como é read_only, ele será ignorado no salvamento automático
+    area_conhecimento_detalhes = AreaConhecimentoSerializer(many=True, read_only=True)
+
+    # Adicione este novo campo para o POST/PUT:
+    # Ele permite que você envie uma lista de IDs [1, 2] do React
     area_conhecimento = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=AreaConhecimento.objects.all(),
@@ -45,6 +58,7 @@ class EventoSerializer(serializers.ModelSerializer):
             "descricao",
             "status_evento",
             "carga_horaria",
+            "link_edital",
             "setor",
             "tema",
             "slug",
@@ -53,6 +67,7 @@ class EventoSerializer(serializers.ModelSerializer):
             "etapas",
             "modalidades",
             "area_conhecimento",
+            "area_conhecimento_detalhes",
             "modalidade_ids",
         ]
 
