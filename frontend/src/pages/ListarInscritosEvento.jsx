@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Spinner } from 'react-bootstrap';
+import { Container, Spinner, Button } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -11,12 +11,12 @@ import {
     retirarPresencaInscricaoEvento,
 } from '../services/inscricaoEventoService';
 
-const ITENS_POR_PAGINA = 10;
+const ITENS_POR_PAGINA = 20;
 
 export default function ListarInscritosEvento() {
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
+    const navegate = useNavigate();
     const eventoInicial = String(
         location.state?.eventoId || searchParams.get('eventoId') || '',
     );
@@ -31,6 +31,7 @@ export default function ListarInscritosEvento() {
         variacao: 'danger',
         reacao: 0,
     });
+    const [search, setSearch] = useState('');
 
     const mostrarAlerta = (mensagem, variacao = 'danger') => {
         setAlerta((prev) => ({
@@ -63,32 +64,50 @@ export default function ListarInscritosEvento() {
                 nome:
                     inscricao.perfil_usuario_nome ||
                     `Usuário ${inscricao.perfil_usuario_id || index + 1}`,
-                cpf: inscricao.perfil_usuario_id
-                    ? String(inscricao.perfil_usuario_id)
-                    : '-',
-                email: '-',
-                atracao: inscricao.presente ? 'Presente' : 'Ausente',
-                tipo: inscricao.status || 'PENDENTE',
+                cpf: inscricao.perfil_usuario_cpf
+                    ? String(inscricao.perfil_usuario_cpf)
+                    : inscricao.perfil_usuario_id
+                      ? String(inscricao.perfil_usuario_id)
+                      : '-',
+                email: inscricao.perfil_usuario_email || '-',
                 inscricaoOriginal: inscricao,
             })),
         [inscricoes],
     );
 
+    // muito mais simples, fé
+    const inscritosFiltrados = useMemo(() => {
+        const s = (search || '').trim().toLowerCase();
+        if (!s) return inscritosMapeados;
+        const digits = s.replace(/\D/g, '');
+        return inscritosMapeados.filter((u) => {
+            if (u.nome && u.nome.toLowerCase().includes(s)) return true;
+            if (u.email && u.email.toLowerCase().includes(s)) return true;
+            if (digits && u.cpf && u.cpf.replace(/\D/g, '').includes(digits))
+                return true;
+            return false;
+        });
+    }, [inscritosMapeados, search]);
+
     const totalPaginas = Math.max(
         1,
-        Math.ceil(inscritosMapeados.length / ITENS_POR_PAGINA),
+        Math.ceil(inscritosFiltrados.length / ITENS_POR_PAGINA),
     );
 
     const usuariosPagina = useMemo(() => {
         const inicio = paginaAtual * ITENS_POR_PAGINA;
-        return inscritosMapeados.slice(inicio, inicio + ITENS_POR_PAGINA);
-    }, [inscritosMapeados, paginaAtual]);
+        return inscritosFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA);
+    }, [inscritosFiltrados, paginaAtual]);
 
     useEffect(() => {
         if (paginaAtual > totalPaginas - 1) {
             setPaginaAtual(Math.max(totalPaginas - 1, 0));
         }
     }, [paginaAtual, totalPaginas]);
+
+    useEffect(() => {
+        setPaginaAtual(0);
+    }, [search]);
 
     const paginaAnterior = () => {
         setPaginaAtual((prev) => Math.max(prev - 1, 0));
@@ -133,7 +152,7 @@ export default function ListarInscritosEvento() {
             });
 
             await carregarInscricoes(eventoInicial);
-            mostrarAlerta(`Presença retirada para ${usuario.nome}.`, 'success');
+            mostrarAlerta(`Presença retirada para ${usuario.nome}.`, 'warning');
         } catch (erro) {
             mostrarAlerta(
                 erro?.response?.data?.erro ||
@@ -165,6 +184,25 @@ export default function ListarInscritosEvento() {
                         </div>
                     )}
 
+                    <h1 className="mb-5 text-center">Lista de Inscritos</h1>
+                    <div className="d-flex align-items-center gap-3 mb-3 w-75">
+                        <input
+                            className="form-control"
+                            type="text"
+                            placeholder="Buscar por nome, CPF ou email"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+
+                        <Button
+                            variant="secondary"
+                            className="fw-bold text-white text-decoration-none flex-shrink-0"
+                            onClick={() => navegate(-1)}
+                        >
+                            Voltar
+                        </Button>
+                    </div>
+
                     {loading ? (
                         <div className="text-center py-5">
                             <Spinner animation="border" variant="success" />
@@ -174,12 +212,12 @@ export default function ListarInscritosEvento() {
                         </div>
                     ) : (
                         <ListaInscritos
-                            titulo="Inscritos do Evento"
+                            titulo=""
                             usuarios={usuariosPagina}
                             habilitarPresenca={true}
                             onRegistrarPresenca={registrarPresenca}
                             onRetirarPresenca={retirarPresenca}
-                            onVoltar={() => navigate(-1)}
+                            // onVoltar={() => navigate(-1)}
                             colunasVisiveis={[
                                 'usuario',
                                 'cpf',

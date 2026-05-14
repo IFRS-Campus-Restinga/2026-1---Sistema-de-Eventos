@@ -16,6 +16,12 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
     perfil_usuario_id = serializers.IntegerField(
         source="perfil.usuario.id", read_only=True
     )
+    perfil_usuario_email = serializers.CharField(
+        source="perfil.usuario.email", read_only=True, allow_null=True
+    )
+    perfil_usuario_cpf = serializers.CharField(
+        source="perfil.usuario.cpf", read_only=True, allow_null=True
+    )
     perfil_id = serializers.PrimaryKeyRelatedField(
         queryset=Perfil.objects.all(),
         source="perfil",
@@ -110,6 +116,8 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "data_hora",
             "perfil_usuario_nome",
             "perfil_usuario_id",
+            "perfil_usuario_email",
+            "perfil_usuario_cpf",
             "perfil_id",
             "evento_id",
             "evento_slug",

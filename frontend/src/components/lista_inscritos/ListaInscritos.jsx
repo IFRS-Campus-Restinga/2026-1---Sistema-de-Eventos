@@ -5,6 +5,7 @@ import {
     MdChevronLeft,
     MdChevronRight,
     MdDelete,
+    MdClose,
 } from 'react-icons/md';
 
 const coresPerfil = {
@@ -274,12 +275,24 @@ export default function ListaInscritos({
                                                                             usuario.id,
                                                                         )
                                                                             ? '#38A149'
-                                                                            : '#6c757d',
+                                                                            : '#868484',
                                                                 }}
                                                             >
-                                                                <MdCheckCircle
-                                                                    size={18}
-                                                                />
+                                                                {presencasRegistradas.has(
+                                                                    usuario.id,
+                                                                ) ? (
+                                                                    <MdCheckCircle
+                                                                        size={
+                                                                            18
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <MdClose
+                                                                        size={
+                                                                            18
+                                                                        }
+                                                                    />
+                                                                )}
                                                             </Button>
                                                         )}
 
