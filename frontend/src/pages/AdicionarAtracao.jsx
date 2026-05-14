@@ -31,7 +31,7 @@ export default function AdicionarAtracao() {
         acessibilidade: false,
         evento: '',
         status: 'PREVISTA',
-        equipe: [{ nome: '', instituicao_curso: '', funcao: 'COAUTOR' }],
+        equipe: []
     });
 
     const [opcoes, setOpcoes] = useState({
@@ -43,6 +43,7 @@ export default function AdicionarAtracao() {
     });
     const [eventos, setEventos] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
@@ -104,9 +105,11 @@ export default function AdicionarAtracao() {
     }, []);
 
     const handleSalvarRascunho = async () => {
+        if (isLoading) return;
         const dadosRascunho = { ...formState, status: 'RASCUNHO' };
 
         try {
+            setIsLoading(true);
             await salvarRascunho(dadosRascunho);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
             setTimeout(() => navigate('/listar_atracoes'), 1500);
@@ -117,32 +120,24 @@ export default function AdicionarAtracao() {
                 JSON.stringify(erro.response?.data) ||
                 'Erro ao salvar rascunho. Por favor, tente novamente.';
             mostrarAlerta(msg);
+            setIsLoading(false);
         }
     };
 
     const handleSubmeter = async () => {
-        if (
-            !formState.titulo ||
-            !formState.resumo ||
-            !formState.modalidade ||
-            !formState.nivel_ensino ||
-            !formState.area_conhecimento ||
-            !formState.evento
-        ) {
-            mostrarAlerta(
-                'Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.',
-            );
+        if (isLoading) return;
+        if (!formState.titulo || !formState.resumo || !formState.modalidade || !formState.nivel_ensino || !formState.area_conhecimento || !formState.evento) {
+            mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
             return;
         }
 
-        if (formState.equipe.length === 0 || !formState.equipe[0].nome) {
-            mostrarAlerta(
-                'Por favor, adicione pelo menos um autor na seção de Equipe.',
-            );
+        if (formState.equipe.length === 0) {
+            mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
             return;
         }
 
         try {
+            setIsLoading(true);
             const dadosSubmissao = { ...formState, status: 'PREVISTA' };
             await criarAtracao(dadosSubmissao);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
@@ -154,6 +149,7 @@ export default function AdicionarAtracao() {
                 JSON.stringify(erro.response?.data) ||
                 'Erro ao cadastrar. Por favor, tente novamente.';
             mostrarAlerta(msg);
+            setIsLoading(false);
         }
     };
 
@@ -177,6 +173,7 @@ export default function AdicionarAtracao() {
                                 opcoes={opcoes}
                                 eventos={eventos}
                                 usuarios={usuarios}
+                                isLoading={isLoading}
                                 handleSalvarRascunho={handleSalvarRascunho}
                                 handleSubmeter={handleSubmeter}
                             />

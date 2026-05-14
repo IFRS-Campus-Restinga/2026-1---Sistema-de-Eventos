@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 
 const LIMITS = {
     titulo: { min: 3, max: 250 },
-    resumo: { minWords: 250, maxWords: 500 },
+    resumo: { minWords: 1, maxWords: 500 },
     palavras_chave: { max: 250 },
 };
 
@@ -16,6 +16,7 @@ export default function CriarAtracaoCard({
     opcoes,
     eventos,
     usuarios,
+    isLoading = false,
     handleSalvarRascunho,
     handleSubmeter,
 }) {
@@ -40,7 +41,7 @@ export default function CriarAtracaoCard({
                 break;
             case 'resumo':
                 if (!value || wordCount < LIMITS.resumo.minWords) {
-                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavras (atual: ${wordCount})`;
+                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavra (atual: ${wordCount})`;
                 }
                 if (wordCount > LIMITS.resumo.maxWords) {
                     return `Resumo deve ter no máximo ${LIMITS.resumo.maxWords} palavras (atual: ${wordCount})`;
@@ -256,7 +257,7 @@ export default function CriarAtracaoCard({
                         <Form.Control
                             as="textarea"
                             rows={6}
-                            placeholder="Mínimo de 250 e máximo de 500 palavras"
+                            placeholder="Mínimo de 1 e máximo de 500 palavras"
                             value={formState.resumo}
                             onChange={(e) => handleChange('resumo', e.target.value)}
                             onBlur={() => handleBlur('resumo')}
@@ -367,7 +368,7 @@ export default function CriarAtracaoCard({
                     </div>
 
                     <div className="mt-4">
-                        <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Autores e Coautores</h6>
+                        <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Membros da Equipe</h6>
                         <Table hover className="mt-3 align-middle" style={{ border: '1px solid #dee2e6', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #dee2e6' }}>
@@ -378,16 +379,6 @@ export default function CriarAtracaoCard({
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Linha do Autor Principal */}
-                                <tr style={{ borderBottom: '1px solid #dee2e6' }}>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>João Silva (Você)</td>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>Sistemas de Informação</td>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                        <span className="badge rounded-pill px-2 py-2 fw-bold" style={{ backgroundColor: '#3B82F6', minWidth: '100px' }}>Autor Principal</span>
-                                    </td>
-                                    <td className="text-center py-2">-</td>
-                                </tr>
-
                                 {formState.equipe.map((membro, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
@@ -403,16 +394,28 @@ export default function CriarAtracaoCard({
                                             <Form.Select 
                                                 value={membro.instituicao_curso}
                                                 onChange={(e) => handleMembroChange(index, 'instituicao_curso', e.target.value)}
-                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
-                                                className="bg-white"
+                                                disabled={true}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: '#e9ecef' }}
+                                                className="bg-disabled"
                                             >
-                                                <option value="">Sistemas de Informação</option>
+                                                <option value="">Curso/Instituição (auto-preenchido)</option>
+                                                <option value="Sistemas de Informação">Sistemas de Informação</option>
                                                 <option value="Administração">Administração</option>
                                                 <option value="Eletrônica">Eletrônica</option>
                                             </Form.Select>
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <span style={{ color: '#666' }}>Coautor</span>
+                                            <Form.Select 
+                                                value={membro.funcao || ''}
+                                                onChange={(e) => handleMembroChange(index, 'funcao', e.target.value)}
+                                                disabled={!membro.nome}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.nome ? '#e9ecef' : '#fff' }}
+                                            >
+                                                <option value="">Selecione um papel</option>
+                                                <option value="COAUTOR">Co-autor</option>
+                                                <option value="APRESENTADOR">Apresentador</option>
+                                                <option value="REVISOR">Revisor</option>
+                                            </Form.Select>
                                         </td>
                                         <td className="text-center py-2">
                                             <Button 
@@ -436,7 +439,7 @@ export default function CriarAtracaoCard({
                             className="d-flex align-items-center gap-2 px-3 py-2 fw-bold mt-3"
                             style={{ backgroundColor: '#3B9BFF', border: 'none', borderRadius: '10px' }}
                         >
-                            <BsPlusCircleFill size={18} /> Adicionar Coautor
+                            <BsPlusCircleFill size={18} /> Adicionar Membro da Equipe
                         </Button>
                     </div>
                 </SecaoFormulario>
@@ -480,19 +483,21 @@ export default function CriarAtracaoCard({
                     <Button 
                         variant="secondary" 
                         className="px-4 shadow-sm"
-                        style={{ backgroundColor: '#707070', border: 'none', borderRadius: '12px' }}
+                        disabled={isLoading}
+                        style={{ backgroundColor: isLoading ? '#9aa0a6' : '#707070', border: 'none', borderRadius: '12px' }}
                         onClick={handleSalvarRascunhoClick}
                     >
-                        Salvar rascunho
+                        {isLoading ? 'Salvando...' : 'Salvar rascunho'}
                     </Button>
 
                     <Button 
                         onClick={handleSubmeterClick}
+                        disabled={isLoading}
                         variant="success" 
                         className="px-4 d-flex align-items-center gap-2 shadow-sm"
-                        style={{ backgroundColor: '#38A149', border: 'none', borderRadius: '12px' }}
+                        style={{ backgroundColor: isLoading ? '#8cc79a' : '#38A149', border: 'none', borderRadius: '12px' }}
                     >
-                        <BsCheckCircle size={20} /> Submeter o Trabalho
+                        <BsCheckCircle size={20} /> {isLoading ? 'Enviando...' : 'Submeter o Trabalho'}
                     </Button>
                 </div>
             </Form>
