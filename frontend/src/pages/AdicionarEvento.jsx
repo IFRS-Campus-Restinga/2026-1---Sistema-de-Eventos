@@ -32,8 +32,11 @@ export default function CriarEvento() {
     const [etapas, setEtapas] = useState([]);
     const [areasSelecionadas, setAreasSelecionadas] = useState([]);
     const [listaAreasDisponiveis, setListaAreasDisponiveis] = useState([]);
+    const [modalidades, setModalidades] = useState([])
+    const [modalidadesSelecionadas,setModalidadesSelecionadas] = useState([])
     const [etapaId, setEtapaId] = useState('');
     const [areaConhecimentoId, setAreaConhecimentoId] = useState('');
+    const [linkEdital, setLinkEdital] = useState('');
 
     useEffect(() => {
         const carregarDados = async () => {
@@ -76,21 +79,14 @@ export default function CriarEvento() {
         setExibirErro(false);
 
         // ✅ 1. Preparar IDs das áreas (Array de números)
-        const area_conhecimento = areasSelecionadas
-            .map((a) => {
-                const valorString = a.area_id; // Ex: "EXATAS_TERRA"
+        // ✅ Correção definitiva para converter Texto em ID numérico
+        const areas_conhecimento = areasSelecionadas.map((area)=>area.id)
+            // Remove o que não foi encontrado
 
-                // Procura na lista que veio do banco o objeto que tem essa string
-                const areaEncontrada = listaAreasDisponiveis.find(
-                    (areaBanco) => areaBanco.area_conhecimento === valorString,
-                );
 
-                // Retorna o ID numérico (ex: 1) ou o próprio valor se já for número
-                return areaEncontrada
-                    ? areaEncontrada.id
-                    : parseInt(valorString);
-            })
-            .filter((id) => !isNaN(id));
+        console.log("O que tem dentro da lista do banco?", listaAreasDisponiveis[0]);
+        console.log("areas selecionadas: ", areasSelecionadas)
+        console.log("areas filtradas: ", areas_conhecimento)
 
         const etapasValidadas = etapas
             .filter((e) => e.tipo_etapa)
@@ -109,7 +105,7 @@ export default function CriarEvento() {
             setor,
             tema,
             local_id: parseInt(localId),
-            area_conhecimento: area_conhecimento, // ✅ Usa a variável tratada acima
+            area_conhecimento: areas_conhecimento, // ✅ Usa a variável tratada acima
             etapas: etapasValidadas,
         };
 
@@ -175,6 +171,12 @@ export default function CriarEvento() {
                                 setListaAreasDisponiveis={
                                     setListaAreasDisponiveis
                                 }
+                                modalidades={modalidades}
+                                setModalidades={setModalidades}
+                                modalidadesSelecionadas={modalidadesSelecionadas}
+                                setModalidadesSelecionadas={setModalidadesSelecionadas}
+                                linkEdital={linkEdital}
+                                setLinkEdital = {setLinkEdital}
                             />
                         </Col>
                     </Row>

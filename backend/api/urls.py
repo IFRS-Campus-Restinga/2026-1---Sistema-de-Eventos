@@ -53,6 +53,7 @@ from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
+from .views.area_conhecimento_view import AreaConhecimentoViewSet
 
 app_name = "api"
 
@@ -95,7 +96,7 @@ urlpatterns = [
     path("criterio_avaliacao/<int:pk>/", CriterioAvaliacaoDetailView.as_view()),
     path("etapas_evento/", EtapaEventoListView.as_view()),
     path("etapas_evento/<int:pk>/", EtapaEventoDetailView.as_view()),
-    path('areas_conhecimento/', EnumChoicesAPIView.as_view(enum_class=AreaConhecimentoEscolha)),
+    path('areas_conhecimento/', AreaConhecimentoViewSet.as_view({'get': 'list'})),
     path('setores/', EnumChoicesAPIView.as_view(enum_class=Setor)),
 
     # cronogramas

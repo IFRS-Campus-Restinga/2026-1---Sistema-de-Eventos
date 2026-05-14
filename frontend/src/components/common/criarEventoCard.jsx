@@ -33,6 +33,7 @@ export default function AdicionarEvento({
     listaAreasDisponiveis,setListaAreasDisponiveis,
     modalidades,setModalidades,
     modalidadesSelecionadas,setModalidadesSelecionadas,
+    linkEdital,setLinkEdital,
     errors, setErrors,
     opcoes, 
     exibirSucesso, 
@@ -77,13 +78,14 @@ export default function AdicionarEvento({
 
     // ✅ Lógica das Áreas de Conhecimento
     const adicionarArea = () => {
-        setAreasSelecionadas([...areasSelecionadas, { area_id: '' }]);
+        setAreasSelecionadas([...areasSelecionadas, { id: '' }]);
     };
 
     const atualizarArea = (index, valor) => {
         const novas = [...areasSelecionadas];
-        novas[index].area_id = valor;
+        novas[index].id = valor;
         setAreasSelecionadas(novas);
+        console.log(novas)
     };
 
     const removerArea = (index) => {
@@ -264,7 +266,7 @@ export default function AdicionarEvento({
                                     <Row className="align-items-center g-2">
                                         <Col md={10}>
                                             <Form.Select 
-                                                value={item.area_id || ""} 
+                                                value={item.id || ""} 
                                                 onChange={(e) => {
                                                     if (typeof atualizarArea === 'function') {
                                                         atualizarArea(index, e.target.value);
@@ -275,8 +277,8 @@ export default function AdicionarEvento({
                                                 <option value="">Selecione uma área...</option>
                                                 {/* ✅ Mapeamento corrigido para usar 'value' e 'label' do seu Banco de Dados */}
                                                 {listaAreasDisponiveis?.map((opt) => (
-                                                    <option key={`area-opt-${opt.value}`} value={opt.value}>
-                                                        {opt.label}
+                                                    <option key={`area-opt-${opt.id}`} value={opt.id}>
+                                                        {opt.area_conhecimento}
                                                     </option>
                                                 ))}
                                             </Form.Select>
@@ -369,17 +371,24 @@ export default function AdicionarEvento({
                       
 
 
-                    {/* SEÇÃO 5: ANEXOS */}
-                    <SecaoFormulario icone={MdAttachFile} titulo="Anexos e Finalização">
+                    {/* Substitua a Seção 5 de Anexos por esta */}
+                    <SecaoFormulario icone={MdAttachFile} titulo="Link do Edital">
                         <div className="alert alert-info py-2 mb-3" style={{ fontSize: '0.85rem' }}>
-                            Selecione os arquivos vinculados a este evento.
+                            Insira o link oficial do edital publicado no site do campus.
                         </div>
                         <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>Adicionar Arquivo</Form.Label>
-                            <div className="p-3 border rounded bg-white d-flex align-items-center gap-3">
-                                <Form.Control type="file" className="w-auto" />
-                                <span className="text-muted small">Nenhum arquivo escolhido</span>
-                            </div>
+                            <Form.Label className="fw-bold">URL do Edital</Form.Label>
+                            <Form.Control 
+                                type="url"
+                                placeholder="https://restinga.ifrs.edu.br/editais/..."
+                                value={linkEdital}
+                                onChange={(e) => setLinkEdital(e.target.value)}
+                                isInvalid={!!errors?.link_edital}
+                                style={{ backgroundColor: '#eeeeee' }}
+                            />
+                            <Form.Control.Feedback type="invalid">
+                                {errors?.link_edital}
+                            </Form.Control.Feedback>
                         </Form.Group>
                     </SecaoFormulario>
 

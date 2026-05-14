@@ -8,21 +8,27 @@ from ..models.area_conhecimento import AreaConhecimento
 from .local_serializer import LocalSerializer
 from .etapa_evento_serializer import EtapaEventoSerializer
 
-
 class EventoSerializer(serializers.ModelSerializer):
+    # Campos de Leitura (Representação completa)
     local = LocalSerializer(read_only=True)
+    etapas = EtapaEventoSerializer(many=True, required=False)
+    
+    # Campo para exibir IDs das modalidades no GET
+    modalidades = serializers.SerializerMethodField()
+
+    # Campos de Escrita (Recebem IDs do Frontend)
     local_id = serializers.PrimaryKeyRelatedField(
         queryset=Local.objects.all(),
         source="local",
         write_only=True,
     )
-    # Garanta que many=True esteja aqui para o M2M
+    
     area_conhecimento = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=AreaConhecimento.objects.all(),
+        required=False
     )
-    etapas = EtapaEventoSerializer(many=True, required=False)
-    modalidades = serializers.SerializerMethodField()
+    
     modalidade_ids = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=Modalidade.objects.all(),
@@ -36,26 +42,24 @@ class EventoSerializer(serializers.ModelSerializer):
         fields = [
             "id", "nome", "descricao", "status_evento", "carga_horaria",
             "setor", "tema", "local", "local_id", "etapas", 
-            "modalidades", "area_conhecimento", "modalidade_ids",
+            "modalidades", "area_conhecimento", "modalidade_ids", "link_edital",
         ]
 
+    def get_modalidades(self, obj):
+        return list(obj.modalidades.values_list("id", flat=True))
+
     def create(self, validated_data):
-        # 1. Extração segura dos dados
-        # O DRF coloca os dados de M2M com 'source' na chave do source
+        # 1. Extração dos dados aninhados e M2M
         etapas_data = validated_data.pop('etapas', [])
         areas_data = validated_data.pop('area_conhecimento', [])
-        print(f"Conteúdo de etapas_data: {areas_data}")
-        modalidades_data = validated_data.pop('modalidades', []) # Devido ao source="modalidades"
+        modalidades_data = validated_data.pop('modalidades', []) # 'modalidades' devido ao source="modalidades" em modalidade_ids
 
-        # 2. Uso de Transação Atômica
-        # Se as etapas falharem, o evento não é criado (evita lixo no banco)
         try:
             with transaction.atomic():
-                # Cria o evento base
+                # 2. Cria o evento base
                 evento = Evento.objects.create(**validated_data)
 
-                # 3. Salva relações ManyToMany
-                # Importante: usar .set() para listas de objetos/IDs
+                # 3. Define as relações ManyToMany (O .set() garante que salve apenas o enviado)
                 if areas_data:
                     evento.area_conhecimento.set(areas_data)
                 
@@ -63,34 +67,43 @@ class EventoSerializer(serializers.ModelSerializer):
                     evento.modalidades.set(modalidades_data)
 
                 # 4. Criação das Etapas (Relacionamento 1:N)
-                for etapa_data in etapas_data:
-                    # Removemos o evento_id se o front enviou, pois o vínculo é manual aqui
-                    etapa_data.pop('evento', None) 
-                    EtapaEvento.objects.create(evento=evento, **etapa_data)
+                for etapa_item in etapas_data:
+                    etapa_item.pop('evento', None) 
+                    EtapaEvento.objects.create(evento=evento, **etapa_item)
 
                 return evento
         except Exception as e:
-            # Isso ajudará você a ver o erro real no terminal se algo falhar no banco
-            print(f"Erro ao criar evento e dependências: {str(e)}")
-            raise serializers.ValidationError({"detail": f"Erro interno: {str(e)}"})
-
-    def get_modalidades(self, obj):
-        return list(obj.modalidades.values_list("id", flat=True))
+            print(f"Erro no Create: {str(e)}")
+            raise serializers.ValidationError({"detail": f"Erro ao criar evento: {str(e)}"})
 
     def update(self, instance, validated_data):
-        # 1. Extrai os dados das etapas enviados pelo React (se houver)
+        # 1. Extração dos dados (None permite saber se o campo foi enviado ou não)
         etapas_data = validated_data.pop('etapas', None)
-        
-        # 2. Atualiza todos os outros campos normais do Evento
-        instance = super().update(instance, validated_data)
+        areas_data = validated_data.pop('area_conhecimento', None)
+        modalidades_data = validated_data.pop('modalidades', None)
 
-        # 3. Se a lista de etapas veio na requisição, atualizamos os registros filhos
-        if etapas_data is not None:
-            # Estratégia simples e segura: remove as etapas antigas do evento...
-            instance.etapas.all().delete()
-            
-            # ...e recria as que foram enviadas agora
-            for etapa_data in etapas_data:
-                EtapaEvento.objects.create(evento=instance, **etapa_data)
-        
-        return instance
+        try:
+            with transaction.atomic():
+                # 2. Atualiza campos simples (nome, tema, setor, etc.)
+                instance = super().update(instance, validated_data)
+
+                # 3. Atualiza Áreas de Conhecimento
+                if areas_data is not None:
+                    instance.area_conhecimento.set(areas_data)
+
+                # 4. Atualiza Modalidades
+                if modalidades_data is not None:
+                    instance.modalidades.set(modalidades_data)
+
+                # 5. Atualiza Etapas (Independente das modalidades)
+                if etapas_data is not None:
+                    # Remove as antigas e recria as novas para sincronizar o estado do formulário
+                    instance.etapas.all().delete()
+                    for etapa_item in etapas_data:
+                        etapa_item.pop('evento', None)
+                        EtapaEvento.objects.create(evento=instance, **etapa_item)
+
+                return instance
+        except Exception as e:
+            print(f"Erro no Update: {str(e)}")
+            raise serializers.ValidationError({"detail": f"Erro ao atualizar evento: {str(e)}"})

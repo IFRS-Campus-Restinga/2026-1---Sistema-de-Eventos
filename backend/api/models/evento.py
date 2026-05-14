@@ -61,8 +61,11 @@ class Evento(Base):
         null=False,
         blank=False,
     )
+    link_edital = models.URLField(max_length=500, 
+                                  null=True, 
+                                  blank=True)
 
-    # futuramente, fazer relacionamento com local
+
     class Meta:
         permissions = [
             ("coordenar_evento", "Pode coordenar este evento"),
