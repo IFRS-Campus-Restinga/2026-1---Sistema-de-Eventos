@@ -17,6 +17,7 @@ export default function ListaInscritos({
     titulo = 'Lista de Inscritos',
     usuarios = [],
     habilitarPresenca = false,
+    colunasVisiveis,
     onRegistrarPresenca,
     onRetirarPresenca,
     onExcluir,
@@ -34,6 +35,72 @@ export default function ListaInscritos({
     const temAcaoExcluir = typeof onExcluir === 'function';
     const temAcoes = temAcaoRegistrar || temAcaoRetirar || temAcaoExcluir;
     const [presencasLocais, setPresencasLocais] = useState(new Set());
+
+    // Definição das colunas disponíveis e renderers
+    const definicoesColunas = [
+        {
+            key: 'usuario',
+            label: 'USUÁRIO',
+            thClass: 'py-3 px-4 fw-bold text-muted small',
+            tdClass: 'px-4 py-3 text-dark fw-medium',
+            render: (u) => u.nome ?? '-',
+        },
+        {
+            key: 'cpf',
+            label: 'CPF',
+            thClass: 'py-3 px-3 fw-bold text-muted small',
+            tdClass: 'px-3 py-3 text-secondary',
+            render: (u) => (u.cpf ? u.cpf.replace(/[^0-9]/g, '') : '-'),
+        },
+        {
+            key: 'email',
+            label: 'EMAIL',
+            thClass: 'py-3 px-3 fw-bold text-muted small',
+            tdClass: 'px-3 py-3 text-secondary',
+            render: (u) => u.email ?? '-',
+        },
+        {
+            key: 'atracao',
+            label: 'ATRAÇÃO',
+            thClass: 'py-3 px-3 fw-bold text-muted small',
+            tdClass: 'px-3 py-3 text-dark fw-bold',
+            render: (u) => u.atracao ?? '-',
+        },
+        {
+            key: 'perfis',
+            label: 'PERFIS NO EVENTO',
+            thClass: 'py-3 px-3 fw-bold text-muted small',
+            tdClass: 'px-3 py-3',
+            render: (u) => (
+                <span
+                    className="badge rounded-pill px-3 py-2 fw-bold"
+                    style={{
+                        backgroundColor: coresPerfil[u.tipo] || '#6c757d',
+                        color: 'white',
+                        fontSize: '0.8rem',
+                    }}
+                >
+                    {u.tipo ?? '-'}
+                </span>
+            ),
+        },
+        {
+            key: 'acoes',
+            label: 'AÇÕES',
+            thClass: 'py-3 px-4 fw-bold text-muted small text-center',
+            tdClass: 'px-4 py-3 text-center',
+            render: null, // render tratado separadamente
+        },
+    ];
+
+    const colunasTodas = definicoesColunas.map((c) => c.key);
+    const visiveis =
+        Array.isArray(colunasVisiveis) && colunasVisiveis.length
+            ? // mantém a ordem da definição das colunas
+              definicoesColunas
+                  .map((c) => c.key)
+                  .filter((k) => colunasVisiveis.includes(k))
+            : colunasTodas;
 
     // Usar presenças externas se fornecidas, caso contrário usar as locais
     const presencasRegistradas =
@@ -128,44 +195,23 @@ export default function ListaInscritos({
                         }}
                     >
                         <tr>
-                            <th
-                                className="py-3 px-4 fw-bold text-muted small"
-                                style={{ letterSpacing: '0.05em' }}
-                            >
-                                USUÁRIO
-                            </th>
-                            <th
-                                className="py-3 px-3 fw-bold text-muted small"
-                                style={{ letterSpacing: '0.05em' }}
-                            >
-                                Nº DE INSCRIÇÃO
-                            </th>
-                            <th
-                                className="py-3 px-3 fw-bold text-muted small"
-                                style={{ letterSpacing: '0.05em' }}
-                            >
-                                EMAIL
-                            </th>
-                            <th
-                                className="py-3 px-3 fw-bold text-muted small"
-                                style={{ letterSpacing: '0.05em' }}
-                            >
-                                ATRAÇÃO
-                            </th>
-                            <th
-                                className="py-3 px-3 fw-bold text-muted small"
-                                style={{ letterSpacing: '0.05em' }}
-                            >
-                                PERFIS NO EVENTO
-                            </th>
-                            {temAcoes && (
-                                <th
-                                    className="py-3 px-4 fw-bold text-muted small text-center"
-                                    style={{ letterSpacing: '0.05em' }}
-                                >
-                                    AÇÕES
-                                </th>
-                            )}
+                            {visiveis.map((key) => {
+                                const def = definicoesColunas.find(
+                                    (c) => c.key === key,
+                                );
+                                if (!def) return null;
+                                if (def.key === 'acoes' && !temAcoes)
+                                    return null;
+                                return (
+                                    <th
+                                        key={def.key}
+                                        className={def.thClass}
+                                        style={{ letterSpacing: '0.05em' }}
+                                    >
+                                        {def.label}
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
 
@@ -173,7 +219,12 @@ export default function ListaInscritos({
                         {usuarios.length === 0 ? (
                             <tr style={{ backgroundColor: '#f8f9fa' }}>
                                 <td
-                                    colSpan={temAcoes ? 6 : 5}
+                                    colSpan={
+                                        visiveis.filter(
+                                            (k) =>
+                                                !(k === 'acoes' && !temAcoes),
+                                        ).length
+                                    }
                                     className="px-4 py-4 text-center text-muted"
                                 >
                                     Nenhum usuário encontrado.
@@ -188,106 +239,100 @@ export default function ListaInscritos({
                                         backgroundColor: '#f8f9fa',
                                     }}
                                 >
-                                    <td
-                                        className="px-4 py-3 text-dark fw-medium"
-                                        style={{ fontSize: '0.95rem' }}
-                                    >
-                                        {usuario.nome ?? '-'}
-                                    </td>
-                                    <td
-                                        className="px-3 py-3 text-secondary"
-                                        style={{ fontSize: '0.9rem' }}
-                                    >
-                                        {usuario.cpf
-                                            ? usuario.cpf.replace(/[^0-9]/g, '')
-                                            : '-'}
-                                    </td>
-                                    <td
-                                        className="px-3 py-3 text-secondary"
-                                        style={{ fontSize: '0.9rem' }}
-                                    >
-                                        {usuario.email ?? '-'}
-                                    </td>
-                                    <td
-                                        className="px-3 py-3 text-dark fw-bold"
-                                        style={{ fontSize: '0.95rem' }}
-                                    >
-                                        {usuario.atracao ?? '-'}
-                                    </td>
-                                    <td className="px-3 py-3">
-                                        <span
-                                            className="badge rounded-pill px-3 py-2 fw-bold"
-                                            style={{
-                                                backgroundColor:
-                                                    coresPerfil[usuario.tipo] ||
-                                                    '#6c757d',
-                                                color: 'white',
-                                                fontSize: '0.8rem',
-                                            }}
-                                        >
-                                            {usuario.tipo ?? '-'}
-                                        </span>
-                                    </td>
+                                    {visiveis.map((key) => {
+                                        const def = definicoesColunas.find(
+                                            (c) => c.key === key,
+                                        );
+                                        if (!def) return null;
+                                        if (def.key === 'acoes' && !temAcoes)
+                                            return null;
 
-                                    {temAcoes && (
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="d-flex justify-content-center gap-2">
-                                                {(temAcaoRegistrar ||
-                                                    temAcaoRetirar) && (
-                                                    <Button
-                                                        variant="secondary"
-                                                        className="p-1 border-0 d-inline-flex align-items-center justify-content-center"
-                                                        onClick={() =>
-                                                            togglePresenca(
-                                                                usuario,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            borderRadius: '4px',
-                                                            width: '34px',
-                                                            height: '34px',
-                                                            backgroundColor:
-                                                                presencasRegistradas.has(
-                                                                    usuario.id,
-                                                                )
-                                                                    ? '#38A149'
-                                                                    : '#6c757d',
-                                                        }}
-                                                    >
-                                                        <MdCheckCircle
-                                                            size={18}
-                                                        />
-                                                    </Button>
-                                                )}
+                                        if (def.key === 'acoes') {
+                                            return (
+                                                <td
+                                                    key={key}
+                                                    className={def.tdClass}
+                                                >
+                                                    <div className="d-flex justify-content-center gap-2">
+                                                        {(temAcaoRegistrar ||
+                                                            temAcaoRetirar) && (
+                                                            <Button
+                                                                variant="secondary"
+                                                                className="p-1 border-0 d-inline-flex align-items-center justify-content-center"
+                                                                onClick={() =>
+                                                                    togglePresenca(
+                                                                        usuario,
+                                                                    )
+                                                                }
+                                                                style={{
+                                                                    borderRadius:
+                                                                        '4px',
+                                                                    width: '34px',
+                                                                    height: '34px',
+                                                                    backgroundColor:
+                                                                        presencasRegistradas.has(
+                                                                            usuario.id,
+                                                                        )
+                                                                            ? '#38A149'
+                                                                            : '#6c757d',
+                                                                }}
+                                                            >
+                                                                <MdCheckCircle
+                                                                    size={18}
+                                                                />
+                                                            </Button>
+                                                        )}
 
-                                                {temAcaoExcluir && (
-                                                    <Button
-                                                        variant="light"
-                                                        className="p-1 border-0"
-                                                        style={{
-                                                            color: 'white',
-                                                            backgroundColor:
-                                                                '#e24c4c',
-                                                            borderRadius: '4px',
-                                                            width: '34px',
-                                                            height: '34px',
-                                                            display:
-                                                                'inline-flex',
-                                                            alignItems:
-                                                                'center',
-                                                            justifyContent:
-                                                                'center',
-                                                        }}
-                                                        onClick={() =>
-                                                            onExcluir(usuario)
-                                                        }
-                                                    >
-                                                        <MdDelete size={18} />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    )}
+                                                        {temAcaoExcluir && (
+                                                            <Button
+                                                                variant="light"
+                                                                className="p-1 border-0"
+                                                                style={{
+                                                                    color: 'white',
+                                                                    backgroundColor:
+                                                                        '#e24c4c',
+                                                                    borderRadius:
+                                                                        '4px',
+                                                                    width: '34px',
+                                                                    height: '34px',
+                                                                    display:
+                                                                        'inline-flex',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                }}
+                                                                onClick={() =>
+                                                                    onExcluir(
+                                                                        usuario,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <MdDelete
+                                                                    size={18}
+                                                                />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            );
+                                        }
+
+                                        return (
+                                            <td
+                                                key={key}
+                                                className={def.tdClass}
+                                                style={{
+                                                    fontSize:
+                                                        def.key === 'usuario'
+                                                            ? '0.95rem'
+                                                            : '0.9rem',
+                                                }}
+                                            >
+                                                {def.render(usuario)}
+                                            </td>
+                                        );
+                                    })}
                                 </tr>
                             ))
                         )}

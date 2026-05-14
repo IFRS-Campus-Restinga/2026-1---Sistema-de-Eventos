@@ -1,23 +1,23 @@
 from rest_framework import serializers
 
-from ..models.criterio_avaliacao_atracao import CriterioAvaliacaoAtracao
+from ..models.criterio_avaliacao_submissao import CriterioAvaliacaoSubmissao
 
 
-class CriterioAvaliacaoAtracaoSerializer(serializers.ModelSerializer):
+class CriterioAvaliacaoSubmissaoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CriterioAvaliacaoAtracao
+        model = CriterioAvaliacaoSubmissao
         fields = ["id", "nome", "descricao", "modalidade"]
 
     def validate_modalidade(self, value):
-        # aceitar vínculo de critério quando a modalidade requer avaliação
-        if not (value.requer_avaliacao or value.requer_avaliacao_submissao):
+        # aceitar vínculo de critério quando a modalidade requer avaliação de submissão
+        if not value.requer_avaliacao_submissao:
             raise serializers.ValidationError(
-                "Não é possível vincular um critério a uma modalidade que não requer avaliação."
+                "Não é possível vincular um critério a uma modalidade que não requer avaliação de submissão."
             )
         return value
 
     def create(self, validated_data):
-        instance = CriterioAvaliacaoAtracao(**validated_data)
+        instance = CriterioAvaliacaoSubmissao(**validated_data)
         instance.full_clean()
         instance.save()
         return instance

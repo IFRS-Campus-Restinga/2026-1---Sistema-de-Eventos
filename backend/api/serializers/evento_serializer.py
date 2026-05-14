@@ -9,7 +9,7 @@ from .local_serializer import LocalSerializer
 from .etapa_evento_serializer import EtapaEventoSerializer
 
 class EventoSerializer(serializers.ModelSerializer):
-    # Campos de Leitura (Representação completa)
+    slug = serializers.SlugField(read_only=True)
     local = LocalSerializer(read_only=True)
     etapas = EtapaEventoSerializer(many=True, required=False)
     
@@ -40,19 +40,34 @@ class EventoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evento
         fields = [
-            "id", "nome", "descricao", "status_evento", "carga_horaria",
-            "setor", "tema", "local", "local_id", "etapas", 
-            "modalidades", "area_conhecimento", "modalidade_ids", "link_edital",
+            "id",
+            "nome",
+            "descricao",
+            "status_evento",
+            "carga_horaria",
+            "setor",
+            "tema",
+            "slug",
+            "local",
+            "local_id",
+            "etapas",
+            "modalidades",
+            "area_conhecimento",
+            "modalidade_ids",
         ]
 
     def get_modalidades(self, obj):
         return list(obj.modalidades.values_list("id", flat=True))
 
     def create(self, validated_data):
-        # 1. Extração dos dados aninhados e M2M
-        etapas_data = validated_data.pop('etapas', [])
-        areas_data = validated_data.pop('area_conhecimento', [])
-        modalidades_data = validated_data.pop('modalidades', []) # 'modalidades' devido ao source="modalidades" em modalidade_ids
+        # 1. Extração segura dos dados
+        # O DRF coloca os dados de M2M com 'source' na chave do source
+        etapas_data = validated_data.pop("etapas", [])
+        areas_data = validated_data.pop("area_conhecimento", [])
+        print(f"Conteúdo de etapas_data: {areas_data}")
+        modalidades_data = validated_data.pop(
+            "modalidades", []
+        )  # Devido ao source="modalidades"
 
         try:
             with transaction.atomic():
@@ -62,14 +77,15 @@ class EventoSerializer(serializers.ModelSerializer):
                 # 3. Define as relações ManyToMany (O .set() garante que salve apenas o enviado)
                 if areas_data:
                     evento.area_conhecimento.set(areas_data)
-                
+
                 if modalidades_data:
                     evento.modalidades.set(modalidades_data)
 
                 # 4. Criação das Etapas (Relacionamento 1:N)
-                for etapa_item in etapas_data:
-                    etapa_item.pop('evento', None) 
-                    EtapaEvento.objects.create(evento=evento, **etapa_item)
+                for etapa_data in etapas_data:
+                    # Removemos o evento_id se o front enviou, pois o vínculo é manual aqui
+                    etapa_data.pop("evento", None)
+                    EtapaEvento.objects.create(evento=evento, **etapa_data)
 
                 return evento
         except Exception as e:

@@ -3,57 +3,94 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
-import Form from 'react-bootstrap/esm/Form';
-import InputGroup from 'react-bootstrap/esm/InputGroup';
 import Alert from 'react-bootstrap/esm/Alert';
 import Button from 'react-bootstrap/esm/Button';
-import { MdQrCode } from 'react-icons/md';
 import usePresencaEvento from '../hooks/usePresencaEvento';
 import { useParams } from 'react-router-dom';
+import { getCurrentUser, redirectToLogin } from '../services/authService';
+
+import { listarMinhasInscricoesEventos } from '../services/inscricaoEventoService';
 
 export default function AlunoCredenciamento({ campus = 'Campus Restinga' }) {
-    const { eventoId } = useParams();
-    const [codigoAtual, setCodigoAtual] = useState('');
+    const { eventoSlug } = useParams();
     const [mensagem, setMensagem] = useState(null);
     const [tipoMensagem, setTipoMensagem] = useState('info');
     const [presencaConfirmada, setPresencaConfirmada] = useState(false);
+    const [loadingUser, setLoadingUser] = useState(true);
 
     const { registrarPresenca, loading } = usePresencaEvento();
 
+    const [loadingPresencaInicial, setLoadingPresencaInicial] = useState(true);
+
     useEffect(() => {
-        if (!eventoId) {
-            setMensagem('Evento não informado na URL.');
-            setTipoMensagem('danger');
-        }
-    }, [eventoId]);
+        let ativo = true;
+
+        (async () => {
+            if (!eventoSlug) {
+                if (!ativo) return;
+                setMensagem('Evento não informado na URL.');
+                setTipoMensagem('danger');
+                setLoadingUser(false);
+                setLoadingPresencaInicial(false);
+                return;
+            }
+
+            try {
+                const user = await getCurrentUser();
+                if (!user) {
+                    sessionStorage.setItem(
+                        'post_login_redirect',
+                        window.location.pathname + window.location.search,
+                    );
+                    redirectToLogin();
+                    return;
+                }
+
+                const minhasInscricoes = await listarMinhasInscricoesEventos();
+                if (!ativo) return;
+
+                const inscricaoEvento = (
+                    Array.isArray(minhasInscricoes) ? minhasInscricoes : []
+                ).find((inscricao) => inscricao.evento_slug === eventoSlug);
+
+                const jaConfirmada = Boolean(inscricaoEvento?.presente);
+                setPresencaConfirmada(jaConfirmada);
+
+                if (jaConfirmada) {
+                    setMensagem('Sua presença já está confirmada.');
+                    setTipoMensagem('success');
+                }
+            } catch (e) {
+                if (!ativo) return;
+                // mantém fallback atual
+            } finally {
+                if (!ativo) return;
+                setLoadingUser(false);
+                setLoadingPresencaInicial(false);
+            }
+        })();
+
+        return () => {
+            ativo = false;
+        };
+    }, [eventoSlug]);
 
     const limparMensagem = () => {
         setTimeout(() => setMensagem(null), 4000);
     };
 
-    const handleLerCodigo = async () => {
-        if (!eventoId) return;
-        if (!codigoAtual.trim()) return;
-
-        const codigoLimpo = codigoAtual.trim().toUpperCase();
-
-        // o código do evento sempre vai ser EVENTO-{eventoId}, ok?
-        if (codigoLimpo !== `EVENTO-${eventoId}`) {
-            setMensagem('QR code inválido para este evento.');
-            setTipoMensagem('danger');
-            setCodigoAtual('');
-            limparMensagem();
-            return;
-        }
+    const handleMarcarPresenca = async () => {
+        if (!eventoSlug) return;
 
         try {
-            await registrarPresenca(eventoId);
+            await registrarPresenca(eventoSlug);
             setMensagem('Presença confirmada com sucesso.');
             setTipoMensagem('success');
-            setCodigoAtual('');
             setPresencaConfirmada(true);
         } catch (erro) {
-            setMensagem(erro?.response?.data?.erro || 'Erro ao registrar presença.');
+            setMensagem(
+                erro?.response?.data?.erro || 'Erro ao registrar presença.',
+            );
             setTipoMensagem('danger');
         } finally {
             limparMensagem();
@@ -66,14 +103,20 @@ export default function AlunoCredenciamento({ campus = 'Campus Restinga' }) {
             <main className="flex-fill bg-light py-4">
                 <Row>
                     <Col className="text-center mb-4">
-                        <h1 className="fw-bold text-success">Marque sua presença</h1>
+                        <h1 className="fw-bold text-success">
+                            Marque sua presença
+                        </h1>
                     </Col>
                 </Row>
 
                 {mensagem && (
                     <Row className="px-4 mb-3">
-                        <Col md={8} className="mx-auto">
-                            <Alert variant={tipoMensagem} className="mb-0">
+                        <Col md={4} className="mx-auto">
+                            <Alert
+                                variant={tipoMensagem}
+                                className="mb-0"
+                                align="center"
+                            >
                                 {mensagem}
                             </Alert>
                         </Col>
@@ -81,39 +124,23 @@ export default function AlunoCredenciamento({ campus = 'Campus Restinga' }) {
                 )}
 
                 <Row className="px-4 mb-4">
-                    <Col md={8} className="mx-auto">
-                        <InputGroup size="lg">
-                            <InputGroup.Text style={{ backgroundColor: '#f8f9fa' }}>
-                                <MdQrCode size={24} color="#38A149" />
-                            </InputGroup.Text>
-                            <Form.Control
-                                placeholder="Cole o código do QR..."
-                                value={codigoAtual}
-                                onChange={(e) => setCodigoAtual(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleLerCodigo();
-                                }}
-                                autoFocus
-                                disabled={presencaConfirmada}
-                            />
-                            <Button
-                                variant={presencaConfirmada ? 'success' : 'success'}
-                                disabled={loading || !codigoAtual.trim() || !eventoId || presencaConfirmada}
-                                onClick={handleLerCodigo}
-                            >
-                                {presencaConfirmada ? 'Confirmada' : 'Registrar'}
-                            </Button>
-                        </InputGroup>
-
-                        <small className="text-muted d-block mt-2">
-                            Evento atual: <strong>{eventoId || 'não informado'}</strong>
-                        </small>
-
-                        {presencaConfirmada && (
-                            <Alert variant="success" className="mt-3 mb-0">
-                                Sua presença já está confirmada.
-                            </Alert>
-                        )}
+                    <Col md={8} className="mx-auto text-center">
+                        <Button
+                            size="lg"
+                            variant="success"
+                            disabled={
+                                loading ||
+                                !eventoSlug ||
+                                presencaConfirmada ||
+                                loadingUser ||
+                                loadingPresencaInicial
+                            }
+                            onClick={handleMarcarPresenca}
+                        >
+                            {presencaConfirmada
+                                ? 'Confirmada'
+                                : 'Marcar presença'}
+                        </Button>
                     </Col>
                 </Row>
             </main>

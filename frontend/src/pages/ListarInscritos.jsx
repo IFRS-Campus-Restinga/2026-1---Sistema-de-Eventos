@@ -16,12 +16,8 @@ export default function ListarInscritos() {
     const atracaoIdInicial =
         location.state?.atracaoId || searchParams.get('atracaoId') || '';
 
-    const {
-        inscricoes,
-        loading,
-        error,
-        setAtracaoId,
-    } = useInscricoesAtracao(atracaoIdInicial);
+    const { inscricoes, loading, error, setAtracaoId } =
+        useInscricoesAtracao(atracaoIdInicial);
 
     const [inscritos, setInscritos] = useState(inscritosIniciais);
     const [atracoes, setAtracoes] = useState([]);
@@ -42,65 +38,70 @@ export default function ListarInscritos() {
             reacao: (prev.reacao || 0) + 1,
         }));
 
-        useEffect(() => {
-            setAtracaoId(atracaoIdInicial || '');
-        }, [atracaoIdInicial, setAtracaoId]);
+    useEffect(() => {
+        setAtracaoId(atracaoIdInicial || '');
+    }, [atracaoIdInicial, setAtracaoId]);
 
-        useEffect(() => {
-            async function carregarDadosAuxiliares() {
-                try {
-                    const [dadosAtracoes, dadosUsuarios] = await Promise.all([
-                        listarAtracoes(),
-                        buscarUsuarios(),
-                    ]);
-                    setAtracoes(Array.isArray(dadosAtracoes) ? dadosAtracoes : []);
-                    setUsuarios(Array.isArray(dadosUsuarios) ? dadosUsuarios : []);
-                } catch {
-                    mostrarAlerta(
-                        'Não foi possível carregar dados auxiliares dos inscritos.',
-                    );
-                }
+    useEffect(() => {
+        async function carregarDadosAuxiliares() {
+            try {
+                const [dadosAtracoes, dadosUsuarios] = await Promise.all([
+                    listarAtracoes(),
+                    buscarUsuarios(),
+                ]);
+                setAtracoes(Array.isArray(dadosAtracoes) ? dadosAtracoes : []);
+                setUsuarios(Array.isArray(dadosUsuarios) ? dadosUsuarios : []);
+            } catch {
+                mostrarAlerta(
+                    'Não foi possível carregar dados auxiliares dos inscritos.',
+                );
             }
+        }
 
-            carregarDadosAuxiliares();
-        }, []);
+        carregarDadosAuxiliares();
+    }, []);
 
-        useEffect(() => {
-            if (inscritosIniciais.length > 0) {
-                return;
-            }
+    useEffect(() => {
+        if (inscritosIniciais.length > 0) {
+            return;
+        }
 
-            const usuariosPorId = new Map(
-                usuarios.map((usuario) => [Number(usuario.id), usuario]),
+        const usuariosPorId = new Map(
+            usuarios.map((usuario) => [Number(usuario.id), usuario]),
+        );
+        const atracoesPorId = new Map(
+            atracoes.map((atracao) => [Number(atracao.id), atracao]),
+        );
+
+        const inscritosMapeados = inscricoes.map((inscricao) => {
+            const usuario = usuariosPorId.get(
+                Number(inscricao.perfil_usuario_id),
             );
-            const atracoesPorId = new Map(
-                atracoes.map((atracao) => [Number(atracao.id), atracao]),
-            );
+            const atracao = atracoesPorId.get(Number(inscricao.atracao_id));
 
-            const inscritosMapeados = inscricoes.map((inscricao) => {
-                const usuario = usuariosPorId.get(Number(inscricao.perfil_usuario_id));
-                const atracao = atracoesPorId.get(Number(inscricao.atracao_id));
+            return {
+                id: inscricao.id,
+                nome: usuario?.nome || `Usuário ${inscricao.perfil_usuario_id}`,
+                cpf: usuario?.cpf || '',
+                email: usuario?.email || '',
+                atracao: atracao?.titulo || `Atração ${inscricao.atracao_id}`,
+                tipo: inscricao.status || 'Inscrito',
+                presente: Boolean(inscricao.presente),
+            };
+        });
 
-                return {
-                    id: inscricao.id,
-                    nome: usuario?.nome || `Usuário ${inscricao.perfil_usuario_id}`,
-                    cpf: usuario?.cpf || '',
-                    email: usuario?.email || '',
-                    atracao: atracao?.titulo || `Atração ${inscricao.atracao_id}`,
-                    tipo: inscricao.status || 'Inscrito',
-                    presente: Boolean(inscricao.presente),
-                };
-            });
+        setInscritos(inscritosMapeados);
+    }, [inscricoes, usuarios, atracoes, inscritosIniciais.length]);
 
-            setInscritos(inscritosMapeados);
-        }, [inscricoes, usuarios, atracoes, inscritosIniciais.length]);
+    useEffect(() => {
+        if (!error) return;
+        mostrarAlerta('Não foi possível carregar inscritos da atração.');
+    }, [error]);
 
-        useEffect(() => {
-            if (!error) return;
-            mostrarAlerta('Não foi possível carregar inscritos da atração.');
-        }, [error]);
-
-    const totalPaginas = Math.max(1, Math.ceil(inscritos.length / ITENS_POR_PAGINA));
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(inscritos.length / ITENS_POR_PAGINA),
+    );
 
     const usuariosPagina = useMemo(() => {
         const inicio = paginaAtual * ITENS_POR_PAGINA;
@@ -148,6 +149,14 @@ export default function ListarInscritos() {
                     onRegistrarPresenca={registrarPresenca}
                     onExcluir={excluirInscrito}
                     onVoltar={() => window.history.back()}
+                    colunasVisiveis={[
+                        'usuario',
+                        'cpf',
+                        'email',
+                        'atracao',
+                        'perfis',
+                        'acoes',
+                    ]}
                     paginaAnterior={paginaAnterior}
                     proximaPagina={proximaPagina}
                     paginaAtual={paginaAtual}
@@ -155,14 +164,16 @@ export default function ListarInscritos() {
                     presencasRegistradas={presencasRegistradas}
                 />
                 {loading && (
-                    <p className="text-center text-muted">Carregando inscritos...</p>
+                    <p className="text-center text-muted">
+                        Carregando inscritos...
+                    </p>
                 )}
             </main>
-            <Footer 
-                telefone="(51) 3333-1234" 
-                endereco="Rua Alberto Hoffmann, 285" 
-                ano={2026} 
-                campus="Campus Restinga" 
+            <Footer
+                telefone="(51) 3333-1234"
+                endereco="Rua Alberto Hoffmann, 285"
+                ano={2026}
+                campus="Campus Restinga"
             />
         </div>
     );

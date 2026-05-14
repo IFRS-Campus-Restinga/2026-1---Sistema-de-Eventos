@@ -7,7 +7,7 @@ from .base import Base
 from .modalidade import Modalidade
 
 
-class CriterioAvaliacaoAtracao(Base):
+class CriterioAvaliacaoSubmissao(Base):
     nome = models.CharField(
         verbose_name=_("Nome"),
         help_text=_("Informe o nome do Critério"),
@@ -39,16 +39,14 @@ class CriterioAvaliacaoAtracao(Base):
         if len(self.descricao.strip()) <= 3:
             errors["descricao"] = _("A descrição deve ter pelo menos 3 caracteres.")
 
-        # Verifica se a modalidade vinculada requer avaliação
+        # Verifica se a modalidade vinculada requer avaliação de submissão
         modalidade = getattr(self, "modalidade", None)
         if modalidade is None and getattr(self, "modalidade_id", None):
             modalidade = Modalidade.objects.filter(pk=self.modalidade_id).first()
 
-        if modalidade and not (
-            modalidade.requer_avaliacao or modalidade.requer_avaliacao_submissao
-        ):
+        if modalidade and not modalidade.requer_avaliacao_submissao:
             errors["modalidade"] = _(
-                "Não é possível vincular um critério a uma modalidade que não requer avaliação."
+                "Não é possível vincular um critério a uma modalidade que não requer avaliação de submissão."
             )
 
         if errors:

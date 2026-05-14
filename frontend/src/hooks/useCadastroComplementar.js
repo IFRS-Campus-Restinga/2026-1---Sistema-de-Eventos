@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     salvarInformacoesComplementares,
     buscarOpcoesCadastro,
@@ -6,6 +7,9 @@ import {
 import { checkSession } from '../services/authService';
 
 export function useCadastroComplementar() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
     const [carregando, setCarregando] = useState(false);
     const [opcoes, setOpcoes] = useState({ niveis: [], areas: [] });
     const [notificacao, setNotificacao] = useState({
@@ -180,8 +184,15 @@ export function useCadastroComplementar() {
                 mensagem: 'Perfil Criado com Sucesso!',
                 variacao: 'success',
             });
+
+            // Redireciona para a página anterior ou para home após 1.5 segundos
+            setTimeout(() => {
+                const previousLocation = location.state?.from?.pathname || '/';
+                navigate(previousLocation, { replace: true });
+            }, 1500);
         } catch (erro) {
-            tratamentoMensagensBackend(erro); // Tratamento das Mensagens de validação backend        } finally {
+            tratamentoMensagensBackend(erro); // Tratamento das Mensagens de validação backend
+        } finally {
             setCarregando(false);
         }
     };

@@ -28,6 +28,10 @@ User = get_user_model()
 
 class EventoListView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = EventoSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        return EventoSerializer(*args, **kwargs)
 
     def get(self, request):
         eventos = Evento.objects.filter(ativo=True)

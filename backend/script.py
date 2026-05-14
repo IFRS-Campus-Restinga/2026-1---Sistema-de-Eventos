@@ -138,8 +138,8 @@ ETAPAS_DATA = [
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "INSCRICAO_PUBLICO",
-        "data_inicio": "2025-09-01 08:00:00",
-        "data_fim": "2025-10-15 23:59:59",
+        "data_inicio": "2026-04-01 08:00:00",
+        "data_fim": "2026-06-15 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
@@ -150,44 +150,44 @@ ETAPAS_DATA = [
     {
         "evento_nome": "Mostra de Extensão",
         "tipo_etapa": "INSCRICAO_PUBLICO",
-        "data_inicio": "2025-08-10 00:00:00",
-        "data_fim": "2025-09-10 23:59:59",
+        "data_inicio": "2026-05-10 00:00:00",
+        "data_fim": "2026-05-29 23:59:59",
     },
 ]
 
 # Atualize esta lista no seu arquivo de seed
 AREAS_DATA = [
     {
-        "area": "CIENCIAS_EXATAS_E_DA_TERRA", 
-        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos."
+        "area": "CIENCIAS_EXATAS_E_DA_TERRA",
+        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos.",
     },
     {
-        "area": "CIENCIAS_BIOLOGICAS", 
-        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução."
+        "area": "CIENCIAS_BIOLOGICAS",
+        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução.",
     },
     {
-        "area": "ENGENHARIAS", 
-        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura."
+        "area": "ENGENHARIAS",
+        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura.",
     },
     {
-        "area": "CIENCIAS_DA_SAUDE", 
-        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças."
+        "area": "CIENCIAS_DA_SAUDE",
+        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças.",
     },
     {
-        "area": "CIENCIAS_AGRARIAS", 
-        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais."
+        "area": "CIENCIAS_AGRARIAS",
+        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais.",
     },
     {
-        "area": "CIENCIAS_SOCIAIS_APLICADAS", 
-        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas."
+        "area": "CIENCIAS_SOCIAIS_APLICADAS",
+        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas.",
     },
     {
-        "area": "CIENCIAS_HUMANAS", 
-        "descricao": "Investigação do comportamento, cultura, história e sociedade humana."
+        "area": "CIENCIAS_HUMANAS",
+        "descricao": "Investigação do comportamento, cultura, história e sociedade humana.",
     },
     {
-        "area": "LINGUISTICA_LETRAS_E_ARTES", 
-        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais."
+        "area": "LINGUISTICA_LETRAS_E_ARTES",
+        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais.",
     },
 ]
 
