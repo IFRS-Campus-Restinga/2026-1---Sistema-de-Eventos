@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Button, Dropdown } from 'react-bootstrap';
-import { MdEdit, MdDelete, MdArrowBack, MdLocationOn } from 'react-icons/md';
+import { MdArrowBack, MdLocationOn } from 'react-icons/md';
 import ListaGenerica from '../components/lista_generica/ListaGenerica';
 import { Link } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';

@@ -46,9 +46,11 @@ export default function ModalPopup({
                 <Button variant="secondary" onClick={onFechar}>
                     {textoFechar}
                 </Button>
-                <Button variant={variantes[variante]} onClick={onAcao}>
-                    {textoAcao}
-                </Button>
+                {textoAcao === '' ? null : (
+                    <Button variant={variantes[variante]} onClick={onAcao}>
+                        {textoAcao}
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );

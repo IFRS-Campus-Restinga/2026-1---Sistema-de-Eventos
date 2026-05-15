@@ -8,6 +8,7 @@ export default function useSessoes() {
     const [evento, setEvento] = useState(null);
     const [espaco, setEspaco] = useState([null]);
     const [dias, setDias] = useState([]);
+    const [dia, setDia] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -60,6 +61,21 @@ export default function useSessoes() {
         return dias;
     }
 
+    const criarSessao = async (sessao) => {
+        try {
+            setLoading(true);
+
+            // futuramente:
+            // await api.post('/sessoes', sessao);
+
+            setMessage('Sessão criada com sucesso');
+        } catch (err) {
+            setError('Erro ao criar sessão');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return {
         evento,
         espaco,
@@ -68,5 +84,6 @@ export default function useSessoes() {
         error,
         message,
         carregarEvento,
+        criarSessao,
     };
 }

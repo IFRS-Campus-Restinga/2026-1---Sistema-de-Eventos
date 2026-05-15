@@ -4,7 +4,13 @@ import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/esm/Button';
 import Form from 'react-bootstrap/Form';
 
-import { MdArrowBack, MdSave, MdPublish } from 'react-icons/md';
+import {
+    MdArrowBack,
+    MdSave,
+    MdPublish,
+    MdAddCircle,
+    MdEdit,
+} from 'react-icons/md';
 
 import {
     useNavigate,
@@ -37,15 +43,30 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const [dataSelecionada, setDataSelecionada] = useState('');
     // modal de escolha de espaço
     const [mostrarModalEspacos, setMostrarModalEspacos] = useState(false);
+    // modal de inserção / edição de sessão - para quando clicar no card da sessão, ou no botão de adicionar sessão dentro do espaço
+    const [mostrarModalSessao, setMostrarModalSessao] = useState(false);
+    const [sessaoEditando, setSessaoEditando] = useState(null);
+
+    // dados do form de sessao
+    const [formSessao, setFormSessao] = useState({
+        data_horario_inicio: '',
+        data_horario_fim: '',
+        espaco: null,
+        ordem_apresentacoes: [],
+    });
+
     // armazenamento de espaços do board e espaços disponíveis para alocação
     const [boardPorDia, setBoardPorDia] = useState({}); // de todos os dias do evento: estrutura: { '2024-10-01': [espacos], '2024-10-02': [espacos], ... }
     const [boardAtual, setBoardAtual] = useState([]); // de acordo com a data selecionada: estrutura: [espacos]
 
+    const [espacoSelecionado, setEspacoSelecionado] = useState(null); // para saber em qual espaço estou adicionando a sessão no modal
     const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
     const [espacosExistentes, setEspacosExistentes] = useState([]); // teste, busca todos os espaços do local
     const [alterado, setAlterado] = useState(false); // estdo do board, botão
     // pesquisa no modalEspacos
     const [buscaEspaco, setBuscaEspaco] = useState('');
+    // Para armazenar erros de validação
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (eventoId) {
@@ -207,6 +228,109 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         setAlterado(true);
     }
 
+    const validarSessao = () => {
+        const novosErros = {};
+
+        const { data_horario_inicio, data_horario_fim } = formSessao;
+
+        // 1. Campos obrigatórios
+        if (!data_horario_inicio) {
+            novosErros.inicio = 'Horário de início é obrigatório';
+        }
+
+        if (!data_horario_fim) {
+            novosErros.fim = 'Horário de fim é obrigatório';
+        }
+
+        if (data_horario_inicio && data_horario_fim) {
+            const inicio = new Date(
+                `${dataSelecionada}T${data_horario_inicio}`,
+            );
+            const fim = new Date(`${dataSelecionada}T${data_horario_fim}`);
+
+            // Fim maior que início
+            if (fim <= inicio) {
+                novosErros.fim = 'Horário de fim deve ser maior que o início';
+            }
+
+            // Duração mínima (10 min)
+            const duracao = (fim - inicio) / 60000;
+            if (duracao < 10) {
+                novosErros.fim = 'Sessão deve ter no mínimo 10 minutos';
+            }
+
+            // Conflito com outras sessões do mesmo espaço
+            const espaco = boardAtual.find((e) => e.id === formSessao.espaco);
+
+            if (espaco) {
+                const conflito = espaco.sessoes.some((sessao) => {
+                    if (sessao.id === sessaoEditando?.id) return false; // ignora a própria sessão ao editar
+                    if (!sessao.data_horario_inicio || !sessao.data_horario_fim)
+                        return false;
+
+                    const inicioExistente = new Date(
+                        sessao.data_horario_inicio,
+                    );
+                    const fimExistente = new Date(sessao.data_horario_fim);
+
+                    return inicio < fimExistente && fim > inicioExistente;
+                });
+
+                if (conflito) {
+                    novosErros.conflito =
+                        'Já existe uma sessão nesse horário neste espaço';
+                }
+            }
+        }
+        setErrors(novosErros);
+        return Object.keys(novosErros).length === 0;
+    };
+
+    function salvarSessao() {
+        if (!validarSessao()) return;
+
+        const dadosSessao = {
+            data_horario_inicio: `${dataSelecionada}T${formSessao.data_horario_inicio}`,
+            data_horario_fim: `${dataSelecionada}T${formSessao.data_horario_fim}`,
+        };
+
+        const novoBoard = boardAtual.map((espaco) => {
+            if (espaco.id !== formSessao.espaco) return espaco;
+
+            if (sessaoEditando) {
+                return {
+                    ...espaco,
+                    sessoes: espaco.sessoes.map((sessao) => {
+                        if (sessao.id === sessaoEditando.id) {
+                            return {
+                                ...sessao,
+                                ...dadosSessao,
+                            };
+                        }
+                        return sessao;
+                    }),
+                };
+            }
+
+            return {
+                ...espaco,
+                sessoes: [
+                    ...espaco.sessoes,
+                    {
+                        id: Date.now(),
+                        ...dadosSessao,
+                        ordem_apresentacoes: [],
+                    },
+                ],
+            };
+        });
+
+        setSessaoEditando(null);
+        atualizarBoardAtual(novoBoard);
+        setMostrarModalSessao(false);
+        setErrors({});
+    }
+
     // ao selecionar um espaço no modal, adiciona ao board do dia
     const handleSelecionarEspaco = (espacoSelecionado) => {
         // evita duplicado
@@ -215,14 +339,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             id: espacoSelecionado.id,
             nome: espacoSelecionado.nome,
             capacidade: espacoSelecionado.capacidade,
-            sessoes: [
-                {
-                    id: Date.now(),
-                    data_horario_inicio: '',
-                    data_horario_fim: '',
-                    ordem_apresentacoes: [],
-                },
-            ],
+            sessoes: [],
         };
 
         atualizarBoardAtual([...boardAtual, novoEspaco]);
@@ -244,16 +361,18 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     // para mover os cards entre as colunas
     function handleDragEnd(event) {
         const { active, over } = event;
-
-        if (!over) return;
-
         const overId = over.id.toString();
 
-        // DROP só funciona em espaço
-        if (!overId.startsWith('espaco-')) return;
+        let sessaoDestinoId = null;
+        let espacoDestinoId = null;
 
-        const novoEspacoId = parseInt(overId.replace('espaco-', ''));
-
+        if (overId.startsWith('sessao-')) {
+            sessaoDestinoId = parseInt(overId.replace('sessao-', ''));
+        } else if (overId.startsWith('espaco-')) {
+            espacoDestinoId = parseInt(overId.replace('espaco-', ''));
+        } else {
+            return;
+        }
         // CASO 1: veio da lista (não alocada)
         if (active.id.toString().startsWith('livre-')) {
             const atracaoId = parseInt(active.id.replace('livre-', ''));
@@ -271,12 +390,18 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             };
 
             const novosEspacos = boardAtual.map((espaco) => {
-                if (espaco.id === novoEspacoId) {
+                if (
+                    (espacoDestinoId && espaco.id === espacoDestinoId) ||
+                    sessaoDestinoId
+                ) {
                     return {
                         ...espaco,
-                        sessoes: espaco.sessoes.map((sessao, index) => {
-                            // adiciona na primeira sessão (por enquanto)
-                            if (index === 0) {
+                        sessoes: espaco.sessoes.map((sessao) => {
+                            if (
+                                sessaoDestinoId
+                                    ? sessao.id === sessaoDestinoId
+                                    : true
+                            ) {
                                 return {
                                     ...sessao,
                                     ordem_apresentacoes: [
@@ -348,6 +473,54 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         });
 
         atualizarBoardAtual(resultado);
+    }
+
+    function SessaoCard({ sessao, onEditar, children }) {
+        const formatarHora = (data) => {
+            if (!data) return '--:--';
+            return new Date(data).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        };
+
+        return (
+            <div
+                className="mb-3 p-2 bg-white"
+                style={{
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    borderLeft: '6px solid #0d6efd',
+                }}
+            >
+                {/* HEADER */}
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                    <strong style={{ fontSize: '14px' }}>
+                        {formatarHora(sessao.data_horario_inicio)} -{' '}
+                        {formatarHora(sessao.data_horario_fim)}
+                    </strong>
+
+                    <MdEdit
+                        size="16"
+                        className="text-secondary cursor-pointer"
+                        style={{ cursor: 'pointer' }}
+                        onClick={onEditar}
+                    />
+                </div>
+
+                {/* CONTEÚDO (atrações) */}
+                <div
+                    style={{
+                        minHeight: '40px',
+                        border: '1px dashed #ccc',
+                        borderRadius: '8px',
+                        padding: '6px',
+                    }}
+                ></div>
+
+                <SessaoDrop sessaoId={sessao.id}>{children}</SessaoDrop>
+            </div>
+        );
     }
 
     // Card atração arrastável
@@ -431,6 +604,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     }
 
     // Colunas do quadro(espaço)
+    function SessaoDrop({ sessaoId, children }) {
+        const { setNodeRef } = useDroppable({
+            id: `sessao-${sessaoId}`,
+        });
+
+        return <div ref={setNodeRef}>{children}</div>;
+    }
     function EspacoDrop({ espacoId, children }) {
         const { setNodeRef } = useDroppable({
             id: `espaco-${espacoId}`,
@@ -509,59 +689,127 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             {/* COLUNAS DE ESPAÇO */}
                             <Col md={9}>
                                 <Row className="g-3">
-                                    {boardAtual.map((espaco) => (
-                                        <Col key={espaco.id} md={4}>
-                                            <EspacoDrop espacoId={espaco.id}>
-                                                {/* HEADER DA SALA */}
-                                                <div
-                                                    className="p-2 rounded text-white mb-2"
-                                                    style={{
-                                                        backgroundColor:
-                                                            '#198754',
-                                                    }}
+                                    {boardAtual.map((espaco) => {
+                                        const sessoesOrdenadas = [
+                                            ...(espaco.sessoes || []),
+                                        ].sort(
+                                            (a, b) =>
+                                                new Date(
+                                                    a.data_horario_inicio,
+                                                ) -
+                                                new Date(b.data_horario_inicio),
+                                        );
+                                        return (
+                                            <Col key={espaco.id} md={4}>
+                                                <EspacoDrop
+                                                    espacoId={espaco.id}
                                                 >
-                                                    <strong>
-                                                        {espaco.nome}
-                                                    </strong>
-                                                    <br />
-                                                    <small>
-                                                        Capacidade:{' '}
-                                                        {espaco.capacidade}
-                                                    </small>
-                                                </div>
+                                                    {/* HEADER DA SALA */}
+                                                    <div
+                                                        className="p-2 rounded text-white mb-2"
+                                                        style={{
+                                                            backgroundColor:
+                                                                '#198754',
+                                                        }}
+                                                    >
+                                                        <strong>
+                                                            {espaco.nome}
+                                                        </strong>
+                                                        <br />
+                                                        <small>
+                                                            Capacidade:{' '}
+                                                            {espaco.capacidade}
+                                                        </small>
+                                                    </div>
 
-                                                {/* Cards */}
-                                                {espaco.sessoes?.map((sessao) =>
-                                                    sessao.ordem_apresentacoes.map(
-                                                        (
-                                                            ordem_apresentacao,
-                                                        ) => (
-                                                            <AtracaoArrastavel
-                                                                key={
-                                                                    ordem_apresentacao.id
-                                                                }
-                                                                ordem_apresentacoes={
-                                                                    ordem_apresentacao
-                                                                }
-                                                            />
+                                                    {/* Cards */}
+                                                    {sessoesOrdenadas.map(
+                                                        (sessao) => (
+                                                            <SessaoCard
+                                                                key={sessao.id}
+                                                                sessao={sessao}
+                                                                onEditar={() => {
+                                                                    setSessaoEditando(
+                                                                        sessao,
+                                                                    );
+                                                                    setFormSessao(
+                                                                        {
+                                                                            data_horario_inicio:
+                                                                                sessao.data_horario_inicio.split(
+                                                                                    'T',
+                                                                                )[1],
+                                                                            data_horario_fim:
+                                                                                sessao.data_horario_fim.split(
+                                                                                    'T',
+                                                                                )[1],
+                                                                            espaco: espaco.id,
+                                                                        },
+                                                                    );
+                                                                    setEspacoSelecionado(
+                                                                        espaco.id,
+                                                                    );
+                                                                    setMostrarModalSessao(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                {sessao.ordem_apresentacoes.map(
+                                                                    (ordem) => (
+                                                                        <AtracaoArrastavel
+                                                                            key={
+                                                                                ordem.id
+                                                                            }
+                                                                            ordem_apresentacoes={
+                                                                                ordem
+                                                                            }
+                                                                        />
+                                                                    ),
+                                                                )}
+                                                            </SessaoCard>
                                                         ),
-                                                    ),
-                                                )}
+                                                    )}
 
-                                                {/* Drop area */}
-                                                <div
-                                                    className="mt-2 text-center"
-                                                    style={{
-                                                        border: '2px dashed #ccc',
-                                                        padding: '10px',
-                                                        borderRadius: '5px',
-                                                    }}
-                                                >
-                                                    Arraste aqui
-                                                </div>
-                                            </EspacoDrop>
-                                        </Col>
-                                    ))}
+                                                    {/* Drop area */}
+                                                    <div
+                                                        className="mt-2 text-center"
+                                                        style={{
+                                                            border: '2px dashed #ccc',
+                                                            padding: '10px',
+                                                            borderRadius: '5px',
+                                                        }}
+                                                    >
+                                                        Arraste aqui
+                                                        <br />
+                                                        <MdAddCircle
+                                                            color="rgb(120, 142, 238)"
+                                                            size={20}
+                                                            title="Adicionar uma sessão"
+                                                            style={{
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            onClick={() => {
+                                                                setSessaoEditando(
+                                                                    null,
+                                                                );
+                                                                setFormSessao({
+                                                                    data_horario_inicio:
+                                                                        '',
+                                                                    data_horario_fim:
+                                                                        '',
+                                                                    espaco: espaco.id,
+                                                                    ordem_apresentacoes:
+                                                                        [],
+                                                                });
+                                                                setMostrarModalSessao(
+                                                                    true,
+                                                                );
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </EspacoDrop>
+                                            </Col>
+                                        );
+                                    })}
                                 </Row>
                             </Col>
                         </Row>
@@ -619,12 +867,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     </Row>
                 </Container>
             </main>
+
+            {/* Modal de escolha de espaço */}
             <ModalPopup
                 show={mostrarModalEspacos}
                 titulo="Adicionar Espaço"
                 textoFechar="Cancelar"
                 onFechar={() => setMostrarModalEspacos(false)}
-                textoAcao="" // não usamos botão de ação
             >
                 <div>
                     <Form.Control
@@ -668,6 +917,66 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             ))}
                     </div>
                 </div>
+            </ModalPopup>
+
+            {/* Modal de inserção/edição de sessão */}
+            <ModalPopup
+                show={mostrarModalSessao}
+                titulo={sessaoEditando ? 'Editar Sessão' : 'Criar Sessão'}
+                textoFechar="Cancelar"
+                textoAcao="Salvar"
+                onFechar={() => {
+                    setMostrarModalSessao(false);
+                    setErrors({});
+                }}
+                onAcao={salvarSessao}
+            >
+                <Form>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Horário início</Form.Label>
+                        <Form.Control
+                            type="time"
+                            value={formSessao.data_horario_inicio}
+                            isInvalid={!!errors.inicio}
+                            onChange={(e) =>
+                                setFormSessao({
+                                    ...formSessao,
+                                    data_horario_inicio: e.target.value,
+                                })
+                            }
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.inicio}
+                        </Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Form.Group>
+                        <Form.Label>Horário fim</Form.Label>
+                        <Form.Control
+                            type="time"
+                            value={formSessao.data_horario_fim}
+                            isInvalid={!!errors.fim}
+                            onChange={(e) =>
+                                setFormSessao({
+                                    ...formSessao,
+                                    data_horario_fim: e.target.value,
+                                })
+                            }
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.fim}
+                        </Form.Control.Feedback>
+                    </Form.Group>
+                    {errors.conflito && (
+                        <div className="text-danger mt-2">
+                            {errors.conflito}
+                        </div>
+                    )}
+
+                    <small className="text-muted">
+                        Data: {dataSelecionada}
+                    </small>
+                </Form>
             </ModalPopup>
 
             {/* ALERTAS MOCK */}
