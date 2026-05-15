@@ -298,6 +298,19 @@ export default function EventosListar() {
                                     <MdAddCircle size={20} /> Novo Evento
                                 </Button>
                             </div>
+
+                            {/* Botão voltar para home */}
+                            <div className="mt-4">
+                                <Button
+                                    as={Link}
+                                    to="/"
+                                    variant="outline-secondary" 
+                                    className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
+                                    
+                                >
+                                     Ir para página inicial
+                                </Button>
+                            </div>
                         </Container>
                     </Card>
 
