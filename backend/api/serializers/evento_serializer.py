@@ -32,7 +32,7 @@ class EventoSerializer(serializers.ModelSerializer):
     
     # Para o GET: Mostra o objeto completo (id, nome, etc)
     # Para o POST: Como é read_only, ele será ignorado no salvamento automático
-    area_conhecimento_detalhes = AreaConhecimentoSerializer(many=True, read_only=True)
+    area_conhecimento_detalhes = AreaConhecimentoSerializer(many=True, source='area_conhecimento' , read_only=True)
 
     # Adicione este novo campo para o POST/PUT:
     # Ele permite que você envie uma lista de IDs [1, 2] do React
