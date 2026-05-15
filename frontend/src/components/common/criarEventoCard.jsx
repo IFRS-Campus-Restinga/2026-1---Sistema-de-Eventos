@@ -49,7 +49,7 @@ export default function AdicionarEvento({
                 const dadosLocais = await pegarLocais();
                 const dadosAreas = await pegarAreasConhecimento()
                 const dadosModalidades = await pegarModalidades()
-                setModalidades(Array.isArray(dadosModalidades ? dadosModalidades : []))
+                setModalidades(Array.isArray(dadosModalidades) ? dadosModalidades : [])
                 setLocais(Array.isArray(dadosLocais) ? dadosLocais : []);
                 setListaAreasDisponiveis(Array.isArray(dadosAreas) ? dadosAreas : []);
                 setModalidades(Array.isArray(dadosModalidades) ? dadosModalidades : [])
@@ -214,42 +214,69 @@ export default function AdicionarEvento({
                         <div className="alert alert-info py-2 mb-3" style={{ fontSize: '0.85rem' }}>
                             Selecione as etapas vinculadas a este evento.
                         </div>
-                        {etapas?.map((etapa, index) => (
-                            <div key={`etapa-${index}`} className="p-3 border rounded mb-3 bg-white shadow-sm">
-                                <Row className="align-items-center g-2">
-                                    <Col md={4}>
-                                        <Form.Select 
-                                            value={etapa.tipo_etapa} 
-                                            onChange={(e) => atualizarEtapa(index, 'tipo_etapa', e.target.value)}
-                                        >
-                                            <option value="">Selecione a etapa</option>
-                                            {opcoes?.tipo_etapa?.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                            ))}
-                                        </Form.Select>
-                                    </Col>
-                                    <Col md={6} className="d-flex align-items-center gap-2">
-                                        <Form.Control 
-                                            type="date" 
-                                            value={etapa.data_inicio} 
-                                            onChange={(e) => atualizarEtapa(index, 'data_inicio', e.target.value)} 
-                                        />
-                                        <span>até</span>
-                                        <Form.Control 
-                                            type="date" 
-                                            value={etapa.data_fim} 
-                                            onChange={(e) => atualizarEtapa(index, 'data_fim', e.target.value)} 
-                                        />
-                                    </Col>
-                                    <Col md={2} className="text-end">
-                                        <Button variant="link" className="text-danger" onClick={() => removerEtapa(index)}>
-                                            <BsTrash size={20} />
-                                        </Button>
-                                    </Col>
-                                </Row>
+                        {etapas?.map((etapa, index) => {
+    // 1. Filtramos as opções de etapas disponíveis
+                            const opcoesEtapasFiltradas = opcoes?.tipo_etapa?.filter(opt => 
+                                // Mantém a opção se:
+                                // É a opção que já está selecionada NESTA linha (index)
+                                // OU se ela não foi selecionada em nenhuma OUTRA linha
+                                !etapas.some((e, idx) => idx !== index && e.tipo_etapa === opt.value)
+                            );
+
+                            return (
+                                <div key={`etapa-${index}`} className="p-3 border rounded mb-3 bg-white shadow-sm">
+                                    <Row className="align-items-center g-2">
+                                        <Col md={4}>
+                                            <Form.Select 
+                                                value={etapa.tipo_etapa} 
+                                                onChange={(e) => atualizarEtapa(index, 'tipo_etapa', e.target.value)}
+                                                isInvalid={!!errors?.etapas}
+                                            >
+                                                <option value="">Selecione a etapa</option>
+                                                {/* 2. Usamos a lista filtrada aqui */}
+                                                {opcoesEtapasFiltradas?.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                            <Form.Control.Feedback type="invalid">{errors?.etapas}</Form.Control.Feedback>
+                                        </Col>
+                                        
+                                        <Col md={6} className="d-flex align-items-center gap-2">
+                                            <Form.Control 
+                                                type="date" 
+                                                value={etapa.data_inicio} 
+                                                onChange={(e) => atualizarEtapa(index, 'data_inicio', e.target.value)} 
+                                            />
+                                            <span>até</span>
+                                            <Form.Control 
+                                                type="date" 
+                                                value={etapa.data_fim} 
+                                                onChange={(e) => atualizarEtapa(index, 'data_fim', e.target.value)} 
+                                            />
+                                        </Col>
+
+                                        <Col md={2} className="text-end">
+                                            <Button variant="link" className="text-danger" onClick={() => removerEtapa(index)}>
+                                                <BsTrash size={20} />
+                                            </Button>
+                                        </Col>
+                                    </Row>
+                                </div>
+                            );
+                        })}
+                        {errors?.etapas && (
+                            <div className="text-danger small fw-bold mb-3 mt-n2 animate__animated animate__fadeIn">
+                                <i className="bi bi-exclamation-circle-fill me-1"></i>
+                                {errors?.etapas}
                             </div>
-                        ))}
-                        <Button variant="primary" size="sm" onClick={adicionarEtapa} className="d-flex align-items-center gap-1 shadow-sm">
+                        )}
+                        <Button variant="primary" 
+                            size="sm" 
+                            onClick={adicionarEtapa} 
+                            className="d-flex align-items-center gap-1 shadow-sm" 
+                            disabled={etapas.length >= (opcoes?.tipo_etapa?.length || 0)}>
                             <MdAdd /> Adicionar Fase
                         </Button>
                     </SecaoFormulario>
@@ -261,6 +288,11 @@ export default function AdicionarEvento({
                         </div>
 
                         {areasSelecionadas?.map((item, index) => {
+                            const areasFiltradas = listaAreasDisponiveis.filter(area => 
+                                !areasSelecionadas.some((selecionada, idx) => 
+                                    idx !== index && parseInt(selecionada.id) === parseInt(area.id)
+                                )
+                            );
                             return (
                                 <div key={`area-row-${index}`} className="p-3 border rounded mb-3 bg-white shadow-sm">
                                     <Row className="align-items-center g-2">
@@ -269,20 +301,21 @@ export default function AdicionarEvento({
                                                 value={item.id || ""} 
                                                 onChange={(e) => {
                                                     if (typeof atualizarArea === 'function') {
-                                                        atualizarArea(index, e.target.value);
+                                                        atualizarArea(index, parseInt(e.target.value));
                                                         console.log(areasSelecionadas)
                                                     }
                                                 }}
                                                 isInvalid={!!errors?.area_conhecimento}
                                             >
                                                 <option value="">Selecione uma área...</option>
-                                                {/* ✅ Mapeamento corrigido para usar 'value' e 'label' do seu Banco de Dados */}
-                                                {listaAreasDisponiveis?.map((opt) => (
+                                                {areasFiltradas?.map((opt) => (
                                                     <option key={`area-opt-${opt.id}`} value={opt.id}>
                                                         {opt.area_conhecimento}
                                                     </option>
                                                 ))}
                                             </Form.Select>
+                                            <Form.Control.Feedback type="invalid">{errors?.area_conhecimento}</Form.Control.Feedback>
+                                            
                                         </Col>
                                         <Col md={2} className="text-end">
                                             <Button 
@@ -301,12 +334,19 @@ export default function AdicionarEvento({
                                 </div>
                             );
                         })}
+                        {errors?.area_conhecimento && (
+                            <div className="text-danger small fw-bold mb-3 mt-n2 animate__animated animate__fadeIn">
+                                <i className="bi bi-exclamation-circle-fill me-1"></i>
+                                {errors?.area_conhecimento}
+                            </div>
+                        )}
 
                         <Button 
                             variant="primary" 
                             size="sm" 
                             onClick={adicionarArea} 
                             className="d-flex align-items-center gap-1 shadow-sm"
+                            disabled={areasSelecionadas.length >= listaAreasDisponiveis.length}
                         >
                             <MdAdd /> Adicionar Área
                         </Button>
@@ -319,6 +359,11 @@ export default function AdicionarEvento({
                         </div>
 
                         {modalidadesSelecionadas?.map((item, index) => {
+                            const modalidadesFiltradas = modalidades.filter(modalidade => 
+                                !modalidadesSelecionadas.some((selecionada, idx) => 
+                                    idx !== index && parseInt(selecionada.id) === parseInt(modalidade.id)
+                                )
+                            );
                             return (
                                 <div key={`area-row-${index}`} className="p-3 border rounded mb-3 bg-white shadow-sm">
                                     <Row className="align-items-center g-2">
@@ -327,19 +372,21 @@ export default function AdicionarEvento({
                                                 value={item.id || ""} 
                                                 onChange={(e) => {
                                                     if (typeof atualizarModalidade === 'function') {
-                                                        atualizarModalidade(index, e.target.value);
+                                                        atualizarModalidade(index, parseInt(e.target.value));
                                                     }
                                                 }}
+                                                isInvalid={!!errors?.modalidades}
                                                 
                                             >
                                                 <option value="">Selecione uma modalidade...</option>
                                                 {/* ✅ Mapeamento corrigido para usar 'value' e 'label' do seu Banco de Dados */}
-                                                {modalidades?.map((opt) => (
+                                                {modalidadesFiltradas?.map((opt) => (
                                                     <option key={`area-opt-${opt.id}`} value={opt.id}>
                                                         {opt.nome}
                                                     </option>
                                                 ))}
                                             </Form.Select>
+                                            
                                         </Col>
                                         <Col md={2} className="text-end">
                                             <Button 
@@ -358,12 +405,19 @@ export default function AdicionarEvento({
                                 </div>
                             );
                         })}
+                        {errors?.modalidades && (
+                            <div className="text-danger small fw-bold mb-3 mt-n2 animate__animated animate__fadeIn">
+                                <i className="bi bi-exclamation-circle-fill me-1"></i>
+                                {errors?.modalidades}
+                            </div>
+                        )}
 
                         <Button 
                             variant="primary" 
                             size="sm" 
                             onClick={adicionarModalidade} 
                             className="d-flex align-items-center gap-1 shadow-sm"
+                            disabled={modalidadesSelecionadas.length >= modalidades.length}
                         >
                             <MdAdd /> Adicionar Modalidade
                         </Button>
@@ -383,7 +437,7 @@ export default function AdicionarEvento({
                                 type="url"
                                 placeholder="https://restinga.ifrs.edu.br/editais/..."
                                 value={linkEdital}
-                                onChange={(e) => setLinkEdital(e.target.value)}
+                                onChange={(e) => setLinkEdital(e.target.value.startsWith('www') ? 'https://' + e.target.value : e.target.value)}
                                 isInvalid={!!errors?.link_edital}
                                 style={{ backgroundColor: '#eeeeee' }}
                             />

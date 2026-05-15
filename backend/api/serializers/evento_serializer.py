@@ -137,4 +137,40 @@ class EventoSerializer(serializers.ModelSerializer):
                 return instance
         except Exception as e:
             print(f"Erro no Update: {str(e)}")
+    
             raise serializers.ValidationError({"detail": f"Erro ao atualizar evento: {str(e)}"})
+    
+    def validate(self, data):
+        # 1. Validação de Áreas de Conhecimento
+        # Verificamos tanto o campo de escrita quanto o de leitura por segurança
+        areas = data.get('area_conhecimento')
+        if not areas or len(areas) == 0:
+            raise serializers.ValidationError({
+                "area_conhecimento": "O evento deve ter pelo menos uma área de conhecimento vinculada."
+            })
+
+        # 2. Validação de Modalidades
+        modalidades = data.get('modalidades')
+        if not modalidades or len(modalidades) == 0:
+            raise serializers.ValidationError({
+                "modalidades": "Selecione ao menos uma modalidade para o evento."
+            })
+
+        # 3. Validação de Etapas (Fases)
+        # Como etapas costumam vir aninhadas, verificamos se a lista existe
+        etapas = data.get('etapas')
+        if not etapas or len(etapas) == 0:
+            raise serializers.ValidationError({
+                "etapas": "É obrigatório configurar ao menos uma fase (ex: Inscrições) para o evento."
+            })
+
+        # 4. Validação Lógica de Datas dentro das Etapas
+        for etapa in etapas:
+            inicio = etapa.get('data_inicio')
+            fim = etapa.get('data_fim')
+            if inicio and fim and inicio > fim:
+                raise serializers.ValidationError({
+                    "etapas": f"Na etapa '{etapa.get('tipo_etapa')}', a data de início não pode ser posterior à data de fim."
+                })
+
+        return data
