@@ -510,13 +510,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
                 {/* CONTEÚDO (atrações) */}
                 <div
+                    className="mt-2 text-center"
                     style={{
-                        minHeight: '40px',
-                        border: '1px dashed #ccc',
-                        borderRadius: '8px',
-                        padding: '6px',
+                        border: '2px dashed #ccc',
+                        padding: '10px',
+                        borderRadius: '5px',
                     }}
-                ></div>
+                >
+                    Arraste aqui
+                </div>
 
                 <SessaoDrop sessaoId={sessao.id}>{children}</SessaoDrop>
             </div>
@@ -629,7 +631,6 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             <main className="flex-fill">
                 <Container className="mx-auto">
                     {/* Menu de datas */}
-                    {/* PUXARA AS DATAS DE EXECUÇÃO DO EVENTO- FICARÁ AQUI! */}
                     <Row className="mx-auto my-4 align-items-center">
                         <h1>{evento?.nome || 'Carregando evento...'}</h1>
 
@@ -706,20 +707,55 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                 >
                                                     {/* HEADER DA SALA */}
                                                     <div
-                                                        className="p-2 rounded text-white mb-2"
+                                                        className="p-2 rounded text-white mb-2 d-flex justify-content-between align-items-start"
                                                         style={{
                                                             backgroundColor:
                                                                 '#198754',
                                                         }}
                                                     >
-                                                        <strong>
-                                                            {espaco.nome}
-                                                        </strong>
+                                                        <div>
+                                                            <strong>
+                                                                {espaco.nome}
+                                                            </strong>
+                                                            <br />
+                                                            <small>
+                                                                Capacidade:{' '}
+                                                                {
+                                                                    espaco.capacidade
+                                                                }
+                                                            </small>
+                                                        </div>
+                                                        {espaco.sessoes.length >
+                                                            0 && (
+                                                            <MdAddCircle
+                                                                color="rgb(120, 142, 238)"
+                                                                size={20}
+                                                                title="Adicionar uma sessão"
+                                                                style={{
+                                                                    cursor: 'pointer',
+                                                                }}
+                                                                onClick={() => {
+                                                                    setSessaoEditando(
+                                                                        null,
+                                                                    );
+                                                                    setFormSessao(
+                                                                        {
+                                                                            data_horario_inicio:
+                                                                                '',
+                                                                            data_horario_fim:
+                                                                                '',
+                                                                            espaco: espaco.id,
+                                                                            ordem_apresentacoes:
+                                                                                [],
+                                                                        },
+                                                                    );
+                                                                    setMostrarModalSessao(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
                                                         <br />
-                                                        <small>
-                                                            Capacidade:{' '}
-                                                            {espaco.capacidade}
-                                                        </small>
                                                     </div>
 
                                                     {/* Cards */}
@@ -770,42 +806,48 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                     )}
 
                                                     {/* Drop area */}
-                                                    <div
-                                                        className="mt-2 text-center"
-                                                        style={{
-                                                            border: '2px dashed #ccc',
-                                                            padding: '10px',
-                                                            borderRadius: '5px',
-                                                        }}
-                                                    >
-                                                        Arraste aqui
-                                                        <br />
-                                                        <MdAddCircle
-                                                            color="rgb(120, 142, 238)"
-                                                            size={20}
-                                                            title="Adicionar uma sessão"
+                                                    {espaco.sessoes.length ===
+                                                    0 ? (
+                                                        <div
+                                                            className="mt-2 text-center"
                                                             style={{
-                                                                cursor: 'pointer',
+                                                                border: '2px dashed #ccc',
+                                                                padding: '10px',
+                                                                borderRadius:
+                                                                    '5px',
                                                             }}
-                                                            onClick={() => {
-                                                                setSessaoEditando(
-                                                                    null,
-                                                                );
-                                                                setFormSessao({
-                                                                    data_horario_inicio:
-                                                                        '',
-                                                                    data_horario_fim:
-                                                                        '',
-                                                                    espaco: espaco.id,
-                                                                    ordem_apresentacoes:
-                                                                        [],
-                                                                });
-                                                                setMostrarModalSessao(
-                                                                    true,
-                                                                );
-                                                            }}
-                                                        />
-                                                    </div>
+                                                        >
+                                                            Arraste aqui
+                                                            <br />
+                                                            <MdAddCircle
+                                                                color="rgb(120, 142, 238)"
+                                                                size={20}
+                                                                title="Adicionar uma sessão"
+                                                                style={{
+                                                                    cursor: 'pointer',
+                                                                }}
+                                                                onClick={() => {
+                                                                    setSessaoEditando(
+                                                                        null,
+                                                                    );
+                                                                    setFormSessao(
+                                                                        {
+                                                                            data_horario_inicio:
+                                                                                '',
+                                                                            data_horario_fim:
+                                                                                '',
+                                                                            espaco: espaco.id,
+                                                                            ordem_apresentacoes:
+                                                                                [],
+                                                                        },
+                                                                    );
+                                                                    setMostrarModalSessao(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : null}
                                                 </EspacoDrop>
                                             </Col>
                                         );
