@@ -185,7 +185,7 @@ export default function ListarInscritosEvento() {
                     )}
 
                     <h1 className="mb-5 text-center">Lista de Inscritos</h1>
-                    <div className="d-flex align-items-center gap-3 mb-3 w-75">
+                    <div className="d-flex align-items-center gap-3 mb-3 w-75 mx-auto">
                         <input
                             className="form-control"
                             type="text"

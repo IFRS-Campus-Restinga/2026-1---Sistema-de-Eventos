@@ -102,6 +102,30 @@ class RegistrarPresencaView(APIView):
 
         if not evento_id:
             return Response({"erro": "evento_id ou slug é obrigatório."}, status=404)
+        # carrega o obj evento pra validar o período de presença
+        from ..models.evento import Evento
+
+        try:
+            evento = Evento.objects.get(id=evento_id)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        # aí aq impede que marque a presença fora da data de realização do evento
+        etapa_realizacao = evento.etapas.filter(
+            tipo_etapa=TipoEtapa.REALIZACAO_EVENTO
+        ).first()
+        agora = timezone.now()
+        if etapa_realizacao:
+            if (
+                agora < etapa_realizacao.data_inicio
+                or agora > etapa_realizacao.data_fim
+            ):
+                return Response(
+                    {
+                        "erro": "Marcações de presença só são permitidas durante o período de realização do evento."
+                    },
+                    status=403,
+                )
 
         try:
             perfil = Perfil.objects.get(usuario=request.user)

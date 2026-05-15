@@ -7,6 +7,8 @@ import {
     ListGroup,
     Badge,
     Spinner,
+    Modal,
+    Form,
 } from 'react-bootstrap';
 import {
     MdEdit,
@@ -32,25 +34,74 @@ import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
+import { QRCodeSVG } from 'qrcode.react';
 import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
 } from '../utils/selectedEvento';
+import { getCurrentUser } from '../services/authService';
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
     const [carregando, setCarregando] = useState(true);
+    const [carregandoUsuario, setCarregandoUsuario] = useState(true);
+    const [usuarioAtual, setUsuarioAtual] = useState(null);
     const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
     const [alerta, setAlerta] = useState('');
     const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [eventoQrSelecionado, setEventoQrSelecionado] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         carregarEventos();
     }, []);
+
+    useEffect(() => {
+        let ativo = true;
+
+        (async () => {
+            try {
+                const currentUser = await getCurrentUser();
+                if (!ativo) return;
+                setUsuarioAtual(currentUser);
+            } finally {
+                if (!ativo) return;
+                setCarregandoUsuario(false);
+            }
+        })();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
+
+    const gruposUsuario = Array.isArray(usuarioAtual?.groups)
+        ? usuarioAtual.groups
+              .map((group) => (typeof group === 'string' ? group : group?.name))
+              .filter(Boolean)
+        : [];
+
+    const podeVerQr = gruposUsuario.some((grupo) =>
+        ['Administrador', 'Coordenador'].includes(grupo),
+    );
+
+    const abrirQr = (evento) => {
+        setEventoQrSelecionado(evento);
+        setShowQrModal(true);
+    };
+
+    const fecharQr = () => {
+        setShowQrModal(false);
+        setEventoQrSelecionado(null);
+    };
+
+    const urlCredenciamento = eventoQrSelecionado
+        ? `${window.location.origin}/credenciamento/${eventoQrSelecionado.slug}`
+        : '';
 
     const carregarEventos = async () => {
         try {
@@ -249,6 +300,17 @@ export default function EventosListar() {
                                                     >
                                                         Presença
                                                     </Button>
+                                                    {podeVerQr && (
+                                                        <Button
+                                                            variant="success"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                abrirQr(evento)
+                                                            }
+                                                        >
+                                                            QR Code
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         variant="danger"
                                                         size="sm"
@@ -262,12 +324,15 @@ export default function EventosListar() {
                                                     </Button>
 
                                                     <Button
-                                                    variant='warning'
-                                                    size='sm'
-                                                    onClick={()=>
-                                                        navigate(`/editar_evento/${evento.id}`)
-                                                    }>
-                                                       <MdEdit size={22}/> 
+                                                        variant="warning"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/editar_evento/${evento.id}`,
+                                                            )
+                                                        }
+                                                    >
+                                                        <MdEdit size={22} />
                                                     </Button>
                                                 </div>
                                             </ListGroup.Item>
@@ -304,11 +369,10 @@ export default function EventosListar() {
                                 <Button
                                     as={Link}
                                     to="/"
-                                    variant="outline-secondary" 
+                                    variant="outline-secondary"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                                    
                                 >
-                                     Ir para página inicial
+                                    Ir para página inicial
                                 </Button>
                             </div>
                         </Container>
@@ -343,6 +407,45 @@ export default function EventosListar() {
                 onAcao={excluirEvento}
                 variante="danger"
             />
+
+            <Modal show={showQrModal} onHide={fecharQr} centered size="lg">
+                <Modal.Header closeButton>
+                    <Modal.Title>QR Code de presença</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center py-4">
+                    {eventoQrSelecionado && (
+                        <>
+                            <h5 className="fw-bold mb-2">
+                                {eventoQrSelecionado.nome}
+                            </h5>
+                            <p className="text-muted mb-4">
+                                Aponte a câmera para este QR code para abrir a
+                                página de credenciamento.
+                            </p>
+
+                            <div className="d-inline-flex flex-column align-items-center p-4 bg-white rounded shadow-sm mb-4 border">
+                                <QRCodeSVG
+                                    value={urlCredenciamento}
+                                    size={280}
+                                    includeMargin
+                                />
+                            </div>
+
+                            <Form.Control
+                                readOnly
+                                value={urlCredenciamento}
+                                className="text-center"
+                            />
+                        </>
+                    )}
+                    {!carregandoUsuario && !podeVerQr && (
+                        <p className="text-muted mb-0">
+                            QR code disponível apenas para coordenadores e
+                            administradores.
+                        </p>
+                    )}
+                </Modal.Body>
+            </Modal>
         </div>
     );
 }

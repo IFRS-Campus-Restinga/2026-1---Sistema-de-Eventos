@@ -12,16 +12,14 @@ export const registrarPresencaEvento = async (slugOuId) => {
 
     const url = `${API_URL}/api/inscricoes_eventos/${slugOuId}/marcar_presenca/`;
 
-    const response = await axios.post(
-        url,
-        {},
-        {
-            headers: {
-                'X-CSRFToken': csrfToken,
-            },
-            withCredentials: true,
+    const payload = {};
+
+    const response = await axios.post(url, payload, {
+        headers: {
+            'X-CSRFToken': csrfToken,
         },
-    );
+        withCredentials: true,
+    });
 
     return response.data;
 };

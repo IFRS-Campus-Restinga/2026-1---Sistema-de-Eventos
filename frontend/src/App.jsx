@@ -99,7 +99,7 @@ function App() {
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
-                <Route path="/credenciamento/:eventoSlug" element={protegido(<PresencaEvento />, ADMIN_GROUPS)} />
+                <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />

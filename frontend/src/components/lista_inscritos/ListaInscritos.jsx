@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Table, Button } from 'react-bootstrap';
+import { Row, Col, Table, Button } from 'react-bootstrap';
 import {
     MdCheckCircle,
     MdChevronLeft,
@@ -151,7 +151,7 @@ export default function ListaInscritos({
     };
 
     return (
-        <Container>
+        <div className="w-100">
             <Row className="mb-3 align-items-center">
                 <Col>
                     <h2
@@ -406,6 +406,6 @@ export default function ListaInscritos({
                     )}
                 </div>
             )}
-        </Container>
+        </div>
     );
 }
