@@ -5,6 +5,7 @@ import { FaPenNib } from 'react-icons/fa';
 import { MdCheckCircle } from 'react-icons/md';
 import Tabela from '../components/common/Tabela';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     listarAtracoes,
     buscarUsuarios,
@@ -14,6 +15,7 @@ import { pegarModalidades } from '../services/modalidadeService';
 import { listarAvaliadoresPorAtracao } from '../services/atracaoAvaliadorService';
 import useAtracaoAvaliador from '../hooks/useAtracaoAvaliador';
 import Tag from '../components/common/Tag';
+import formatAreaConhecimento from '../utils/formatAreaConhecimento';
 import Filtro from '../components/common/Filtro';
 import ModalPopup from '../components/common/ModalPopup';
 import Form from 'react-bootstrap/Form';
@@ -39,12 +41,17 @@ function AvaliadorChip({ nome, onRemove }) {
 }
 
 export default function GerenciarAvaliacoesAtracoes({}) {
+    const [searchParams] = useSearchParams();
+    const eventoId = searchParams.get('evento_id');
     const [exibirModal, setExibirModal] = useState(false);
     const [atracoes, setAtracoes] = useState([]);
     const [allAtracoes, setAllAtracoes] = useState([]);
     const [filtroArea, setFiltroArea] = useState('');
     const [filtroBusca, setFiltroBusca] = useState('');
     const [carregando, setCarregando] = useState(false);
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+    );
 
     const [selecionada, setSelecionada] = useState(null);
     const [sugestoes, setSugestoes] = useState([]);
@@ -65,6 +72,12 @@ export default function GerenciarAvaliacoesAtracoes({}) {
     const carregarLista = useCallback(async () => {
         setCarregando(true);
         try {
+            if (!eventoId) {
+                setAllAtracoes([]);
+                setAtracoes([]);
+                setCarregando(false);
+                return;
+            }
             // buscar modalidades primeiro para podermos filtrar corretamente
             let mMap = {};
             try {
@@ -78,7 +91,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 setModalidadesMap({});
             }
 
-            const dados = await listarAtracoes();
+            const dados = await listarAtracoes(eventoId);
             const lista = Array.isArray(dados) ? dados : [];
 
             // filtrar atrações cuja modalidade não requer avaliação
@@ -143,6 +156,12 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         carregarLista();
     }, [carregarLista]);
 
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
     const aoFiltrar = () => {
         const area = filtroArea?.toLowerCase?.() || '';
         const busca = filtroBusca?.toLowerCase?.() || '';
@@ -178,7 +197,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                             </span>
                         </Col>
                     </Row>
-                    <Row className="w-75">
+                    <Row className={`${!isMobile ? 'w-75' : 'w-100'}`}>
                         <Col>
                             <Filtro
                                 filtros={[
@@ -215,10 +234,16 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                             />
                         </Col>
                     </Row>
-                    <Row className="w-75">
+                    <Row
+                        className={`${
+                            !isMobile
+                                ? 'w-75 overflow-auto'
+                                : 'w-100 overflow-auto'
+                        }`}
+                    >
                         <Col>
                             <Tabela
-                                className="rounded-4 "
+                                className="rounded-4"
                                 style={{
                                     overflow: 'hidden',
                                 }}
@@ -284,10 +309,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                     {
                                         value: (
                                             <Tag
-                                                texto={
+                                                texto={formatAreaConhecimento(
                                                     a.area_conhecimento ||
-                                                    a.modalidade
-                                                }
+                                                        a.modalidade,
+                                                )}
                                                 corFundo="blue"
                                                 corTexto="#fff"
                                             />
@@ -326,80 +351,93 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                         ),
                                         style: { verticalAlign: 'middle' },
                                     },
-                                    <div className="d-flex gap-3">
-                                        <button
-                                            className="btn btn-outline-primary"
-                                            onClick={async () => {
-                                                setSelecionada(a);
-                                                setExibirModal(true);
-                                                // carregar avaliadores da atração
-                                                await carregarAvaliadores(a.id);
-                                                // carregar usuários para sugestoes
-                                                let u = [];
-                                                try {
-                                                    const resp =
-                                                        await buscarUsuarios();
-                                                    u = Array.isArray(resp)
-                                                        ? resp
-                                                        : [];
-                                                    setUsuarios(u);
-                                                } catch (e) {
-                                                    setUsuarios([]);
-                                                }
-                                                // carregar avaliadores já associados e pré-selecioná-los
-                                                try {
-                                                    const avResp =
-                                                        await listarAvaliadoresPorAtracao(
+                                    {
+                                        value: (
+                                            <div className="d-flex gap-3">
+                                                <button
+                                                    className="btn btn-outline-primary"
+                                                    onClick={async () => {
+                                                        setSelecionada(a);
+                                                        setExibirModal(true);
+                                                        // carregar avaliadores da atração
+                                                        await carregarAvaliadores(
                                                             a.id,
                                                         );
-                                                    const avs =
-                                                        avResp?.avaliadores ||
-                                                        [];
-                                                    const pids = avs
-                                                        .map(
-                                                            (x) =>
-                                                                x.perfil_id ||
-                                                                x.id,
-                                                        )
-                                                        .filter(Boolean);
-                                                    setSelecionadasSugestoes(
-                                                        pids,
-                                                    );
-                                                } catch (e) {
-                                                    // ignore
-                                                }
-                                                // gerar sugestoes por area a partir dos usuarios carregados
-                                                const sugest = (u || []).filter(
-                                                    (usr) => {
-                                                        return (
-                                                            (usr.area_conhecimento &&
-                                                                usr.area_conhecimento ===
-                                                                    (a.area_conhecimento ||
-                                                                        a.modalidade)) ||
-                                                            (usr.areas &&
-                                                                Array.isArray(
-                                                                    usr.areas,
-                                                                ) &&
-                                                                usr.areas.includes(
-                                                                    a.area_conhecimento,
-                                                                ))
+                                                        // carregar usuários para sugestoes
+                                                        let u = [];
+                                                        try {
+                                                            const resp =
+                                                                await buscarUsuarios();
+                                                            u = Array.isArray(
+                                                                resp,
+                                                            )
+                                                                ? resp
+                                                                : [];
+                                                            setUsuarios(u);
+                                                        } catch (e) {
+                                                            setUsuarios([]);
+                                                        }
+                                                        // carregar avaliadores já associados e pré-selecioná-los
+                                                        try {
+                                                            const avResp =
+                                                                await listarAvaliadoresPorAtracao(
+                                                                    a.id,
+                                                                );
+                                                            const avs =
+                                                                avResp?.avaliadores ||
+                                                                [];
+                                                            const pids = avs
+                                                                .map(
+                                                                    (x) =>
+                                                                        x.perfil_id ||
+                                                                        x.id,
+                                                                )
+                                                                .filter(
+                                                                    Boolean,
+                                                                );
+                                                            setSelecionadasSugestoes(
+                                                                pids,
+                                                            );
+                                                        } catch (e) {
+                                                            // ignore
+                                                        }
+                                                        // gerar sugestoes por area a partir dos usuarios carregados
+                                                        const sugest = (
+                                                            u || []
+                                                        ).filter((usr) => {
+                                                            return (
+                                                                (usr.area_conhecimento &&
+                                                                    usr.area_conhecimento ===
+                                                                        (a.area_conhecimento ||
+                                                                            a.modalidade)) ||
+                                                                (usr.areas &&
+                                                                    Array.isArray(
+                                                                        usr.areas,
+                                                                    ) &&
+                                                                    usr.areas.includes(
+                                                                        a.area_conhecimento,
+                                                                    ))
+                                                            );
+                                                        });
+                                                        setSugestoes(
+                                                            sugest.slice(0, 6),
                                                         );
-                                                    },
-                                                );
-                                                setSugestoes(
-                                                    sugest.slice(0, 6),
-                                                );
-                                            }}
-                                            disabled={!eventosMap[a.evento]}
-                                            title={
-                                                !eventosMap[a.evento]
-                                                    ? 'Etapa de realização/avaliação não está aberta para este evento'
-                                                    : 'Atribuir avaliadores'
-                                            }
-                                        >
-                                            Atribuir
-                                        </button>
-                                    </div>,
+                                                    }}
+                                                    disabled={
+                                                        !eventosMap[a.evento]
+                                                    }
+                                                    title={
+                                                        !eventosMap[a.evento]
+                                                            ? 'Etapa de realização/avaliação não está aberta para este evento'
+                                                            : 'Atribuir avaliadores'
+                                                    }
+                                                >
+                                                    Atribuir
+                                                </button>
+                                            </div>
+                                        ),
+                                        style: { verticalAlign: 'middle' },
+                                    },
                                 ])}
                             />
                         </Col>
@@ -422,8 +460,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                 <Col>
                                     <span className="fw-bold">Área:</span>{' '}
                                     <span>
-                                        {selecionada?.area_conhecimento ||
-                                            selecionada?.modalidade}
+                                        {formatAreaConhecimento(
+                                            selecionada?.area_conhecimento ||
+                                                selecionada?.modalidade,
+                                        )}
                                     </span>
                                 </Col>
                             </Row>
@@ -479,9 +519,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                             />
                                             <small className="ms-3">
                                                 Áreas:{' '}
-                                                {Array.isArray(s.areas)
-                                                    ? s.areas.join(', ')
-                                                    : s.area_conhecimento}
+                                                {formatAreaConhecimento(
+                                                    s.areas ||
+                                                        s.area_conhecimento,
+                                                )}
                                             </small>
                                         </Col>
                                     );
@@ -551,13 +592,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                                         />
                                                         <small className="ms-">
                                                             Áreas:{' '}
-                                                            {Array.isArray(
-                                                                u.areas,
-                                                            )
-                                                                ? u.areas.join(
-                                                                      ', ',
-                                                                  )
-                                                                : u.area_conhecimento}
+                                                            {formatAreaConhecimento(
+                                                                u.areas ||
+                                                                    u.area_conhecimento,
+                                                            )}
                                                         </small>
                                                     </Col>
                                                 );

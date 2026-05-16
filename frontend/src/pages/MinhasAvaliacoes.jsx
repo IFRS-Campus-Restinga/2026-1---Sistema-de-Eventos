@@ -9,6 +9,8 @@ import Tabela from '../components/common/Tabela';
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Tag from '../components/common/Tag';
+import formatNivelEnsino from '../utils/formatNivelEnsino';
+import formatAreaConhecimento from '../utils/formatAreaConhecimento';
 import ModalPopup from '../components/common/ModalPopup';
 import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
 import { listarEtapas } from '../services/etapaEventoService';
@@ -22,6 +24,16 @@ export default function AvaliacoesAtracoes({}) {
     const { atracoes, carregarAtracoesParaEvento } = useMeusAvaliacoes();
     const [etapaRealizacao, setEtapaRealizacao] = useState(null);
     const navigate = useNavigate();
+
+    const [isMobile, setIsMobile] = useState(
+        typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+    );
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     useEffect(() => {
         if (eventoId) {
@@ -51,7 +63,8 @@ export default function AvaliacoesAtracoes({}) {
             </Row>
             <Row className="p-0 m-0">
                 <Col className="p-0 m-0">
-                    {d?.tipo || 'Modalidade'} | {d?.nivel_ensino || d?.nivel}
+                    {d?.tipo || 'Modalidade'} |{' '}
+                    {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
                 </Col>
                 <Col className="p-0 m-0">
                     <Link className="text-decoration-none d-flex align-items-center">
@@ -92,9 +105,13 @@ export default function AvaliacoesAtracoes({}) {
                     </Row>
                     <Row>
                         <Col className="d-md-flex gap-5">
-                            <Card corBorda="#003366" largura={400} altura={110}>
-                                <Container className="d-flex justify-content-evenly mt-3">
-                                    <Row className="d-md-flex flex-md-column">
+                            <Card
+                                corBorda="#003366"
+                                largura={!isMobile ? 400 : undefined}
+                                altura={110}
+                            >
+                                <Container className="d-flex justify-content-evenly mt-3 pt-3 pt-md-0">
+                                    <Row className="d-flex flex-column">
                                         <Col>
                                             <span>PARA AVALIAR</span>
                                         </Col>
@@ -121,9 +138,13 @@ export default function AvaliacoesAtracoes({}) {
                                     </Row>
                                 </Container>
                             </Card>
-                            <Card corBorda="#059547" largura={400} altura={110}>
-                                <Container className="d-flex justify-content-evenly mt-3">
-                                    <Row className="d-md-flex flex-md-column">
+                            <Card
+                                corBorda="#059547"
+                                largura={!isMobile ? 400 : undefined}
+                                altura={110}
+                            >
+                                <Container className="d-flex justify-content-evenly mt-3  pt-3 pt-md-0">
+                                    <Row className="d-flex flex-column">
                                         <Col>
                                             <span className="">
                                                 AVALIAÇÕES CONCLUÍDAS
@@ -160,7 +181,11 @@ export default function AvaliacoesAtracoes({}) {
                             </span>
                         </Col>
                     </Row>
-                    <Row className="w-75 px-4">
+                    <Row
+                        className={`${
+                            !isMobile ? 'w-75' : 'w-100'
+                        } px-4 overflow-auto`}
+                    >
                         <Col>
                             <Tabela
                                 className="rounded-4 "
@@ -181,10 +206,21 @@ export default function AvaliacoesAtracoes({}) {
                                             !etapaRealizacao.data_fim
                                         )
                                             return '-';
+                                        const now = new Date();
+                                        // if current time is before the start of the etapa, show start date
+                                        if (
+                                            etapaRealizacao.data_inicio &&
+                                            new Date(
+                                                etapaRealizacao.data_inicio,
+                                            ) > now
+                                        ) {
+                                            return new Date(
+                                                etapaRealizacao.data_inicio,
+                                            ).toLocaleDateString('pt-BR');
+                                        }
                                         const fim = new Date(
                                             etapaRealizacao.data_fim,
                                         );
-                                        const now = new Date();
                                         const diffMs = fim - now;
                                         if (diffMs <= 0) return 'Encerrado';
                                         const oneDayMs = 24 * 60 * 60 * 1000;
@@ -237,6 +273,11 @@ export default function AvaliacoesAtracoes({}) {
                                             now &&
                                         new Date(etapaRealizacao.data_fim) >=
                                             now;
+                                    const etapaBefore =
+                                        !!etapaRealizacao &&
+                                        etapaRealizacao.data_inicio &&
+                                        new Date(etapaRealizacao.data_inicio) >
+                                            now;
                                     const podeEditar =
                                         !!a.avaliacao_id && etapaOpen;
 
@@ -247,7 +288,13 @@ export default function AvaliacoesAtracoes({}) {
                                         },
                                         {
                                             value: (
-                                                <span className="text-danger fw-bold">
+                                                <span
+                                                    className={
+                                                        etapaBefore
+                                                            ? 'text-secondary fw-bold'
+                                                            : 'text-danger fw-bold'
+                                                    }
+                                                >
                                                     {prazoTexto}
                                                 </span>
                                             ),
@@ -257,26 +304,38 @@ export default function AvaliacoesAtracoes({}) {
                                             value: statusTag,
                                             style: { verticalAlign: 'middle' },
                                         },
-                                        <button
-                                            className="btn btn-primary"
-                                            disabled={!podeAvaliar && !podeVer}
-                                            onClick={() => {
-                                                if (podeAvaliar)
-                                                    return navigate(
-                                                        `/avaliar_atracao?atracao_id=${a.id}`,
-                                                    );
-                                                if (podeVer)
-                                                    return navigate(
-                                                        `/avaliar_atracao?atracao_id=${a.id}&avaliacao_id=${a.avaliacao_id}`,
-                                                    );
-                                            }}
-                                        >
-                                            {podeAvaliar
-                                                ? 'Avaliar'
-                                                : podeEditar
-                                                  ? 'Editar'
-                                                  : 'Ver'}
-                                        </button>,
+                                        {
+                                            value: (
+                                                <button
+                                                    className="btn btn-primary"
+                                                    disabled={
+                                                        etapaBefore ||
+                                                        (!podeAvaliar &&
+                                                            !podeVer)
+                                                    }
+                                                    onClick={() => {
+                                                        if (etapaBefore) return;
+                                                        if (podeAvaliar)
+                                                            return navigate(
+                                                                `/avaliar_atracao?atracao_id=${a.id}`,
+                                                            );
+                                                        if (podeVer)
+                                                            return navigate(
+                                                                `/avaliar_atracao?atracao_id=${a.id}&avaliacao_id=${a.avaliacao_id}`,
+                                                            );
+                                                    }}
+                                                >
+                                                    {etapaBefore
+                                                        ? 'Avaliação ainda indisponível'
+                                                        : podeAvaliar
+                                                          ? 'Avaliar'
+                                                          : podeEditar
+                                                            ? 'Editar'
+                                                            : 'Ver'}
+                                                </button>
+                                            ),
+                                            style: { verticalAlign: 'middle' },
+                                        },
                                     ];
                                 })}
                             />
@@ -308,8 +367,9 @@ export default function AvaliacoesAtracoes({}) {
                                 <Col>
                                     <Tag
                                         texto={
-                                            selectedAtracao?.area_conhecimento ||
-                                            'Área'
+                                            formatAreaConhecimento(
+                                                selectedAtracao?.area_conhecimento,
+                                            ) || 'Área'
                                         }
                                         corFundo="#00f"
                                         corTexto="#000"

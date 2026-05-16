@@ -93,7 +93,9 @@ export default function DashboardEvento({}) {
         {
             texto: 'Homologar e Definir Avaliadores de Trabalhos',
             icone: <PiChecks color="#14AE5C" size={20} />,
-            to: '#',
+            to: eventoId
+                ? `/gerenciar_atracoes?evento_id=${eventoId}`
+                : '/gerenciar_atracoes',
         },
         {
             texto: 'Editar Informações do Evento',
