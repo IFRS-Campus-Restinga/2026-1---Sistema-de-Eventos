@@ -4,6 +4,7 @@ from .models import (
     AreaConhecimento,
     Arquivo,
     Atracao,
+    AvaliacaoAtracao,
     AvaliacaoSubmissao,
     CampoFormulario,
     CriterioAvaliacaoAtracao,
@@ -36,6 +37,7 @@ admin.site.register(Atracao)
 admin.site.register(InscricaoEvento)
 admin.site.register(EtapaEvento)
 admin.site.register(AvaliacaoSubmissao)
+admin.site.register(AvaliacaoAtracao)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)

@@ -7,6 +7,7 @@ from .views.area_conhecimento_view import AreaConhecimentoViewSet
 from .views.arquivo_view import ArquivoListView
 from .views.atracao_view import (
     AtracaoAvaliadorView,
+    MinhasAtracoesAvaliadorView,
     AtracaoDetailView,
     AtracaoListView,
     EnviarEmailsView,
@@ -47,6 +48,7 @@ from .views.evento_view import (
     EventoListView,
     EventoOrganizadorView,
     EventoUpdateView,
+    MeusEventosAvaliadorView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.inscricao_atracao_view import (
@@ -69,7 +71,7 @@ from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
-from .views.user_view import UserListView, UserPermissoesView
+from .views.user_view import UserListView, UserPermissoesView, ServidorListView
 from .views.visao_geral_view import DashboardView
 
 app_name = "api"
@@ -131,6 +133,7 @@ urlpatterns = [
 
     # usuarios e permissoes
     path("users/", UserListView.as_view()),
+    path("users/servidores/", ServidorListView.as_view()),
     path("users/<int:pk>/", UserPermissoesView.as_view()),
     path("usuarios/cadastro-complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
     path("permissoes/", PermissaoListView.as_view()),
@@ -146,6 +149,7 @@ urlpatterns = [
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
     path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
 
+
     # avaliacao de submissoes
     path("avaliacao_submissao/", AvaliacaoSubmissaoListView.as_view()),
     path("avaliacao_submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
@@ -155,5 +159,8 @@ urlpatterns = [
     path("avaliacao_atracao/<int:pk>", AvaliacaoAtracaoDetailView.as_view()),
     path("item_avaliacao_atracao/", ItemAvaliaçãoAtracaoListView.as_view()),
     path("item_avaliacao_atracao/<int:pk>", ItemAvaliaçãoAtracaoDetailView.as_view()),
+    path("eventos/minhas_avaliacoes/", MeusEventosAvaliadorView.as_view()),
+    path("eventos/<int:evento_id>/minhas_avaliacoes/atracoes/", MinhasAtracoesAvaliadorView.as_view()),
+
 ]
 # fmt: on

@@ -2,6 +2,7 @@
 from .area_conhecimento import *
 from .arquivo import *
 from .atracao import *
+from .avaliacao_atracao import *
 from .avaliacao_submissao import *
 from .base import *
 from .campo_formulario import *

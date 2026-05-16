@@ -6,11 +6,44 @@ import { FaPenNib } from 'react-icons/fa';
 import { MdCheckCircle } from 'react-icons/md';
 import { BsEyeFill } from 'react-icons/bs';
 import Tabela from '../components/common/Tabela';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Tag from '../components/common/Tag';
+import ModalPopup from '../components/common/ModalPopup';
+import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
+import { listarEtapas } from '../services/etapaEventoService';
 
 export default function AvaliacoesAtracoes({}) {
+    const [modalAtivo, setModalAtivo] = useState(false);
+    const [selectedAtracao, setSelectedAtracao] = useState(null);
+    const [searchParams] = useSearchParams();
+    const eventoId = searchParams.get('evento_id');
+
+    const { atracoes, carregarAtracoesParaEvento } = useMeusAvaliacoes();
+    const [etapaRealizacao, setEtapaRealizacao] = useState(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (eventoId) {
+            carregarAtracoesParaEvento(eventoId);
+
+            (async () => {
+                try {
+                    const etapas = await listarEtapas();
+                    const etapa = (etapas || []).find(
+                        (e) =>
+                            String(e.evento) === String(eventoId) &&
+                            e.tipo_etapa === 'REALIZACAO_EVENTO',
+                    );
+                    setEtapaRealizacao(etapa || null);
+                } catch (err) {
+                    console.error('erro ao buscar etapas:', err);
+                    setEtapaRealizacao(null);
+                }
+            })();
+        }
+    }, [eventoId, carregarAtracoesParaEvento]);
+
     const personalizarInformacoes = (d) => (
         <>
             <Row className="p-0 m-0">
@@ -18,12 +51,20 @@ export default function AvaliacoesAtracoes({}) {
             </Row>
             <Row className="p-0 m-0">
                 <Col className="p-0 m-0">
-                    ID #{d?.id} | {d?.nivel}
+                    {d?.tipo || 'Modalidade'} | {d?.nivel_ensino || d?.nivel}
                 </Col>
                 <Col className="p-0 m-0">
                     <Link className="text-decoration-none d-flex align-items-center">
                         <BsEyeFill />
-                        <span className="ms-2">Ler resumo completo</span>
+                        <span
+                            className="ms-2"
+                            onClick={() => {
+                                setSelectedAtracao(d);
+                                setModalAtivo(true);
+                            }}
+                        >
+                            Ler resumo completo
+                        </span>
                     </Link>
                 </Col>
             </Row>
@@ -59,7 +100,14 @@ export default function AvaliacoesAtracoes({}) {
                                         </Col>
                                         <Col>
                                             <span className="fw-bold fs-1">
-                                                0
+                                                {Array.isArray(atracoes)
+                                                    ? atracoes.filter(
+                                                          (a) =>
+                                                              a.status !==
+                                                                  'avaliada' &&
+                                                              a.avaliacao_disponivel,
+                                                      ).length
+                                                    : 0}
                                             </span>
                                         </Col>
                                     </Row>
@@ -83,7 +131,13 @@ export default function AvaliacoesAtracoes({}) {
                                         </Col>
                                         <Col>
                                             <span className="fw-bold fs-1">
-                                                0
+                                                {Array.isArray(atracoes)
+                                                    ? atracoes.filter(
+                                                          (a) =>
+                                                              a.status ===
+                                                              'avaliada',
+                                                      ).length
+                                                    : 0}
                                             </span>
                                         </Col>
                                     </Row>
@@ -120,44 +174,166 @@ export default function AvaliacoesAtracoes({}) {
                                     'Status',
                                     'Ação',
                                 ]}
-                                dados={[
-                                    [
+                                dados={(atracoes || []).map((a) => {
+                                    const prazoTexto = (() => {
+                                        if (
+                                            !etapaRealizacao ||
+                                            !etapaRealizacao.data_fim
+                                        )
+                                            return '-';
+                                        const fim = new Date(
+                                            etapaRealizacao.data_fim,
+                                        );
+                                        const now = new Date();
+                                        const diffMs = fim - now;
+                                        if (diffMs <= 0) return 'Encerrado';
+                                        const oneDayMs = 24 * 60 * 60 * 1000;
+                                        if (diffMs < oneDayMs) {
+                                            const diffHours = Math.ceil(
+                                                diffMs / (1000 * 60 * 60),
+                                            );
+                                            return `${diffHours} hora${
+                                                diffHours > 1 ? 's' : ''
+                                            } restantes`;
+                                        }
+                                        const diffDays = Math.ceil(
+                                            diffMs / oneDayMs,
+                                        );
+                                        return `${diffDays} dias restantes`;
+                                    })();
+
+                                    const statusTag =
+                                        a.status === 'avaliada' ? (
+                                            <Tag
+                                                corFundo={'#059547'}
+                                                corTexto={'#fff'}
+                                                texto={'Avaliada'}
+                                            />
+                                        ) : a.avaliacao_disponivel ? (
+                                            <Tag
+                                                corFundo={'#003366'}
+                                                corTexto={'#fff'}
+                                                texto={'Para avaliar'}
+                                            />
+                                        ) : (
+                                            <Tag
+                                                corFundo={'#6c757d'}
+                                                corTexto={'#fff'}
+                                                texto={'Fora do período'}
+                                            />
+                                        );
+
+                                    const podeAvaliar =
+                                        !!a.avaliacao_disponivel &&
+                                        a.status !== 'avaliada';
+                                    const podeVer =
+                                        !!a.avaliacao_id ||
+                                        a.status === 'avaliada';
+                                    const now = new Date();
+                                    const etapaOpen =
+                                        !!etapaRealizacao &&
+                                        etapaRealizacao.data_inicio &&
+                                        new Date(etapaRealizacao.data_inicio) <=
+                                            now &&
+                                        new Date(etapaRealizacao.data_fim) >=
+                                            now;
+                                    const podeEditar =
+                                        !!a.avaliacao_id && etapaOpen;
+
+                                    return [
                                         {
-                                            value: personalizarInformacoes({
-                                                titulo: 'Impacto da robotica educacional',
-                                                id: '123',
-                                                nivel: 'Superior',
-                                            }),
+                                            value: personalizarInformacoes(a),
                                             style: { width: '35%' },
                                         },
                                         {
                                             value: (
                                                 <span className="text-danger fw-bold">
-                                                    2 dias restantes
+                                                    {prazoTexto}
                                                 </span>
                                             ),
                                             style: { verticalAlign: 'middle' },
                                         },
                                         {
-                                            value: (
-                                                <Tag
-                                                    corFundo={'#444'}
-                                                    corTexto={'#fff'}
-                                                    texto={'Não iniciado'}
-                                                />
-                                            ),
+                                            value: statusTag,
                                             style: { verticalAlign: 'middle' },
                                         },
-                                        <button className="btn btn-primary">
-                                            Acao
+                                        <button
+                                            className="btn btn-primary"
+                                            disabled={!podeAvaliar && !podeVer}
+                                            onClick={() => {
+                                                if (podeAvaliar)
+                                                    return navigate(
+                                                        `/avaliar_atracao?atracao_id=${a.id}`,
+                                                    );
+                                                if (podeVer)
+                                                    return navigate(
+                                                        `/avaliar_atracao?atracao_id=${a.id}&avaliacao_id=${a.avaliacao_id}`,
+                                                    );
+                                            }}
+                                        >
+                                            {podeAvaliar
+                                                ? 'Avaliar'
+                                                : podeEditar
+                                                  ? 'Editar'
+                                                  : 'Ver'}
                                         </button>,
-                                    ],
-                                ]}
+                                    ];
+                                })}
                             />
                         </Col>
                     </Row>
                 </Container>
             </main>
+
+            <ModalPopup
+                titulo={
+                    selectedAtracao
+                        ? selectedAtracao.titulo
+                        : 'Detalhes do trabalho'
+                }
+                show={modalAtivo}
+                onFechar={() => {
+                    setModalAtivo(false);
+                    setSelectedAtracao(null);
+                }}
+                children={
+                    <>
+                        <Container>
+                            <Row>
+                                <Col>
+                                    <h1>{selectedAtracao?.titulo}</h1>
+                                </Col>
+                            </Row>
+                            <Row className="mb-3">
+                                <Col>
+                                    <Tag
+                                        texto={
+                                            selectedAtracao?.area_conhecimento ||
+                                            'Área'
+                                        }
+                                        corFundo="#00f"
+                                        corTexto="#000"
+                                    />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">Resumo</span>
+                                    <p>{selectedAtracao?.resumo}</p>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">
+                                        Palavras-chave
+                                    </span>
+                                    <p>{selectedAtracao?.palavras_chave}</p>
+                                </Col>
+                            </Row>
+                        </Container>
+                    </>
+                }
+            />
 
             <Footer
                 telefone="(51) 3333-1234"

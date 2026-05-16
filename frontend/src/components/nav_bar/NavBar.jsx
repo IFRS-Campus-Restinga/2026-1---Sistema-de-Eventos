@@ -80,7 +80,7 @@ export default function NavBar() {
                             </Nav.Link>
                             <Nav.Link
                                 as={Link}
-                                to="/avaliar-submissao"
+                                to="/meus_eventos_avaliador"
                                 className="text-white fw-bold"
                             >
                                 Avaliações

@@ -6,6 +6,7 @@ from ..models.avaliacao_atracao import AvaliacaoAtracao
 class AvaliacaoAtracaoSerializer(serializers.ModelSerializer):
     nota_final = serializers.SerializerMethodField()
     avaliador = serializers.PrimaryKeyRelatedField(read_only=True)
+    parecer = serializers.CharField(required=True, allow_blank=False)
 
     def get_nota_final(self, obj):
         return obj.nota_final

@@ -4,6 +4,8 @@ from ..models.item_avaliacao_atracao import ItemAvaliaçãoAtracao
 
 
 class ItemAvaliaçãoAtracaoSerializer(serializers.ModelSerializer):
+    nota = serializers.FloatField(required=True, min_value=0, max_value=10)
+
     class Meta:
         model = ItemAvaliaçãoAtracao
         fields = ["id", "nota", "criterio_avaliacao", "avaliacao_atracao"]

@@ -126,13 +126,17 @@ export const editarAtracao = async (id, dados) => {
 
     const payload = montarPayloadAtracao(dados);
 
-    const response = await axios.put(`${API_URL}/api/atracoes/${id}/`, payload, {
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'multipart/form-data',
+    const response = await axios.put(
+        `${API_URL}/api/atracoes/${id}/`,
+        payload,
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'multipart/form-data',
+            },
+            withCredentials: true,
         },
-        withCredentials: true,
-    });
+    );
 
     return response.data;
 };
@@ -163,8 +167,10 @@ export const buscarEventos = async () => {
     return response.data;
 };
 
-export const buscarUsuarios = async () => {
-    const response = await axios.get(`${API_URL}/api/users/`, {
+export const buscarUsuarios = async (q) => {
+    // apenas servidores/avaliadores, aceita parâmetro q para busca
+    const response = await axios.get(`${API_URL}/api/users/servidores/`, {
+        params: q ? { q } : {},
         withCredentials: true,
     });
     return response.data;

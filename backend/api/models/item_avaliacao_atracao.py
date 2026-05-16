@@ -26,11 +26,11 @@ class ItemAvaliaçãoAtracao(Base):
 
     criterio_avaliacao = models.ForeignKey(
         CriterioAvaliacaoAtracao,
-        on_delete=models.RESTRICT,
+        on_delete=models.CASCADE,
     )
 
     avaliacao_atracao = models.ForeignKey(
-        AvaliacaoAtracao, on_delete=models.RESTRICT, related_name="itens"
+        AvaliacaoAtracao, on_delete=models.CASCADE, related_name="itens"
     )
 
     def __str__(self):

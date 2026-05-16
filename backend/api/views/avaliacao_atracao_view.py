@@ -1,10 +1,13 @@
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.atracao import Atracao
 from ..models.avaliacao_atracao import AvaliacaoAtracao
+from ..models.etapa_evento import EtapaEvento
 from ..serializers import AvaliacaoAtracaoSerializer
 
 
@@ -40,6 +43,20 @@ class AvaliacaoAtracaoListView(APIView):
             return Response(
                 {"erro": "Usuário não tem permissão para avaliar esta atração"},
                 status=403,
+            )
+
+        # verificar se a etapa de realização do evento está aberta
+        agora = timezone.now()
+        etapa_realizacao = EtapaEvento.objects.filter(
+            evento=atracao.evento,
+            tipo_etapa=TipoEtapa.REALIZACAO_EVENTO,
+            data_inicio__lte=agora,
+            data_fim__gte=agora,
+        ).first()
+
+        if not etapa_realizacao:
+            return Response(
+                {"erro": "Período de realização do evento não está aberto"}, status=400
             )
 
         serializer = AvaliacaoAtracaoSerializer(
@@ -79,7 +96,33 @@ class AvaliacaoAtracaoDetailView(APIView):
                 status=404,
             )
 
-        serializer = AvaliacaoAtracaoSerializer(criterio, data=request.data)
+        # exige usuário autenticado e permissão para avaliar a atração
+        if not request.user or not request.user.is_authenticated:
+            return Response({"erro": "Autenticação requerida"}, status=401)
+
+        if not request.user.has_perm("api.avaliar_atracao", criterio.atracao):
+            return Response(
+                {"erro": "Usuário não tem permissão para avaliar esta atração"},
+                status=403,
+            )
+
+        # verificar se a etapa de realização do evento está aberta
+        agora = timezone.now()
+        etapa_realizacao = EtapaEvento.objects.filter(
+            evento=criterio.atracao.evento,
+            tipo_etapa=TipoEtapa.REALIZACAO_EVENTO,
+            data_inicio__lte=agora,
+            data_fim__gte=agora,
+        ).first()
+
+        if not etapa_realizacao:
+            return Response(
+                {"erro": "Período de realização do evento não está aberto"}, status=400
+            )
+
+        serializer = AvaliacaoAtracaoSerializer(
+            criterio, data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

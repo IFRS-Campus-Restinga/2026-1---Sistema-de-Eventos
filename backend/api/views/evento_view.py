@@ -1,11 +1,17 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
+from guardian.shortcuts import (
+    assign_perm,
+    get_objects_for_user,
+    get_users_with_perms,
+    remove_perm,
+)
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..models.atracao import Atracao
 from ..models.evento import Evento
 from ..models.perfil import Perfil
 from ..serializers.evento_serializer import EventoSerializer
@@ -46,6 +52,34 @@ class EventoListView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MeusEventosAvaliadorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # eventos onde o usuário tem permissão de avaliar alguma atração
+        atracoes_com_perm = get_objects_for_user(
+            user, "api.avaliar_atracao", klass=Atracao
+        )
+        eventos_vinculados = set(atracoes_com_perm.values_list("evento_id", flat=True))
+
+        # eventos onde o usuário já fez avaliações
+        eventos_por_avaliacao = set(
+            Evento.objects.filter(
+                atracoes__avaliacaoatracao__avaliador=user
+            ).values_list("pk", flat=True)
+        )
+
+        # unir eventos vinculados por permissão em atrações e por avaliações existentes
+        pks = eventos_vinculados | eventos_por_avaliacao
+
+        queryset = Evento.objects.filter(pk__in=pks)
+
+        serializer = EventoSerializer(queryset.distinct(), many=True)
+        return Response(serializer.data)
 
 
 class EventoDetailView(APIView):
@@ -107,15 +141,25 @@ class EventoDeleteView(APIView):
 
 
 def _serializar_usuarios(usuarios):
-    return [
-        {
-            "id": user.id,
-            "username": user.username,
-            "nome": user.nome,
-            "email": user.email,
-        }
-        for user in usuarios
-    ]
+    serialized = []
+    for user in usuarios:
+        perfil = Perfil.objects.filter(usuario=user).first()
+        perfil_id = perfil.id if perfil else None
+        nome = None
+        if perfil and getattr(perfil, "nome", None):
+            nome = perfil.nome
+        else:
+            nome = getattr(user, "get_full_name", lambda: "")() or user.username
+        serialized.append(
+            {
+                "id": user.id,
+                "username": user.username,
+                "perfil_id": perfil_id,
+                "nome": nome,
+                "email": user.email,
+            }
+        )
+    return serialized
 
 
 class EventoCoordenadorView(APIView):

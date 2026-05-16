@@ -152,6 +152,19 @@ export function useEventos() {
         return inicio <= now && now <= fim;
     }, []);
 
+    const possuiEtapaRealizacaoAberta = useCallback((evento) => {
+        const etapas = evento?.etapas || [];
+        const etapa = etapas.find((e) => e.tipo_etapa === 'REALIZACAO_EVENTO');
+
+        if (!etapa || !etapa.data_inicio || !etapa.data_fim) return false;
+
+        const now = new Date();
+        const inicio = new Date(etapa.data_inicio);
+        const fim = new Date(etapa.data_fim);
+
+        return inicio <= now && now <= fim;
+    }, []);
+
     return {
         eventos,
         loading,
@@ -160,5 +173,6 @@ export function useEventos() {
         atualizarEventos,
         deletarEventos,
         possuiEtapaSubmissaoAberta,
+        possuiEtapaRealizacaoAberta,
     };
 }
