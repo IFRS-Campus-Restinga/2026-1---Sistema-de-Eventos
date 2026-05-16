@@ -10,12 +10,13 @@ import { setSelectedEventoId } from '../utils/selectedEvento';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { buscarEventoPorId } from '../services/eventoService';
+import { useNavigate } from 'react-router-dom';
 
 export default function DetalheEvento() {
     const { id } = useParams();
     const [evento, setEvento] = useState(null);
     const [loading, setLoading] = useState(true);
-
+    const navigate = useNavigate();
     const verdeIFRS = "#00A44B";
 
     // Função para mapear ícones baseados no nome da área (opcional, para ficar igual ao Figma)
@@ -74,7 +75,7 @@ export default function DetalheEvento() {
                             <Button variant="light" as={Link} to="/adicionar_atracao" onClick={() => setSelectedEventoId(id)} className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm" style={{ color: verdeIFRS }}>
                                 <MdSend className="me-2" /> Submeter Trabalho
                             </Button>
-                            <Button variant="outline-light" className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2">
+                            <Button variant="outline-light" className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2" onClick={() => navigate(`/programacao_evento/${evento.id}`)}>
                                 <MdSearch className="me-2" /> Consultar Programação
                             </Button>
                         </div>

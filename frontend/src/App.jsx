@@ -36,6 +36,7 @@ import ListarInscritosEvento from './pages/ListarInscritosEvento';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
 import AvaliarAtracao from './pages/AvaliarAtracao';
 import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
+import ProgramacaoEvento from './pages/ProgramacaoEvento';
 
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
@@ -82,6 +83,7 @@ function App() {
                 <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
                 <Route path="/listar_eventos" element={<ListarEvento />} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
+                <Route path="/programacao_evento/:id" element={protegido(<ProgramacaoEvento />)} />
 
                 {/* Comunicação com Publico (emails) */}
                 <Route path="/dashboard/:id/enviaremails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
@@ -130,6 +132,8 @@ function App() {
 
                 {/* Programação / Sessão de Eventos */}
                 <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
+                
+
 
 
             </Routes>
