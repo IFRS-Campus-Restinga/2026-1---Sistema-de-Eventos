@@ -8,7 +8,6 @@ from .models import (
     CampoFormulario,
     CriterioAvaliacaoAtracao,
     CriterioAvaliacaoSubmissao,
-    Cronograma,
     Espaco,
     EtapaEvento,
     Evento,
@@ -21,7 +20,6 @@ from .models import (
 )
 from .models.area_conhecimento import AreaConhecimentoAdmin
 from .models.arquivo import ArquivoAdmin
-from .models.cronograma import CronogramaAdmin
 from .models.evento import EventoAdmin
 from .models.local import LocalAdmin
 
@@ -42,6 +40,5 @@ admin.site.register(AvaliacaoSubmissao)
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)
 admin.site.register(AreaConhecimento, AreaConhecimentoAdmin)
-admin.site.register(Cronograma, CronogramaAdmin)
 admin.site.register(Evento, EventoAdmin)
 admin.site.register(Local, LocalAdmin)

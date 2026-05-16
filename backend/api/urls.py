@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .enumerations import AreaConhecimentoEscolha, Setor
+from .enumerations import Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
 from .views.arquivo_view import ArquivoListView
@@ -24,7 +24,6 @@ from .views.criterio_avaliacao_submissao_view import (
     CriterioAvaliacaoSubmissaoDetailView,
     CriterioAvaliacaoSubmissaoListView,
 )
-from .views.cronograma_view import CronogramaDetailView, CronogramaListView
 from .views.espaco_view import EspacoDetailView, EspacoListView
 from .views.etapa_evento_view import (
     EtapaEventoDetailView,
@@ -111,9 +110,6 @@ urlpatterns = [
     path('areas_conhecimento/', AreaConhecimentoViewSet.as_view({'get': 'list'})),
     path('setores/', EnumChoicesAPIView.as_view(enum_class=Setor)),
 
-    # cronogramas
-    path("cronogramas/", CronogramaListView.as_view()),
-    path("cronogramas/<int:pk>/", CronogramaDetailView.as_view()),
 
     # arquivos
     path("arquivos/", ArquivoListView.as_view()),

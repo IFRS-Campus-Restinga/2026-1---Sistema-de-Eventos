@@ -7,7 +7,6 @@ from .base import *
 from .campo_formulario import *
 from .criterio_avaliacao_atracao import *
 from .criterio_avaliacao_submissao import *
-from .cronograma import *
 from .espaco import *
 from .etapa_evento import *
 from .evento import *
