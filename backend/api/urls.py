@@ -6,10 +6,10 @@ from .views import csrf_token_view as views
 from .views.area_conhecimento_view import AreaConhecimentoViewSet
 from .views.arquivo_view import ArquivoListView
 from .views.atracao_view import (
+    AtracaoAvaliadorView,
     AtracaoDetailView,
     AtracaoListView,
     EnviarEmailsView,
-    AtracaoAvaliadorView,
 )
 from .views.avaliacao_atracao_view import (
     AvaliacaoAtracaoDetailView,
@@ -40,8 +40,8 @@ from .views.etapa_evento_view import (
     EtapaEventoListView,
 )
 from .views.evento_view import (
-    EventoCoordenadorView,
     EventoAvaliadorView,
+    EventoCoordenadorView,
     EventoDeleteView,
     EventoDetailView,
     EventoListView,

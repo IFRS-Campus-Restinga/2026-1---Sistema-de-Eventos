@@ -1,13 +1,14 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from django.contrib.auth import get_user_model
-from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
-from ..serializers.evento_serializer import EventoSerializer
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from ..models.evento import Evento
-from django.contrib.auth.models import Group
 from ..models.perfil import Perfil
+from ..serializers.evento_serializer import EventoSerializer
 
 # from api.permissions import IsAdmin, PodeGerenciarEvento
 from .perms_generic_view import PodeGerenciarEquipeEvento

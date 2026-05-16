@@ -1,17 +1,18 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mass_mail
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from django.core.mail import send_mass_mail
-from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from eventos_session.permissions import HasValidSessionToken
 
-from ..serializers.atracao_serializer import AtracaoSerializer
 from ..models.atracao import Atracao
-from django.contrib.auth import get_user_model
-from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
-from .perms_generic_view import PodeGerenciarEquipeEvento
 from ..models.perfil import Perfil
+from ..serializers.atracao_serializer import AtracaoSerializer
+from .perms_generic_view import PodeGerenciarEquipeEvento
 
 User = get_user_model()
 

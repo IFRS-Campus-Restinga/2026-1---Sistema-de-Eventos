@@ -6,6 +6,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
+from django.utils.text import slugify
 
 from ..enumerations.setor import Setor
 from ..enumerations.status_evento import StatusEvento
@@ -13,8 +14,6 @@ from .area_conhecimento import AreaConhecimento
 from .base import Base
 from .local import Local
 from .modalidade import Modalidade
-
-from django.utils.text import slugify
 
 
 class Evento(Base):

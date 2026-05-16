@@ -1,9 +1,10 @@
-from django.db import models
-from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.conf import settings
-from ..enumerations.status_atracao import StatusAtracao
+from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.db import models
+
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.status_atracao import StatusAtracao
 from .base import Base
 from .evento import Evento
 from .modalidade import Modalidade
