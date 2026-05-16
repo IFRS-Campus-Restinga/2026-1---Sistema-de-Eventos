@@ -107,7 +107,7 @@ export default function AvaliacoesAtracoes({}) {
                         <Col className="d-md-flex gap-5">
                             <Card
                                 corBorda="#003366"
-                                largura={!isMobile ? 400 : undefined}
+                                largura={!isMobile ? 350 : undefined}
                                 altura={110}
                             >
                                 <Container className="d-flex justify-content-evenly mt-3 pt-3 pt-md-0">
@@ -140,7 +140,7 @@ export default function AvaliacoesAtracoes({}) {
                             </Card>
                             <Card
                                 corBorda="#059547"
-                                largura={!isMobile ? 400 : undefined}
+                                largura={!isMobile ? 350 : undefined}
                                 altura={110}
                             >
                                 <Container className="d-flex justify-content-evenly mt-3  pt-3 pt-md-0">
