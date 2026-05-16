@@ -63,9 +63,7 @@ class Evento(Base):
         null=False,
         blank=False,
     )
-    link_edital = models.URLField(max_length=500, 
-                                  null=True, 
-                                  blank=True)
+    link_edital = models.URLField(max_length=500, null=True, blank=True)
 
     slug = models.SlugField(
         max_length=100,
@@ -78,6 +76,7 @@ class Evento(Base):
             ("coordenar_evento", "Pode coordenar este evento"),
             ("disabilitar_evento", "Pode desativar este evento"),
             ("organiza_evento", "Pode organizar este evento"),
+            ("avaliador_evento", "Pode atuar como avaliador neste evento"),
         ]
 
     modalidades = models.ManyToManyField(

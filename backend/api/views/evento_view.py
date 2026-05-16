@@ -7,6 +7,7 @@ from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
 from ..serializers.evento_serializer import EventoSerializer
 from ..models.evento import Evento
 from django.contrib.auth.models import Group
+from ..models.perfil import Perfil
 
 # from api.permissions import IsAdmin, PodeGerenciarEvento
 from .perms_generic_view import PodeGerenciarEquipeEvento
@@ -333,6 +334,122 @@ class EventoOrganizadorView(APIView):
                     "username": organizador_removido.username,
                 },
                 "organizadores": _serializar_usuarios(organizadores),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class EventoAvaliadorView(APIView):
+    permission_classes = [PodeGerenciarEquipeEvento]
+
+    avaliador_perm = "api.avaliador_evento"
+
+    def get(self, request, pk):
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        # se nenhuma modalidade do evento requer avaliação, não faz sentido ter avaliadores
+        if not evento.modalidades.filter(requer_avaliacao=True).exists():
+            return Response(
+                {"erro": "Nenhuma modalidade do evento requer avaliação"}, status=400
+            )
+
+        avaliadores = get_users_with_perms(
+            evento, only_with_perms_in=["avaliador_evento"], with_group_users=False
+        )
+
+        return Response(
+            {"evento_id": evento.id, "avaliadores": _serializar_usuarios(avaliadores)},
+            status=status.HTTP_200_OK,
+        )
+
+    def patch(self, request, pk):
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        perfil_id = request.data.get("perfil_id")
+
+        if not perfil_id:
+            return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
+
+        try:
+            perfil = Perfil.objects.get(pk=perfil_id)
+            novo_avaliador = perfil.usuario
+        except Perfil.DoesNotExist:
+            return Response({"erro": "Perfil não encontrado"}, status=404)
+
+        # se nenhuma modalidade do evento requer avaliação, não faz sentido ter avaliadores
+        if not evento.modalidades.filter(requer_avaliacao=True).exists():
+            return Response(
+                {"erro": "Nenhuma modalidade do evento requer avaliação"}, status=400
+            )
+
+        # usuário deve pertencer ao grupo 'Servidor' para ser escolhido como avaliador
+        if not novo_avaliador.groups.filter(name="Servidor").exists():
+            return Response(
+                {"erro": "Usuário não pertence ao grupo Servidor"}, status=400
+            )
+
+        assign_perm(self.avaliador_perm, novo_avaliador, evento)
+
+        return Response(
+            {
+                "msg": "Avaliador definido com sucesso",
+                "evento_id": evento.id,
+                "avaliador": {
+                    "id": novo_avaliador.id,
+                    "username": novo_avaliador.username,
+                },
+                "avaliadores": _serializar_usuarios(
+                    get_users_with_perms(
+                        evento,
+                        only_with_perms_in=["avaliador_evento"],
+                        with_group_users=False,
+                    )
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, pk):
+        try:
+            evento = Evento.objects.get(pk=pk, ativo=True)
+            self.check_object_permissions(request, evento)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado"}, status=404)
+
+        perfil_id = request.data.get("perfil_id")
+
+        if not perfil_id:
+            return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
+
+        try:
+            perfil = Perfil.objects.get(pk=perfil_id)
+            avaliador_removido = perfil.usuario
+        except Perfil.DoesNotExist:
+            return Response({"erro": "Perfil não encontrado"}, status=404)
+
+        remove_perm(self.avaliador_perm, avaliador_removido, evento)
+
+        avaliadores = get_users_with_perms(
+            evento, only_with_perms_in=["avaliador_evento"], with_group_users=False
+        )
+
+        return Response(
+            {
+                "msg": "Avaliador removido com sucesso",
+                "evento_id": evento.id,
+                "avaliador_removido": {
+                    "id": avaliador_removido.id,
+                    "username": avaliador_removido.username,
+                },
+                "avaliadores": _serializar_usuarios(avaliadores),
             },
             status=status.HTTP_200_OK,
         )

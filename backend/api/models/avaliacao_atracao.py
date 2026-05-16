@@ -1,9 +1,8 @@
-from django.core.validators import (
-    DecimalValidator,
-    MaxValueValidator,
-    MinValueValidator,
-)
+from decimal import ROUND_HALF_UP, Decimal
+
+from django.conf import settings
 from django.db import models
+from django.db.models import Avg
 from django.utils.translation import gettext_lazy as _
 
 from .atracao import Atracao
@@ -11,21 +10,29 @@ from .base import Base
 
 
 class AvaliacaoAtracao(Base):
-    nota_final = models.DecimalField(
-        verbose_name=_("Nota Final"),
-        max_digits=3,
-        decimal_places=1,
-        help_text=_(
-            "Nota Final da avaliação",
-            validators=[
-                MinValueValidator(0),
-                MaxValueValidator(10),
-                DecimalValidator(max_digits=3, decimal_places=1),
-            ],
-        ),
+    avaliador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.RESTRICT,
+        related_name="avaliacoes_atracao",
+        null=True,
+        blank=True,
     )
 
-    atracao = models.ForeignKey(Atracao)
+    class Meta(Base.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["atracao", "avaliador"], name="unique_avaliador_por_atracao"
+            )
+        ]
+
+    @property
+    def nota_final(self):
+        avg = self.itens.aggregate(avg=Avg("nota"))["avg"]
+        if avg is None:
+            return None
+        return Decimal(avg).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+    atracao = models.ForeignKey(Atracao, on_delete=models.RESTRICT)
 
     destaque_do_dia = models.BooleanField(
         verbose_name=_("Destaque do dia"),

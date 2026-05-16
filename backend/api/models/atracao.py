@@ -95,6 +95,7 @@ class Atracao(Base):
         verbose_name = "Atração / Submissão"
         verbose_name_plural = "Atrações / Submissões"
         ordering = ["-id"]
+        permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
 
     def __str__(self):
         return f"{self.titulo} — {self.evento}"

@@ -3,8 +3,18 @@ from django.urls import path
 from .enumerations import Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
+from .views.area_conhecimento_view import AreaConhecimentoViewSet
 from .views.arquivo_view import ArquivoListView
-from .views.atracao_view import AtracaoDetailView, AtracaoListView, EnviarEmailsView
+from .views.atracao_view import (
+    AtracaoDetailView,
+    AtracaoListView,
+    EnviarEmailsView,
+    AtracaoAvaliadorView,
+)
+from .views.avaliacao_atracao_view import (
+    AvaliacaoAtracaoDetailView,
+    AvaliacaoAtracaoListView,
+)
 from .views.avaliacao_submissao_view import (
     AvaliacaoSubmissaoDetailView,
     AvaliacaoSubmissaoListView,
@@ -31,6 +41,7 @@ from .views.etapa_evento_view import (
 )
 from .views.evento_view import (
     EventoCoordenadorView,
+    EventoAvaliadorView,
     EventoDeleteView,
     EventoDetailView,
     EventoListView,
@@ -49,6 +60,10 @@ from .views.inscricao_evento_view import (
     MinhasInscricoesEventoListView,
     RegistrarPresencaView,
 )
+from .views.item_avaliacao_atracao_view import (
+    ItemAvaliaçãoAtracaoDetailView,
+    ItemAvaliaçãoAtracaoListView,
+)
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.perms_view import PermissaoListView
@@ -56,7 +71,6 @@ from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
-from .views.area_conhecimento_view import AreaConhecimentoViewSet
 
 app_name = "api"
 
@@ -69,6 +83,7 @@ urlpatterns = [
     path("eventos/<int:pk>/update/", EventoUpdateView.as_view()),
     path("eventos/<int:pk>/delete/", EventoDeleteView.as_view()),
     path("eventos/<int:pk>/coordenador/", EventoCoordenadorView.as_view()),
+    path("eventos/<int:pk>/avaliador/", EventoAvaliadorView.as_view()),
     path("eventos/<int:pk>/organizador/", EventoOrganizadorView.as_view()),
     path("eventos/<int:evento_id>/enviar_emails/", EnviarEmailsView.as_view()),
     path("dashboard/<int:pk>/", DashboardView.as_view()),
@@ -129,9 +144,16 @@ urlpatterns = [
     path("atracoes/", AtracaoListView.as_view()),
     path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
+    path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
 
     # avaliacao de submissoes
     path("avaliacao_submissao/", AvaliacaoSubmissaoListView.as_view()),
     path("avaliacao_submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
+
+    # avaliacao de atracoes
+    path("avaliacao_atracao/", AvaliacaoAtracaoListView.as_view()),
+    path("avaliacao_atracao/<int:pk>", AvaliacaoAtracaoDetailView.as_view()),
+    path("item_avaliacao_atracao/", ItemAvaliaçãoAtracaoListView.as_view()),
+    path("item_avaliacao_atracao/<int:pk>", ItemAvaliaçãoAtracaoDetailView.as_view()),
 ]
 # fmt: on

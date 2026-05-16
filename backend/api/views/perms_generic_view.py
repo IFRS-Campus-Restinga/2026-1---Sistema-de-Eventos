@@ -89,3 +89,9 @@ class PodeAtribuirEspaco(IsGroupAndObjectPerm):
 class PodeCriarEspaco(IsGroupAndObjectPerm):
     required_groups = ["Administrador", "Coordenador"]
     required_object_perms = ["api.criar_espaco"]
+
+
+# PERMS PARA AVALIACAO
+class PodeAvaliarAtracao(IsGroupAndObjectPerm):
+    required_groups = ["Servidor"]
+    required_object_perms = ["api.avaliar_atracao"]

@@ -8,6 +8,12 @@ from eventos_session.permissions import HasValidSessionToken
 
 from ..serializers.atracao_serializer import AtracaoSerializer
 from ..models.atracao import Atracao
+from django.contrib.auth import get_user_model
+from guardian.shortcuts import assign_perm, get_users_with_perms, remove_perm
+from .perms_generic_view import PodeGerenciarEquipeEvento
+from ..models.perfil import Perfil
+
+User = get_user_model()
 
 
 class AtracaoListView(APIView):
@@ -130,3 +136,124 @@ class EnviarEmailsView(APIView):
         mensagens = [(assunto, mensagem, remetente, [email]) for email in emails_mock]
 
         return send_mass_mail(mensagens, fail_silently=False)
+
+
+class AtracaoAvaliadorView(APIView):
+    permission_classes = [PodeGerenciarEquipeEvento]
+
+    avaliar_perm = "api.avaliar_atracao"
+
+    def get(self, request, pk):
+        try:
+            atracao = Atracao.objects.get(pk=pk)
+        except Atracao.DoesNotExist:
+            return Response({"erro": "Atração não encontrada"}, status=404)
+        # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
+        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+            return Response(
+                {"erro": "Modalidade da atração não requer avaliação"}, status=400
+            )
+
+        avaliadores = get_users_with_perms(
+            atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
+        )
+
+        return Response(
+            {
+                "atracao_id": atracao.id,
+                "avaliadores": [
+                    {"id": u.id, "username": u.username} for u in avaliadores
+                ],
+            },
+            status=200,
+        )
+
+    def patch(self, request, pk):
+        try:
+            atracao = Atracao.objects.get(pk=pk)
+        except Atracao.DoesNotExist:
+            return Response({"erro": "Atração não encontrada"}, status=404)
+
+        perfil_id = request.data.get("perfil_id")
+
+        if not perfil_id:
+            return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
+
+        try:
+            perfil = Perfil.objects.get(pk=perfil_id)
+            usuario = perfil.usuario
+        except Perfil.DoesNotExist:
+            return Response({"erro": "Perfil não encontrado"}, status=404)
+
+        # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
+        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+            return Response(
+                {"erro": "Modalidade da atração não requer avaliação"}, status=400
+            )
+
+        # verifica limite de avaliadores definido pela modalidade
+        if atracao.modalidade:
+            limite = atracao.modalidade.limite_avaliadores or 0
+            atuais = get_users_with_perms(
+                atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
+            )
+            if limite and len(atuais) >= limite:
+                return Response(
+                    {"erro": "Limite de avaliadores atingido para essa modalidade"},
+                    status=400,
+                )
+
+        # usuário deve pertencer ao grupo 'Servidor' para ser escolhido como avaliador
+        if not usuario.groups.filter(name="Servidor").exists():
+            return Response(
+                {"erro": "Usuário não pertence ao grupo Servidor"}, status=400
+            )
+
+        assign_perm(self.avaliar_perm, usuario, atracao)
+
+        avaliadores = get_users_with_perms(
+            atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
+        )
+
+        return Response(
+            {
+                "msg": "Avaliador associado à atração",
+                "avaliadores": [
+                    {"id": u.id, "username": u.username} for u in avaliadores
+                ],
+            },
+            status=200,
+        )
+
+    def delete(self, request, pk):
+        try:
+            atracao = Atracao.objects.get(pk=pk)
+        except Atracao.DoesNotExist:
+            return Response({"erro": "Atração não encontrada"}, status=404)
+
+        perfil_id = request.data.get("perfil_id")
+
+        if not perfil_id:
+            return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
+
+        try:
+            perfil = Perfil.objects.get(pk=perfil_id)
+            usuario = perfil.usuario
+        except Perfil.DoesNotExist:
+            return Response({"erro": "Perfil não encontrado"}, status=404)
+
+        remove_perm(self.avaliar_perm, usuario, atracao)
+
+        avaliadores = get_users_with_perms(
+            atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
+        )
+
+        return Response(
+            {
+                "msg": "Avaliador removido da atração",
+                "avaliadores": [
+                    {"id": u.id, "username": u.username} for u in avaliadores
+                ],
+            },
+            status=200,
+        )
