@@ -11,6 +11,8 @@ import {
     buscarUsuarios,
     salvarRascunho,
 } from '../services/atracaoService';
+import { buscarEventoPorId } from '../services/eventoService';
+import { pegarCampoFormulario } from '../services/campoFormularioService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
 import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
@@ -31,7 +33,10 @@ export default function AdicionarAtracao() {
         anexo_pdf: null,
         acessibilidade: false,
         evento: '',
+        data_hora_inicio: '',
+        data_hora_fim: '',
         status: 'PREVISTA',
+        respostas_campos: {},
         equipe: []
     });
 
@@ -43,6 +48,8 @@ export default function AdicionarAtracao() {
         status: [],
     });
     const [eventos, setEventos] = useState([]);
+    const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
+    const [camposModalidade, setCamposModalidade] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
@@ -58,6 +65,32 @@ export default function AdicionarAtracao() {
             variacao,
             reacao: (prev.reacao || 0) + 1,
         }));
+
+    const normalizarAreaConhecimentoPayload = (valorArea) => {
+        if (valorArea === null || valorArea === undefined) {
+            return valorArea;
+        }
+
+        const valorTexto = String(valorArea).trim();
+        if (valorTexto === '') {
+            return valorArea;
+        }
+
+        const ehNumero = /^\d+$/.test(valorTexto);
+        if (!ehNumero) {
+            return valorArea;
+        }
+
+        const areaPorDetalhe = (eventoSelecionadoDetalhe?.area_conhecimento_detalhes || []).find(
+            (area) => String(area?.id) === valorTexto,
+        );
+
+        if (areaPorDetalhe?.area_conhecimento) {
+            return areaPorDetalhe.area_conhecimento;
+        }
+
+        return valorArea;
+    };
 
     useEffect(() => {
         const carregarDados = async () => {
@@ -109,9 +142,88 @@ export default function AdicionarAtracao() {
         carregarDados();
     }, []);
 
+    useEffect(() => {
+        const carregarDetalheEventoSelecionado = async () => {
+            if (!formState.evento) {
+                setEventoSelecionadoDetalhe(null);
+                return;
+            }
+
+            const eventoResumo = eventos.find(
+                (evento) => String(evento.id) === String(formState.evento),
+            );
+
+            if (eventoResumo?.area_conhecimento_detalhes?.length) {
+                setEventoSelecionadoDetalhe(eventoResumo);
+                return;
+            }
+
+            try {
+                const detalhe = await buscarEventoPorId(formState.evento);
+                setEventoSelecionadoDetalhe(detalhe);
+            } catch (error) {
+                console.error('Erro ao carregar detalhe do evento selecionado:', error);
+                setEventoSelecionadoDetalhe(null);
+            }
+        };
+
+        carregarDetalheEventoSelecionado();
+    }, [formState.evento, eventos]);
+
+    useEffect(() => {
+        const carregarCamposModalidade = async () => {
+            if (!formState.modalidade) {
+                setCamposModalidade([]);
+                setFormState((prev) => ({ ...prev, respostas_campos: {} }));
+                return;
+            }
+
+            try {
+                const todosCampos = await pegarCampoFormulario();
+                const camposFiltrados = (todosCampos || []).filter(
+                    (campo) =>
+                        Number(campo.modalidade) === Number(formState.modalidade) &&
+                        campo.ativo !== false,
+                );
+
+                setCamposModalidade(camposFiltrados);
+
+                setFormState((prev) => {
+                    const respostasAtuais = prev.respostas_campos || {};
+                    const respostasFiltradas = {};
+
+                    camposFiltrados.forEach((campo) => {
+                        const chave = `campo_${campo.id}`;
+                        if (chave in respostasAtuais) {
+                            respostasFiltradas[chave] = respostasAtuais[chave];
+                        } else {
+                            respostasFiltradas[chave] = campo.tipo_dado === 'BOOLEANO' ? false : '';
+                        }
+                    });
+
+                    return {
+                        ...prev,
+                        respostas_campos: respostasFiltradas,
+                    };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar campos da modalidade:', error);
+                setCamposModalidade([]);
+            }
+        };
+
+        carregarCamposModalidade();
+    }, [formState.modalidade]);
+
     const handleSalvarRascunho = async () => {
         if (isLoading) return;
-        const dadosRascunho = { ...formState, status: 'RASCUNHO' };
+        const dadosRascunho = {
+            ...formState,
+            area_conhecimento: normalizarAreaConhecimentoPayload(
+                formState.area_conhecimento,
+            ),
+            status: 'RASCUNHO',
+        };
 
         try {
             setIsLoading(true);
@@ -144,7 +256,13 @@ export default function AdicionarAtracao() {
 
         try {
             setIsLoading(true);
-            const dadosSubmissao = { ...formState, status: 'PREVISTA' };
+            const dadosSubmissao = {
+                ...formState,
+                area_conhecimento: normalizarAreaConhecimentoPayload(
+                    formState.area_conhecimento,
+                ),
+                status: 'PREVISTA',
+            };
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
@@ -179,6 +297,8 @@ export default function AdicionarAtracao() {
                                 setFormState={setFormState}
                                 opcoes={opcoes}
                                 eventos={eventos}
+                                eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}
+                                camposModalidade={camposModalidade}
                                 usuarios={usuarios}
                                 isLoading={isLoading}
                                 handleSalvarRascunho={handleSalvarRascunho}

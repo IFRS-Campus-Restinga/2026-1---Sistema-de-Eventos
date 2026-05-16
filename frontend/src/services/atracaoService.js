@@ -19,7 +19,31 @@ const CAMPOS_ATRACAO = [
     'data_hora_fim',
     'local_atracao',
     'equipe',
+    'respostas_campos',
 ];
+
+const normalizarRespostasCampos = (respostas) => {
+    if (!respostas || typeof respostas !== 'object') {
+        return {};
+    }
+
+    return Object.entries(respostas).reduce((acc, [chave, valor]) => {
+        if (valor === null || valor === undefined) {
+            return acc;
+        }
+
+        if (valor instanceof File || valor instanceof Blob) {
+            return acc;
+        }
+
+        if (typeof valor === 'string' && valor.trim() === '') {
+            return acc;
+        }
+
+        acc[chave] = valor;
+        return acc;
+    }, {});
+};
 
 const montarPayloadAtracao = (dados) => {
     const payload = new FormData();
@@ -31,6 +55,14 @@ const montarPayloadAtracao = (dados) => {
 
         if (key === 'equipe') {
             payload.append('equipe_json', JSON.stringify(dados[key]));
+            return;
+        }
+
+        if (key === 'respostas_campos') {
+            payload.append(
+                'respostas_campos_json',
+                JSON.stringify(normalizarRespostasCampos(dados[key])),
+            );
             return;
         }
 

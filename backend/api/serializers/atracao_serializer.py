@@ -3,7 +3,9 @@ import logging
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from ..models.atracao import Atracao
+from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
+from ..models.resposta import Resposta
 from .coautor_serializer import CoautorSerializer
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
     orientador_nome = serializers.ReadOnlyField(source='orientador.get_full_name')
     tipo = serializers.ReadOnlyField(source='modalidade.nome')
     equipe_json = serializers.CharField(required=False, allow_blank=True, default='')
+    respostas_campos = serializers.SerializerMethodField(read_only=True)
+    respostas_campos_json = serializers.CharField(required=False, allow_blank=True, default='')
 
     class Meta:
         model = Atracao
@@ -22,7 +26,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
             'nivel_ensino', 'area_conhecimento', 'orientador', 
             'orientador_nome', 'sou_orientador', 'anexo_pdf', 
             'acessibilidade', 'evento', 'status', 'equipe', 'equipe_json',
-            'data_hora_inicio', 'data_hora_fim', 'local_atracao'
+            'data_hora_inicio', 'data_hora_fim', 'local_atracao',
+            'respostas_campos', 'respostas_campos_json'
         ]
 
     def validate(self, data):
@@ -32,6 +37,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         # Removemos campos que não existem no modelo (campos exclusivos do Serializer)
         model_data = data.copy()
         model_data.pop('equipe_json', None)
+        model_data.pop('respostas_campos_json', None)
         
         # Criamos uma instância temporária para rodar o full_clean
         instance = Atracao(**model_data)
@@ -50,9 +56,93 @@ class AtracaoSerializer(serializers.ModelSerializer):
         except (json.JSONDecodeError, ValueError):
             return []
 
+    def validate_respostas_campos_json(self, value):
+        if not value:
+            return {}
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, ValueError):
+            return {}
+
+    def get_respostas_campos(self, obj):
+        respostas = obj.respostas.select_related('campo_formulario').all()
+        retorno = {}
+        for resposta in respostas:
+            chave = f"campo_{resposta.campo_formulario_id}"
+            tipo = getattr(resposta.campo_formulario, 'tipo_dado', None)
+
+            if tipo == 'BOOLEANO':
+                retorno[chave] = str(resposta.valor).strip().lower() in ('true', '1', 'sim')
+                continue
+
+            if tipo == 'NUMERO':
+                valor_texto = str(resposta.valor).strip()
+                if valor_texto == '':
+                    retorno[chave] = ''
+                else:
+                    try:
+                        retorno[chave] = int(valor_texto)
+                    except ValueError:
+                        try:
+                            retorno[chave] = float(valor_texto)
+                        except ValueError:
+                            retorno[chave] = resposta.valor
+                continue
+
+            retorno[chave] = resposta.valor
+        return retorno
+
+    def _sincronizar_respostas(self, atracao, respostas_campos_data):
+        Resposta.objects.filter(atracao=atracao).delete()
+
+        if not isinstance(respostas_campos_data, dict):
+            return
+
+        modalidade_id = atracao.modalidade_id
+        if not modalidade_id:
+            return
+
+        campos_ids_validos = set(
+            CampoFormulario.objects.filter(modalidade_id=modalidade_id, ativo=True)
+            .values_list('id', flat=True)
+        )
+
+        respostas_para_criar = []
+        for chave, valor in respostas_campos_data.items():
+            if not isinstance(chave, str) or not chave.startswith('campo_'):
+                continue
+
+            try:
+                campo_id = int(chave.replace('campo_', '', 1))
+            except (TypeError, ValueError):
+                continue
+
+            if campo_id not in campos_ids_validos:
+                continue
+
+            if valor is None:
+                continue
+
+            valor_texto = str(valor)
+            if valor_texto.strip() == '':
+                continue
+
+            respostas_para_criar.append(
+                Resposta(
+                    atracao=atracao,
+                    campo_formulario_id=campo_id,
+                    valor=valor_texto,
+                )
+            )
+
+        if respostas_para_criar:
+            Resposta.objects.bulk_create(respostas_para_criar)
+
     def create(self, validated_data):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
         equipe_data = validated_data.pop('equipe_json', [])
+        respostas_campos_data = validated_data.pop('respostas_campos_json', {})
         
         if not isinstance(equipe_data, list):
             equipe_data = []
@@ -61,10 +151,13 @@ class AtracaoSerializer(serializers.ModelSerializer):
         for membro in equipe_data:
             if membro.get('nome'):
                 Coautor.objects.create(atracao=atracao, **membro)
+
+        self._sincronizar_respostas(atracao, respostas_campos_data)
         return atracao
 
     def update(self, instance, validated_data):
         equipe_data = validated_data.pop('equipe_json', None)
+        respostas_campos_data = validated_data.pop('respostas_campos_json', None)
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -75,5 +168,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
             for membro in equipe_data:
                 if membro.get('nome'):
                     Coautor.objects.create(atracao=instance, **membro)
+
+        if isinstance(respostas_campos_data, dict):
+            self._sincronizar_respostas(instance, respostas_campos_data)
         
         return instance

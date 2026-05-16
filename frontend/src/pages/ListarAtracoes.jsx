@@ -27,11 +27,20 @@ import ModalPopup from '../components/common/ModalPopup';
 import Footer from '../components/footer/Footer';
 import NavBar from '../components/nav_bar/NavBar';
 import {
+    buscarEventos,
+    buscarOpcoesAtracao,
+    buscarUsuarios,
     editarAtracao,
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
+import { buscarEventoPorId } from '../services/eventoService';
+
+const LIMITS_EDICAO = {
+    titulo: { minWords: 1, maxWords: 150 },
+    palavrasChave: { maxChars: 100 },
+};
 
 export default function ListarAtracoes() {
     const [atracoes, setAtracoes] = useState([]);
@@ -55,8 +64,18 @@ export default function ListarAtracoes() {
         variacao: 'danger',
         reacao: 0,
     });
+    const [opcoesEdicao, setOpcoesEdicao] = useState({
+        modalidades: [],
+        niveis_ensino: [],
+    });
+    const [eventosEdicao, setEventosEdicao] = useState([]);
+    const [usuariosEdicao, setUsuariosEdicao] = useState([]);
+    const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
 
     const navigate = useNavigate();
+
+    const contarPalavras = (texto) =>
+        texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
 
     const mostrarAlerta = (mensagem, variacao = 'danger') => {
         setAlerta((prev) => ({
@@ -95,6 +114,61 @@ export default function ListarAtracoes() {
     useEffect(() => {
         carregarAtracoes();
     }, []);
+
+    useEffect(() => {
+        const carregarOpcoesEdicao = async () => {
+            const [dadosOpcoes, dadosEventos, dadosUsuarios] = await Promise.allSettled([
+                buscarOpcoesAtracao(),
+                buscarEventos(),
+                buscarUsuarios(),
+            ]);
+
+            if (dadosOpcoes.status === 'fulfilled') {
+                setOpcoesEdicao({
+                    modalidades: dadosOpcoes.value?.modalidades || [],
+                    niveis_ensino: dadosOpcoes.value?.niveis_ensino || [],
+                });
+            }
+
+            if (dadosEventos.status === 'fulfilled') {
+                setEventosEdicao(dadosEventos.value || []);
+            }
+
+            if (dadosUsuarios.status === 'fulfilled') {
+                setUsuariosEdicao(dadosUsuarios.value || []);
+            }
+        };
+
+        carregarOpcoesEdicao();
+    }, []);
+
+    useEffect(() => {
+        const carregarDetalheEventoEdicao = async () => {
+            if (!mostrarModalEdicao || !formEdicao.evento) {
+                setEventoEdicaoDetalhe(null);
+                return;
+            }
+
+            const eventoResumo = eventosEdicao.find(
+                (evento) => String(evento.id) === String(formEdicao.evento),
+            );
+
+            if (eventoResumo?.area_conhecimento_detalhes?.length) {
+                setEventoEdicaoDetalhe(eventoResumo);
+                return;
+            }
+
+            try {
+                const detalhe = await buscarEventoPorId(formEdicao.evento);
+                setEventoEdicaoDetalhe(detalhe);
+            } catch (error) {
+                console.error('Erro ao carregar detalhe do evento na edicao:', error);
+                setEventoEdicaoDetalhe(null);
+            }
+        };
+
+        carregarDetalheEventoEdicao();
+    }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
 
     const formatarDataHora = (valor) => {
         if (!valor) return 'Não informado';
@@ -142,6 +216,57 @@ export default function ListarAtracoes() {
                 bg: 'secondary',
             }
         );
+    };
+
+    const getAreasEventoEdicao = () => {
+        const areasDoEvento = eventoEdicaoDetalhe?.area_conhecimento_detalhes;
+        if (Array.isArray(areasDoEvento) && areasDoEvento.length > 0) {
+            return areasDoEvento;
+        }
+
+        const areasSimples = eventoEdicaoDetalhe?.area_conhecimento;
+        if (Array.isArray(areasSimples) && areasSimples.length > 0) {
+            return areasSimples;
+        }
+
+        return [];
+    };
+
+    const normalizarAreaEdicao = (area) => ({
+        value: area?.area_conhecimento ?? area?.value ?? area?.id ?? area,
+        label:
+            area?.area_conhecimento_display ||
+            area?.nome ||
+            area?.descricao ||
+            area?.label ||
+            String(area),
+    });
+
+    const getJanelaEventoEdicao = () => {
+        const etapasValidas = (eventoEdicaoDetalhe?.etapas || []).filter(
+            (etapa) => etapa?.data_inicio && etapa?.data_fim,
+        );
+
+        if (etapasValidas.length === 0) {
+            return null;
+        }
+
+        const etapaInicial = etapasValidas.reduce((menor, etapaAtual) => {
+            return new Date(etapaAtual.data_inicio) < new Date(menor.data_inicio)
+                ? etapaAtual
+                : menor;
+        }, etapasValidas[0]);
+
+        const etapaFinal = etapasValidas.reduce((maior, etapaAtual) => {
+            return new Date(etapaAtual.data_fim) > new Date(maior.data_fim)
+                ? etapaAtual
+                : maior;
+        }, etapasValidas[0]);
+
+        return {
+            inicio: new Date(etapaInicial.data_inicio),
+            fim: new Date(etapaFinal.data_fim),
+        };
     };
 
     const normalizarTexto = (texto) =>
@@ -197,11 +322,119 @@ export default function ListarAtracoes() {
         setMostrarModalEdicao(true);
     };
 
+    const getNomeUsuario = (usuario) =>
+        usuario?.nome ||
+        usuario?.name ||
+        usuario?.username ||
+        `Usuário ${usuario?.id}`;
+
+    const handleAdicionarMembroEdicao = () => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            equipe: [
+                ...(prev.equipe || []),
+                { nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
+            ],
+        }));
+    };
+
+    const handleRemoverMembroEdicao = (index) => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            equipe: (prev.equipe || []).filter((_, i) => i !== index),
+        }));
+    };
+
+    const handleMembroEdicaoChange = (index, campo, valor) => {
+        setFormEdicao((prev) => {
+            const equipeAtualizada = [...(prev.equipe || [])];
+            equipeAtualizada[index] = {
+                ...equipeAtualizada[index],
+                [campo]: valor,
+            };
+            return {
+                ...prev,
+                equipe: equipeAtualizada,
+            };
+        });
+    };
+
     const handleSalvarEdicao = async () => {
         if (!formEdicao.id) return;
 
-        if (!formEdicao.titulo || !formEdicao.evento) {
-            mostrarAlerta('Título e evento são obrigatórios para salvar alterações.');
+        const tituloPalavras = contarPalavras(formEdicao.titulo || '');
+
+        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || !formEdicao.nivel_ensino || !formEdicao.area_conhecimento) {
+            mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
+            return;
+        }
+
+        if (tituloPalavras < LIMITS_EDICAO.titulo.minWords) {
+            mostrarAlerta(
+                `O título deve ter pelo menos ${LIMITS_EDICAO.titulo.minWords} palavra.`,
+            );
+            return;
+        }
+
+        if (tituloPalavras > LIMITS_EDICAO.titulo.maxWords) {
+            mostrarAlerta(
+                `O título deve ter no máximo ${LIMITS_EDICAO.titulo.maxWords} palavras.`,
+            );
+            return;
+        }
+
+        if ((formEdicao.palavras_chave || '').length > LIMITS_EDICAO.palavrasChave.maxChars) {
+            mostrarAlerta(
+                `Palavras-chave deve ter no máximo ${LIMITS_EDICAO.palavrasChave.maxChars} caracteres.`,
+            );
+            return;
+        }
+
+        if (!formEdicao.sou_orientador && !formEdicao.orientador) {
+            mostrarAlerta('Selecione um orientador ou marque a opcao Sou o orientador.');
+            return;
+        }
+
+        const equipeComNome = (formEdicao.equipe || []).filter(
+            (membro) => (membro?.nome || '').trim().length > 0,
+        );
+        if (equipeComNome.length === 0) {
+            mostrarAlerta('Adicione pelo menos um membro com nome na equipe.');
+            return;
+        }
+
+        const dataInicio = formEdicao.data_hora_inicio
+            ? new Date(formEdicao.data_hora_inicio)
+            : null;
+        const dataFim = formEdicao.data_hora_fim
+            ? new Date(formEdicao.data_hora_fim)
+            : null;
+
+        if (!dataInicio || !dataFim || Number.isNaN(dataInicio.getTime()) || Number.isNaN(dataFim.getTime())) {
+            mostrarAlerta('Informe data e hora de inicio e fim validas.');
+            return;
+        }
+
+        if (dataInicio > dataFim) {
+            mostrarAlerta('A data/hora de inicio deve ser anterior a data/hora de fim.');
+            return;
+        }
+
+        const janelaEvento = getJanelaEventoEdicao();
+        if (!janelaEvento) {
+            mostrarAlerta('O evento selecionado nao possui datas configuradas para validacao.');
+            return;
+        }
+
+        if (
+            dataInicio < janelaEvento.inicio ||
+            dataInicio > janelaEvento.fim ||
+            dataFim < janelaEvento.inicio ||
+            dataFim > janelaEvento.fim
+        ) {
+            mostrarAlerta(
+                `A atracao deve ficar entre ${janelaEvento.inicio.toLocaleString('pt-BR')} e ${janelaEvento.fim.toLocaleString('pt-BR')}.`,
+            );
             return;
         }
 
@@ -405,6 +638,9 @@ export default function ListarAtracoes() {
                                         }))
                                     }
                                 />
+                                <Form.Text className="text-muted">
+                                    {contarPalavras(formEdicao.titulo || '')}/{LIMITS_EDICAO.titulo.maxWords} palavras
+                                </Form.Text>
                             </Form.Group>
 
                             <Form.Group className="mb-3">
@@ -423,6 +659,199 @@ export default function ListarAtracoes() {
                                     }
                                 />
                             </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Evento
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.evento || ''}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    evento: e.target.value,
+                                                    area_conhecimento: '',
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione um evento</option>
+                                            {eventosEdicao.map((evento) => (
+                                                <option key={evento.id} value={evento.id}>
+                                                    {evento.nome}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Modalidade
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.modalidade || ''}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    modalidade: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione a modalidade</option>
+                                            {opcoesEdicao.modalidades.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Nivel de Ensino
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.nivel_ensino || ''}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    nivel_ensino: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione o nivel</option>
+                                            {opcoesEdicao.niveis_ensino.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Area do Conhecimento
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.area_conhecimento || ''}
+                                            disabled={!formEdicao.evento}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    area_conhecimento: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">
+                                                {formEdicao.evento
+                                                    ? (getAreasEventoEdicao().length > 0
+                                                        ? 'Selecione a area'
+                                                        : 'Evento sem areas configuradas')
+                                                    : 'Selecione primeiro um evento'}
+                                            </option>
+                                            {getAreasEventoEdicao().map((area) => {
+                                                const normalizada = normalizarAreaEdicao(area);
+                                                return (
+                                                    <option key={normalizada.value} value={normalizada.value}>
+                                                        {normalizada.label}
+                                                    </option>
+                                                );
+                                            })}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                    Palavras-chave
+                                </Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={formEdicao.palavras_chave || ''}
+                                    maxLength={LIMITS_EDICAO.palavrasChave.maxChars}
+                                    onChange={(e) =>
+                                        setFormEdicao((prev) => ({
+                                            ...prev,
+                                            palavras_chave: e.target.value,
+                                        }))
+                                    }
+                                />
+                                <Form.Text className="text-muted">
+                                    {(formEdicao.palavras_chave || '').length}/{LIMITS_EDICAO.palavrasChave.maxChars} caracteres
+                                </Form.Text>
+                            </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Orientador(a)
+                                        </Form.Label>
+                                        <Form.Check
+                                            type="checkbox"
+                                            id="edicao-sou-orientador"
+                                            label="Sou o orientador"
+                                            className="mb-2"
+                                            checked={!!formEdicao.sou_orientador}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    sou_orientador: e.target.checked,
+                                                    orientador: e.target.checked
+                                                        ? null
+                                                        : prev.orientador,
+                                                }))
+                                            }
+                                        />
+                                        <Form.Select
+                                            value={formEdicao.orientador || ''}
+                                            disabled={!!formEdicao.sou_orientador}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    orientador: e.target.value
+                                                        ? Number(e.target.value)
+                                                        : null,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione o orientador</option>
+                                            {usuariosEdicao.map((usuario) => (
+                                                <option key={usuario.id} value={usuario.id}>
+                                                    {getNomeUsuario(usuario)}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Recursos
+                                        </Form.Label>
+                                        <Form.Check
+                                            type="checkbox"
+                                            id="edicao-acessibilidade"
+                                            label="Necessita recursos de acessibilidade"
+                                            checked={!!formEdicao.acessibilidade}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    acessibilidade: e.target.checked,
+                                                }))
+                                            }
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
 
                             <Row>
                                 <Col md={6}>
@@ -503,6 +932,101 @@ export default function ListarAtracoes() {
                                     </Form.Group>
                                 </Col>
                             </Row>
+
+                            <hr />
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <Form.Label className="fw-bold mb-0" style={{ color: '#00A44B' }}>
+                                    Membros da Equipe
+                                </Form.Label>
+                                <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={handleAdicionarMembroEdicao}
+                                >
+                                    Adicionar membro
+                                </Button>
+                            </div>
+
+                            <div className="table-responsive">
+                                <table className="table table-bordered align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Curso/Instituição</th>
+                                            <th>Papel</th>
+                                            <th style={{ width: '90px' }}>Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(formEdicao.equipe || []).length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="text-center text-muted">
+                                                    Nenhum membro informado.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            (formEdicao.equipe || []).map((membro, index) => (
+                                                <tr key={index}>
+                                                    <td>
+                                                        <Form.Control
+                                                            value={membro.nome || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'nome',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            placeholder="Nome completo"
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <Form.Control
+                                                            value={membro.instituicao_curso || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'instituicao_curso',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            placeholder="Curso ou instituição"
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <Form.Select
+                                                            value={membro.funcao || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'funcao',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                        >
+                                                            <option value="">Selecione</option>
+                                                            <option value="COAUTOR">Co-autor</option>
+                                                            <option value="APRESENTADOR">Apresentador</option>
+                                                            <option value="REVISOR">Revisor</option>
+                                                        </Form.Select>
+                                                    </td>
+                                                    <td>
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                handleRemoverMembroEdicao(index)
+                                                            }
+                                                        >
+                                                            Remover
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </Form>
                     </Modal.Body>
                     <Modal.Footer>

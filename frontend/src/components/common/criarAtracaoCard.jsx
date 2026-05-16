@@ -6,15 +6,17 @@ import SecaoFormulario from './secaoFormulario';
 import { useState, useEffect } from 'react';
 
 const LIMITS = {
-    titulo: { min: 3, max: 250 },
+    titulo: { minWords: 1, maxWords: 150 },
     resumo: { minWords: 1, maxWords: 500 },
-    palavras_chave: { max: 250 },
+    palavras_chave: { max: 100 },
 };
 
 export default function CriarAtracaoCard({
     formState, setFormState,
     opcoes,
     eventos,
+    eventoSelecionadoDetalhe,
+    camposModalidade = [],
     usuarios,
     isLoading = false,
     handleSalvarRascunho,
@@ -24,6 +26,69 @@ export default function CriarAtracaoCard({
     const [touched, setTouched] = useState({});
     const [wordCount, setWordCount] = useState(0);
 
+    const countWords = (text) =>
+        text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
+
+    const tituloWordCount = countWords(formState.titulo);
+
+    const eventoSelecionado =
+        eventoSelecionadoDetalhe ||
+        eventos?.find((evento) => String(evento.id) === String(formState.evento));
+
+    const areasConhecimentoDisponiveis = (() => {
+        const areasDoEvento = eventoSelecionado?.area_conhecimento_detalhes;
+        if (Array.isArray(areasDoEvento) && areasDoEvento.length > 0) {
+            return areasDoEvento;
+        }
+
+        const areasSimples = eventoSelecionado?.area_conhecimento;
+        if (Array.isArray(areasSimples) && areasSimples.length > 0) {
+            return areasSimples;
+        }
+
+        return [];
+    })();
+
+    const normalizarAreaConhecimento = (area) => ({
+        value: area?.area_conhecimento ?? area?.value ?? area?.id ?? area,
+        label:
+            area?.area_conhecimento_display ||
+            area?.nome ||
+            area?.descricao ||
+            area?.label ||
+            String(area),
+    });
+
+    const getEventoSelecionado = () => eventoSelecionado;
+
+    const getJanelaEventoSelecionado = () => {
+        const eventoSelecionado = getEventoSelecionado();
+        const etapasValidas = (eventoSelecionado?.etapas || []).filter(
+            (etapa) => etapa?.data_inicio && etapa?.data_fim,
+        );
+
+        if (etapasValidas.length === 0) {
+            return null;
+        }
+
+        const etapaInicial = etapasValidas.reduce((menor, etapaAtual) => {
+            return new Date(etapaAtual.data_inicio) < new Date(menor.data_inicio)
+                ? etapaAtual
+                : menor;
+        }, etapasValidas[0]);
+
+        const etapaFinal = etapasValidas.reduce((maior, etapaAtual) => {
+            return new Date(etapaAtual.data_fim) > new Date(maior.data_fim)
+                ? etapaAtual
+                : maior;
+        }, etapasValidas[0]);
+
+        return {
+            inicio: new Date(etapaInicial.data_inicio),
+            fim: new Date(etapaFinal.data_fim),
+        };
+    };
+
     useEffect(() => {
         const words = formState.resumo?.trim().split(/\s+/).filter(word => word.length > 0) || [];
         setWordCount(words.length);
@@ -32,11 +97,11 @@ export default function CriarAtracaoCard({
     const validateField = (name, value) => {
         switch (name) {
             case 'titulo':
-                if (!value || value.length < LIMITS.titulo.min) {
-                    return `Título deve ter pelo menos ${LIMITS.titulo.min} caracteres`;
+                if (!value || tituloWordCount < LIMITS.titulo.minWords) {
+                    return `Título deve ter pelo menos ${LIMITS.titulo.minWords} palavra (atual: ${tituloWordCount})`;
                 }
-                if (value.length > LIMITS.titulo.max) {
-                    return `Título deve ter no máximo ${LIMITS.titulo.max} caracteres`;
+                if (tituloWordCount > LIMITS.titulo.maxWords) {
+                    return `Título deve ter no máximo ${LIMITS.titulo.maxWords} palavras (atual: ${tituloWordCount})`;
                 }
                 break;
             case 'resumo':
@@ -67,6 +132,39 @@ export default function CriarAtracaoCard({
             case 'evento':
                 if (!value) return 'Selecione um evento';
                 break;
+            case 'data_hora_inicio':
+            case 'data_hora_fim': {
+                if (!value) {
+                    return 'Informe a data e hora da atração';
+                }
+
+                const valor = new Date(value);
+                if (Number.isNaN(valor.getTime())) {
+                    return 'Informe uma data e hora válidas';
+                }
+
+                const dataInicio = formState.data_hora_inicio
+                    ? new Date(formState.data_hora_inicio)
+                    : null;
+                const dataFim = formState.data_hora_fim
+                    ? new Date(formState.data_hora_fim)
+                    : null;
+
+                if (dataInicio && dataFim && dataInicio > dataFim) {
+                    return 'A data e hora inicial deve ser anterior à final';
+                }
+
+                const janelaEvento = getJanelaEventoSelecionado();
+                if (!janelaEvento) {
+                    return 'O evento selecionado ainda não possui datas configuradas';
+                }
+
+                if (valor < janelaEvento.inicio || valor > janelaEvento.fim) {
+                    return `A data e hora da atração deve ficar entre ${janelaEvento.inicio.toLocaleString('pt-BR')} e ${janelaEvento.fim.toLocaleString('pt-BR')}`;
+                }
+
+                break;
+            }
             default:
                 break;
         }
@@ -85,6 +183,83 @@ export default function CriarAtracaoCard({
         if (touched[fieldName]) {
             const error = validateField(fieldName, value);
             setErrors({ ...errors, [fieldName]: error });
+        }
+    };
+
+    const campoKey = (campoId) => `campo_${campoId}`;
+
+    const validateCampoDinamico = (campo, value) => {
+        if (!campo?.obrigatorio) return null;
+
+        if (campo.tipo_dado === 'BOOLEANO') {
+            if (value === null || value === undefined) {
+                return `O campo ${campo.nome} é obrigatório`;
+            }
+            return null;
+        }
+
+        if (campo.tipo_dado === 'ARQUIVO') {
+            if (value instanceof File || value instanceof Blob) {
+                return null;
+            }
+            return `O campo ${campo.nome} é obrigatório`;
+        }
+
+        if (value === null || value === undefined || String(value).trim() === '') {
+            return `O campo ${campo.nome} é obrigatório`;
+        }
+
+        return null;
+    };
+
+    const handleCampoDinamicoChange = (campo, value) => {
+        const key = campoKey(campo.id);
+        const respostas = formState.respostas_campos || {};
+
+        setFormState({
+            ...formState,
+            respostas_campos: {
+                ...respostas,
+                [key]: value,
+            },
+        });
+
+        if (touched[key]) {
+            const error = validateCampoDinamico(campo, value);
+            setErrors((prev) => ({ ...prev, [key]: error }));
+        }
+    };
+
+    const handleCampoDinamicoBlur = (campo) => {
+        const key = campoKey(campo.id);
+        const value = (formState.respostas_campos || {})[key];
+        const error = validateCampoDinamico(campo, value);
+
+        setTouched((prev) => ({ ...prev, [key]: true }));
+        setErrors((prev) => ({ ...prev, [key]: error }));
+    };
+
+    const handleEventoChange = (value) => {
+        const eventoAnterior = formState.evento;
+        const areaAtual = formState.area_conhecimento;
+
+        setFormState((prev) => ({
+            ...prev,
+            evento: value,
+            area_conhecimento:
+                eventoAnterior === value && areaAtual ? areaAtual : '',
+        }));
+
+        if (touched.evento) {
+            const error = validateField('evento', value);
+            setErrors({ ...errors, evento: error });
+        }
+
+        if (touched.area_conhecimento) {
+            setErrors((prevErrors) => ({
+                ...prevErrors,
+                area_conhecimento: '',
+            }));
         }
     };
 
@@ -114,7 +289,7 @@ export default function CriarAtracaoCard({
     };
 
     const validateAll = () => {
-        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'evento'];
+        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'evento', 'data_hora_inicio', 'data_hora_fim'];
         let newErrors = {};
         let isValid = true;
         
@@ -125,10 +300,83 @@ export default function CriarAtracaoCard({
                 isValid = false;
             }
         });
+
+        (camposModalidade || []).forEach((campo) => {
+            const key = campoKey(campo.id);
+            const valor = (formState.respostas_campos || {})[key];
+            const error = validateCampoDinamico(campo, valor);
+            if (error) {
+                newErrors[key] = error;
+                isValid = false;
+            }
+        });
         
-        setTouched(fields.reduce((acc, f) => ({ ...acc, [f]: true }), {}));
+        const touchedBase = fields.reduce((acc, f) => ({ ...acc, [f]: true }), {});
+        const touchedDinamicos = (camposModalidade || []).reduce(
+            (acc, campo) => ({ ...acc, [campoKey(campo.id)]: true }),
+            {},
+        );
+        setTouched({ ...touchedBase, ...touchedDinamicos });
         setErrors(newErrors);
         return isValid;
+    };
+
+    const renderCampoDinamico = (campo) => {
+        const key = campoKey(campo.id);
+        const valor = (formState.respostas_campos || {})[key];
+        const style = { backgroundColor: '#eeeeee', ...getFieldStyle(key) };
+
+        if (campo.tipo_dado === 'BOOLEANO') {
+            return (
+                <Form.Check
+                    type="checkbox"
+                    id={key}
+                    checked={!!valor}
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.checked)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    label={campo.nome}
+                />
+            );
+        }
+
+        if (campo.tipo_dado === 'ARQUIVO') {
+            return (
+                <Form.Control
+                    type="file"
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.files?.[0] || null)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    style={style}
+                    isValid={touched[key] && !errors[key]}
+                    isInvalid={touched[key] && errors[key]}
+                />
+            );
+        }
+
+        if (campo.tipo_dado === 'NUMERO') {
+            return (
+                <Form.Control
+                    type="number"
+                    value={valor ?? ''}
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.value)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    style={style}
+                    isValid={touched[key] && !errors[key]}
+                    isInvalid={touched[key] && errors[key]}
+                />
+            );
+        }
+
+        return (
+            <Form.Control
+                type="text"
+                value={valor ?? ''}
+                onChange={(e) => handleCampoDinamicoChange(campo, e.target.value)}
+                onBlur={() => handleCampoDinamicoBlur(campo)}
+                style={style}
+                isValid={touched[key] && !errors[key]}
+                isInvalid={touched[key] && errors[key]}
+            />
+        );
     };
 
     const labelStyle = { color: '#00A44B', fontWeight: 'bold' };
@@ -136,12 +384,26 @@ export default function CriarAtracaoCard({
     const handleSalvarRascunhoClick = () => {
         if (validateAll()) {
             handleSalvarRascunho();
+            return;
+        }
+
+        const primeiroInvalido = document.querySelector('.is-invalid');
+        if (primeiroInvalido?.scrollIntoView) {
+            primeiroInvalido.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            primeiroInvalido.focus?.();
         }
     };
 
     const handleSubmeterClick = () => {
         if (validateAll()) {
             handleSubmeter();
+            return;
+        }
+
+        const primeiroInvalido = document.querySelector('.is-invalid');
+        if (primeiroInvalido?.scrollIntoView) {
+            primeiroInvalido.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            primeiroInvalido.focus?.();
         }
     };
 
@@ -209,11 +471,23 @@ export default function CriarAtracaoCard({
                                     style={{ backgroundColor: '#eeeeee', ...getFieldStyle('area_conhecimento') }}
                                     isValid={touched.area_conhecimento && !errors.area_conhecimento}
                                     isInvalid={touched.area_conhecimento && errors.area_conhecimento}
+                                    disabled={!formState.evento}
                                 >
-                                    <option value="">Selecione a Área</option>
-                                    {opcoes.areas_conhecimento?.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
+                                    <option value="">
+                                        {formState.evento
+                                            ? (areasConhecimentoDisponiveis.length > 0
+                                                ? 'Selecione a Área'
+                                                : 'Evento sem áreas configuradas')
+                                            : 'Selecione primeiro um evento'}
+                                    </option>
+                                    {areasConhecimentoDisponiveis?.map((area) => {
+                                        const normalizada = normalizarAreaConhecimento(area);
+                                        return (
+                                            <option key={normalizada.value} value={normalizada.value}>
+                                                {normalizada.label}
+                                            </option>
+                                        );
+                                    })}
                                 </Form.Select>
                                 {touched.area_conhecimento && errors.area_conhecimento && (
                                     <Form.Text className="text-danger">{errors.area_conhecimento}</Form.Text>
@@ -229,7 +503,7 @@ export default function CriarAtracaoCard({
                         <Form.Label style={labelStyle}>
                             Título do Trabalho * 
                             <span className="text-muted fw-normal ms-2">
-                                ({formState.titulo?.length || 0}/{LIMITS.titulo.max})
+                                ({tituloWordCount} palavras - mín: {LIMITS.titulo.minWords}, máx: {LIMITS.titulo.maxWords})
                             </span>
                         </Form.Label>
                         <Form.Control
@@ -305,7 +579,7 @@ export default function CriarAtracaoCard({
                         <Form.Label style={labelStyle}>Evento *</Form.Label>
                         <Form.Select
                             value={formState.evento}
-                            onChange={(e) => handleChange('evento', e.target.value)}
+                            onChange={(e) => handleEventoChange(e.target.value)}
                             onBlur={() => handleBlur('evento')}
                             style={{ backgroundColor: '#eeeeee', ...getFieldStyle('evento') }}
                             isValid={touched.evento && !errors.evento}
@@ -320,14 +594,76 @@ export default function CriarAtracaoCard({
                             <Form.Text className="text-danger">{errors.evento}</Form.Text>
                         )}
                     </Form.Group>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label style={labelStyle}>Data e Hora da Atração *</Form.Label>
+                        <Row>
+                            <Col md={6} className="mb-3 mb-md-0">
+                                <Form.Label className="fw-semibold">Início *</Form.Label>
+                                <Form.Control
+                                    type="datetime-local"
+                                    value={formState.data_hora_inicio}
+                                    onChange={(e) => handleChange('data_hora_inicio', e.target.value)}
+                                    onBlur={() => handleBlur('data_hora_inicio')}
+                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('data_hora_inicio') }}
+                                    isValid={touched.data_hora_inicio && !errors.data_hora_inicio}
+                                    isInvalid={touched.data_hora_inicio && errors.data_hora_inicio}
+                                />
+                                {touched.data_hora_inicio && errors.data_hora_inicio && (
+                                    <Form.Text className="text-danger">{errors.data_hora_inicio}</Form.Text>
+                                )}
+                            </Col>
+                            <Col md={6}>
+                                <Form.Label className="fw-semibold">Fim *</Form.Label>
+                                <Form.Control
+                                    type="datetime-local"
+                                    value={formState.data_hora_fim}
+                                    onChange={(e) => handleChange('data_hora_fim', e.target.value)}
+                                    onBlur={() => handleBlur('data_hora_fim')}
+                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('data_hora_fim') }}
+                                    isValid={touched.data_hora_fim && !errors.data_hora_fim}
+                                    isInvalid={touched.data_hora_fim && errors.data_hora_fim}
+                                />
+                                {touched.data_hora_fim && errors.data_hora_fim && (
+                                    <Form.Text className="text-danger">{errors.data_hora_fim}</Form.Text>
+                                )}
+                            </Col>
+                        </Row>
+                        <Form.Text className="text-muted d-block mt-2">
+                            A atração precisa começar e terminar dentro do período configurado para o evento selecionado.
+                        </Form.Text>
+                    </Form.Group>
                 </SecaoFormulario>
+
+                {(camposModalidade || []).length > 0 && (
+                    <SecaoFormulario icone={MdSchool} titulo="Campos Específicos da Modalidade">
+                        <Row>
+                            {camposModalidade.map((campo) => {
+                                const key = campoKey(campo.id);
+                                return (
+                                    <Col md={6} key={campo.id}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label style={labelStyle}>
+                                                {campo.nome}{campo.obrigatorio ? ' *' : ''}
+                                            </Form.Label>
+                                            {renderCampoDinamico(campo)}
+                                            {touched[key] && errors[key] && (
+                                                <Form.Text className="text-danger">{errors[key]}</Form.Text>
+                                            )}
+                                        </Form.Group>
+                                    </Col>
+                                );
+                            })}
+                        </Row>
+                    </SecaoFormulario>
+                )}
 
                 {/* SEÇÃO 3: EQUIPE */}
                 <SecaoFormulario icone={FaUsers} titulo="Equipe">
                     <div className="mb-4">
                         <div className="d-flex align-items-center gap-4 mb-3">
                             <Form.Label style={labelStyle} className="mb-0">Orientador(a) *</Form.Label>
-                            <Form.Check 
+                            <Form.Check
                                 type="checkbox"
                                 label="Sou o Orientador"
                                 id="check-orientador"
@@ -345,9 +681,7 @@ export default function CriarAtracaoCard({
                                     onChange={(e) =>
                                         setFormState({
                                             ...formState,
-                                            orientador: e.target.value
-                                                ? Number(e.target.value)
-                                                : null,
+                                            orientador: e.target.value ? Number(e.target.value) : null,
                                         })
                                     }
                                     style={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
@@ -373,7 +707,7 @@ export default function CriarAtracaoCard({
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #dee2e6' }}>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nome Completo</th>
-                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição (Req 1.15)</th>
+                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição</th>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '20%' }}>Papel</th>
                                     <th className="py-2 px-3 fw-bold text-dark text-center" style={{ background: '#F8F9FA', width: '10%' }}>Ação</th>
                                 </tr>
@@ -382,16 +716,16 @@ export default function CriarAtracaoCard({
                                 {formState.equipe.map((membro, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Control 
+                                            <Form.Control
                                                 value={membro.nome}
                                                 onChange={(e) => handleMembroChange(index, 'nome', e.target.value)}
-                                                placeholder="Nome do coautor"
+                                                placeholder="Nome"
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
                                                 className="bg-white"
                                             />
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Select 
+                                            <Form.Select
                                                 value={membro.instituicao_curso}
                                                 onChange={(e) => handleMembroChange(index, 'instituicao_curso', e.target.value)}
                                                 disabled={true}
@@ -405,7 +739,7 @@ export default function CriarAtracaoCard({
                                             </Form.Select>
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Select 
+                                            <Form.Select
                                                 value={membro.funcao || ''}
                                                 onChange={(e) => handleMembroChange(index, 'funcao', e.target.value)}
                                                 disabled={!membro.nome}
@@ -418,9 +752,9 @@ export default function CriarAtracaoCard({
                                             </Form.Select>
                                         </td>
                                         <td className="text-center py-2">
-                                            <Button 
-                                                variant="danger" 
-                                                className="p-1" 
+                                            <Button
+                                                variant="danger"
+                                                className="p-1"
                                                 style={{ backgroundColor: '#e24c4c', border: 'none', borderRadius: '6px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => handleRemoveMembro(index)}
                                             >
@@ -431,10 +765,10 @@ export default function CriarAtracaoCard({
                                 ))}
                             </tbody>
                         </Table>
-                        
-                    <Button 
-                            variant="primary" 
-                            size="sm" 
+
+                        <Button
+                            variant="primary"
+                            size="sm"
                             onClick={handleAddMembro}
                             className="d-flex align-items-center gap-2 px-3 py-2 fw-bold mt-3"
                             style={{ backgroundColor: '#3B9BFF', border: 'none', borderRadius: '10px' }}
