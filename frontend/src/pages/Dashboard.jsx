@@ -15,6 +15,7 @@ import { RiTeamFill } from 'react-icons/ri';
 import { IoMdSchool } from 'react-icons/io';
 import { RiAddBoxFill } from 'react-icons/ri';
 import { IoCalendarOutline } from 'react-icons/io5';
+import { MdOutlineArticle, MdAddCircleOutline } from 'react-icons/md';
 
 import { getDashboardEvento } from '../services/dashboardService';
 import {
@@ -133,6 +134,16 @@ export default function DashboardEvento({}) {
             texto: 'Definir Sessões da Programação do Evento',
             icone: <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />,
             to: `/dashboard/${eventoId}/sessao_atribuir_data`,
+        },
+        {
+            texto: 'Gerenciar Submissões',
+            icone: <MdOutlineArticle color="#6200EA" size={20} />,
+            to: '/listar_atracoes',
+        },
+        {
+            texto: 'Adicionar Submissão',
+            icone: <MdAddCircleOutline color="#6200EA" size={20} />,
+            to: '/adicionar_atracao',
         },
     ];
 

@@ -5,7 +5,8 @@ import {
     MdAssignment, MdArrowForward, MdScience,
     MdSettings, MdPublic, MdMenuBook, MdFactCheck, MdEmojiEvents
 } from 'react-icons/md';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { setSelectedEventoId } from '../utils/selectedEvento';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { buscarEventoPorId } from '../services/eventoService';
@@ -70,7 +71,7 @@ export default function DetalheEvento() {
                             {evento.descricao?.substring(0, 150)}...
                         </p>
                         <div className="d-flex justify-content-center gap-3 flex-wrap">
-                            <Button variant="light" className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm" style={{ color: verdeIFRS }}>
+                            <Button variant="light" as={Link} to="/adicionar_atracao" onClick={() => setSelectedEventoId(id)} className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm" style={{ color: verdeIFRS }}>
                                 <MdSend className="me-2" /> Submeter Trabalho
                             </Button>
                             <Button variant="outline-light" className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2">

@@ -13,6 +13,7 @@ import {
 } from '../services/atracaoService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
+import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
 import { useState, useEffect } from 'react';
 
 export default function AdicionarAtracao() {
@@ -81,6 +82,10 @@ export default function AdicionarAtracao() {
 
             if (dadosEventos.status === 'fulfilled') {
                 setEventos(dadosEventos.value);
+                const eventoSalvo = getSelectedEventoId();
+                if (eventoSalvo) {
+                    setFormState((prev) => ({ ...prev, evento: eventoSalvo }));
+                }
             } else {
                 console.error('Erro ao carregar eventos:', dadosEventos.reason);
                 mostrarAlerta(
@@ -111,6 +116,7 @@ export default function AdicionarAtracao() {
         try {
             setIsLoading(true);
             await salvarRascunho(dadosRascunho);
+            setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
             setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {
@@ -140,6 +146,7 @@ export default function AdicionarAtracao() {
             setIsLoading(true);
             const dadosSubmissao = { ...formState, status: 'PREVISTA' };
             await criarAtracao(dadosSubmissao);
+            setSelectedEventoId(formState.evento);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
             setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {

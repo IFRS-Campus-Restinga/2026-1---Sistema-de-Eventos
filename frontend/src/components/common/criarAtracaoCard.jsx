@@ -497,7 +497,7 @@ export default function CriarAtracaoCard({
                         className="px-4 d-flex align-items-center gap-2 shadow-sm"
                         style={{ backgroundColor: isLoading ? '#8cc79a' : '#38A149', border: 'none', borderRadius: '12px' }}
                     >
-                        <BsCheckCircle size={20} /> {isLoading ? 'Enviando...' : 'Submeter o Trabalho'}
+                        <BsCheckCircle size={20} /> {isLoading ? 'Enviando...' : 'Submeter Trabalho'}
                     </Button>
                 </div>
             </Form>

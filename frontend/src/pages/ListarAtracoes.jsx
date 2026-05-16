@@ -31,6 +31,7 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
+import { getSelectedEventoId } from '../utils/selectedEvento';
 
 export default function ListarAtracoes() {
     const [atracoes, setAtracoes] = useState([]);
@@ -69,7 +70,8 @@ export default function ListarAtracoes() {
     const carregarAtracoes = async () => {
         try {
             setCarregando(true);
-            const dados = await listarAtracoes();
+            const eventoId = getSelectedEventoId();
+            const dados = await listarAtracoes(eventoId);
             setAtracoes(dados);
             setAlerta((prev) => ({
                 ...prev,
