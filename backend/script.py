@@ -1,6 +1,6 @@
 import os
-import django
 
+import django
 
 GROUP_NAMES = [
     "Administrador",
@@ -40,6 +40,38 @@ ESPACOS_DATA = [
         "recursos_disponiveis": "Projetor e ar-condicionado",
         "ativo": True,
         "local_nome": "Campus Centro",
+    },
+    {
+        "nome": "Sala 401",
+        "capacidade": 30,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Sala 402",
+        "capacidade": 20,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Sala 403",
+        "capacidade": 25,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Laboratório de Informática 2",
+        "capacidade": 40,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
     },
 ]
 
@@ -377,10 +409,10 @@ def seed_areas():
 
 
 def seed_eventos():
-    from api.models.evento import Evento
-    from api.models.modalidade import Modalidade
-    from api.models.local import Local
     from api.models.area_conhecimento import AreaConhecimento
+    from api.models.evento import Evento
+    from api.models.local import Local
+    from api.models.modalidade import Modalidade
 
     for item in EVENTOS_DATA:
         local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
@@ -469,10 +501,11 @@ def seed_atracoes():
 
 
 def seed_etapas():
+    from django.utils import timezone
+    from django.utils.dateparse import parse_datetime
+
     from api.models.etapa_evento import EtapaEvento
     from api.models.evento import Evento
-    from django.utils.dateparse import parse_datetime
-    from django.utils import timezone
 
     created_count = 0
     existing_count = 0
