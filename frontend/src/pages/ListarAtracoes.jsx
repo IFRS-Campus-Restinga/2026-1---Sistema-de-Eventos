@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Badge,
     Button,
@@ -11,7 +11,6 @@ import {
     Spinner,
 } from 'react-bootstrap';
 import {
-    MdAccessTime,
     MdAddCircle,
     MdArrowBack,
     MdDelete,
@@ -34,6 +33,7 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
+import { pegarEspacos } from '../services/espacoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 
@@ -54,9 +54,7 @@ export default function ListarAtracoes() {
         id: null,
         titulo: '',
         resumo: '',
-        local_atracao: '',
-        data_hora_inicio: '',
-        data_hora_fim: '',
+        espaco: '',
         status: 'PREVISTA',
     });
     const [alerta, setAlerta] = useState({
@@ -71,22 +69,32 @@ export default function ListarAtracoes() {
     const [eventosEdicao, setEventosEdicao] = useState([]);
     const [usuariosEdicao, setUsuariosEdicao] = useState([]);
     const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
+    const [espacosEdicao, setEspacosEdicao] = useState([]);
 
     const navigate = useNavigate();
+    const eventoFiltroId = getSelectedEventoId();
+    const eventoSelecionadoLista = useMemo(() => {
+        if (!eventoFiltroId) return null;
+
+        return (
+            eventosEdicao.find((evento) => String(evento.id) === String(eventoFiltroId)) ||
+            null
+        );
+    }, [eventosEdicao, eventoFiltroId]);
 
     const contarPalavras = (texto) =>
         texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
 
-    const mostrarAlerta = (mensagem, variacao = 'danger') => {
+    const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
         setAlerta((prev) => ({
             ...prev,
             mensagem,
             variacao,
             reacao: (prev.reacao || 0) + 1,
         }));
-    };
+    }, []);
 
-    const carregarAtracoes = async () => {
+    const carregarAtracoes = useCallback(async () => {
         try {
             setCarregando(true);
             const eventoId = getSelectedEventoId();
@@ -109,11 +117,11 @@ export default function ListarAtracoes() {
         } finally {
             setCarregando(false);
         }
-    };
+    }, [mostrarAlerta]);
 
     useEffect(() => {
         carregarAtracoes();
-    }, []);
+    }, [carregarAtracoes]);
 
     useEffect(() => {
         const carregarOpcoesEdicao = async () => {
@@ -170,30 +178,38 @@ export default function ListarAtracoes() {
         carregarDetalheEventoEdicao();
     }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
 
-    const formatarDataHora = (valor) => {
-        if (!valor) return 'Não informado';
+    useEffect(() => {
+        const carregarEspacosEdicao = async () => {
+            const localId = eventoEdicaoDetalhe?.local?.id;
 
-        const data = new Date(valor);
-        if (Number.isNaN(data.getTime())) return 'Não informado';
+            if (!mostrarModalEdicao || !formEdicao.evento || !localId) {
+                setEspacosEdicao([]);
+                return;
+            }
 
-        return data.toLocaleString('pt-BR');
-    };
+            try {
+                const espacos = await pegarEspacos(localId);
+                setEspacosEdicao(espacos || []);
 
-    const formatarParaDatetimeLocal = (valor) => {
-        if (!valor) return '';
+                setFormEdicao((prev) => {
+                    const espacoAtualValido = (espacos || []).some(
+                        (espaco) => String(espaco.id) === String(prev.espaco),
+                    );
 
-        const data = new Date(valor);
-        if (Number.isNaN(data.getTime())) return '';
+                    if (espacoAtualValido) {
+                        return prev;
+                    }
 
-        const pad = (numero) => String(numero).padStart(2, '0');
-        const ano = data.getFullYear();
-        const mes = pad(data.getMonth() + 1);
-        const dia = pad(data.getDate());
-        const hora = pad(data.getHours());
-        const minuto = pad(data.getMinutes());
+                    return { ...prev, espaco: '' };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar espaços da edição:', error);
+                setEspacosEdicao([]);
+            }
+        };
 
-        return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
-    };
+        carregarEspacosEdicao();
+    }, [mostrarModalEdicao, formEdicao.evento, eventoEdicaoDetalhe]);
 
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
@@ -242,33 +258,6 @@ export default function ListarAtracoes() {
             String(area),
     });
 
-    const getJanelaEventoEdicao = () => {
-        const etapasValidas = (eventoEdicaoDetalhe?.etapas || []).filter(
-            (etapa) => etapa?.data_inicio && etapa?.data_fim,
-        );
-
-        if (etapasValidas.length === 0) {
-            return null;
-        }
-
-        const etapaInicial = etapasValidas.reduce((menor, etapaAtual) => {
-            return new Date(etapaAtual.data_inicio) < new Date(menor.data_inicio)
-                ? etapaAtual
-                : menor;
-        }, etapasValidas[0]);
-
-        const etapaFinal = etapasValidas.reduce((maior, etapaAtual) => {
-            return new Date(etapaAtual.data_fim) > new Date(maior.data_fim)
-                ? etapaAtual
-                : maior;
-        }, etapasValidas[0]);
-
-        return {
-            inicio: new Date(etapaInicial.data_inicio),
-            fim: new Date(etapaFinal.data_fim),
-        };
-    };
-
     const normalizarTexto = (texto) =>
         (texto || '')
             .toString()
@@ -299,9 +288,7 @@ export default function ListarAtracoes() {
             id: atracao.id,
             titulo: atracao.titulo || '',
             resumo: atracao.resumo || '',
-            local_atracao: atracao.local_atracao || '',
-            data_hora_inicio: formatarParaDatetimeLocal(atracao.data_hora_inicio),
-            data_hora_fim: formatarParaDatetimeLocal(atracao.data_hora_fim),
+            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
             status: atracao.status || 'PREVISTA',
             palavras_chave: atracao.palavras_chave || '',
             modalidade: atracao.modalidade || '',
@@ -395,46 +382,16 @@ export default function ListarAtracoes() {
             return;
         }
 
+        if (!formEdicao.espaco) {
+            mostrarAlerta('Selecione um espaço para a submissão.');
+            return;
+        }
+
         const equipeComNome = (formEdicao.equipe || []).filter(
             (membro) => (membro?.nome || '').trim().length > 0,
         );
         if (equipeComNome.length === 0) {
             mostrarAlerta('Adicione pelo menos um membro com nome na equipe.');
-            return;
-        }
-
-        const dataInicio = formEdicao.data_hora_inicio
-            ? new Date(formEdicao.data_hora_inicio)
-            : null;
-        const dataFim = formEdicao.data_hora_fim
-            ? new Date(formEdicao.data_hora_fim)
-            : null;
-
-        if (!dataInicio || !dataFim || Number.isNaN(dataInicio.getTime()) || Number.isNaN(dataFim.getTime())) {
-            mostrarAlerta('Informe data e hora de inicio e fim validas.');
-            return;
-        }
-
-        if (dataInicio > dataFim) {
-            mostrarAlerta('A data/hora de inicio deve ser anterior a data/hora de fim.');
-            return;
-        }
-
-        const janelaEvento = getJanelaEventoEdicao();
-        if (!janelaEvento) {
-            mostrarAlerta('O evento selecionado nao possui datas configuradas para validacao.');
-            return;
-        }
-
-        if (
-            dataInicio < janelaEvento.inicio ||
-            dataInicio > janelaEvento.fim ||
-            dataFim < janelaEvento.inicio ||
-            dataFim > janelaEvento.fim
-        ) {
-            mostrarAlerta(
-                `A atracao deve ficar entre ${janelaEvento.inicio.toLocaleString('pt-BR')} e ${janelaEvento.fim.toLocaleString('pt-BR')}.`,
-            );
             return;
         }
 
@@ -496,6 +453,24 @@ export default function ListarAtracoes() {
                             </Row>
                             <hr className="mb-4" />
 
+                            {eventoFiltroId && (
+                                <Row className="mb-4">
+                                    <Col>
+                                        <div
+                                            className="rounded px-3 py-2"
+                                            style={{
+                                                backgroundColor: '#e7f1ff',
+                                                border: '1px solid #9ec5fe',
+                                                color: '#084298',
+                                            }}
+                                        >
+                                            <strong>Evento selecionado:</strong>{' '}
+                                            {eventoSelecionadoLista?.nome || `ID ${eventoFiltroId}`}
+                                        </div>
+                                    </Col>
+                                </Row>
+                            )}
+
                             <Row className="mb-4">
                                 <Col md={8} lg={6}>
                                     <Form.Group>
@@ -538,10 +513,6 @@ export default function ListarAtracoes() {
                                                         </span>
                                                         <span className="d-flex align-items-center gap-1">
                                                             <MdPlace /> <strong>Local:</strong> {atracao.local_atracao}
-                                                        </span>
-                                                        <span className="d-flex align-items-center gap-1">
-                                                            <MdAccessTime /> <strong>Início:</strong>{' '}
-                                                            {formatarDataHora(atracao.data_hora_inicio)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -661,30 +632,6 @@ export default function ListarAtracoes() {
                             </Form.Group>
 
                             <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Evento
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={formEdicao.evento || ''}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    evento: e.target.value,
-                                                    area_conhecimento: '',
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Selecione um evento</option>
-                                            {eventosEdicao.map((evento) => (
-                                                <option key={evento.id} value={evento.id}>
-                                                    {evento.nome}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
                                 <Col md={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
@@ -854,58 +801,34 @@ export default function ListarAtracoes() {
                             </Row>
 
                             <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Início
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="datetime-local"
-                                            value={formEdicao.data_hora_inicio || ''}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    data_hora_inicio: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Fim
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="datetime-local"
-                                            value={formEdicao.data_hora_fim || ''}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    data_hora_fim: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row>
                                 <Col md={7}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Local
+                                            Espaço
                                         </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            value={formEdicao.local_atracao || ''}
+                                        <Form.Select
+                                            value={formEdicao.espaco || ''}
+                                            disabled={!formEdicao.evento || espacosEdicao.length === 0}
                                             onChange={(e) =>
                                                 setFormEdicao((prev) => ({
                                                     ...prev,
-                                                    local_atracao: e.target.value,
+                                                    espaco: e.target.value,
                                                 }))
                                             }
-                                        />
+                                        >
+                                            <option value="">
+                                                {formEdicao.evento
+                                                    ? (espacosEdicao.length > 0
+                                                        ? 'Selecione um espaço'
+                                                        : 'Evento sem espaços configurados')
+                                                    : 'Selecione primeiro um evento'}
+                                            </option>
+                                            {espacosEdicao.map((espaco) => (
+                                                <option key={espaco.id} value={espaco.id}>
+                                                    {espaco.nome} - {espaco.predio_bloco}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
                                     </Form.Group>
                                 </Col>
                                 <Col md={5}>

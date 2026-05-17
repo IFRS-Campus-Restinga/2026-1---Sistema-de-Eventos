@@ -1,9 +1,9 @@
-import { Container, Row, Col, Form, Button, Table, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 import { MdEdit, MdSchool, MdAttachFile, MdSearch, MdDelete, MdArrowBack, MdLocalOffer, MdAddCircle } from 'react-icons/md';
 import { BsCheckCircle, BsPlusCircleFill } from 'react-icons/bs';
 import { FaUsers } from 'react-icons/fa';
 import SecaoFormulario from './secaoFormulario';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const LIMITS = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -16,6 +16,8 @@ export default function CriarAtracaoCard({
     opcoes,
     eventos,
     eventoSelecionadoDetalhe,
+    modalidadeSelecionadaDetalhe,
+    espacosDisponiveis = [],
     camposModalidade = [],
     usuarios,
     isLoading = false,
@@ -24,12 +26,12 @@ export default function CriarAtracaoCard({
 }) {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
-    const [wordCount, setWordCount] = useState(0);
 
     const countWords = (text) =>
         text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
 
     const tituloWordCount = countWords(formState.titulo);
+    const resumoWordCount = countWords(formState.resumo);
 
     const eventoSelecionado =
         eventoSelecionadoDetalhe ||
@@ -58,42 +60,6 @@ export default function CriarAtracaoCard({
             area?.label ||
             String(area),
     });
-
-    const getEventoSelecionado = () => eventoSelecionado;
-
-    const getJanelaEventoSelecionado = () => {
-        const eventoSelecionado = getEventoSelecionado();
-        const etapasValidas = (eventoSelecionado?.etapas || []).filter(
-            (etapa) => etapa?.data_inicio && etapa?.data_fim,
-        );
-
-        if (etapasValidas.length === 0) {
-            return null;
-        }
-
-        const etapaInicial = etapasValidas.reduce((menor, etapaAtual) => {
-            return new Date(etapaAtual.data_inicio) < new Date(menor.data_inicio)
-                ? etapaAtual
-                : menor;
-        }, etapasValidas[0]);
-
-        const etapaFinal = etapasValidas.reduce((maior, etapaAtual) => {
-            return new Date(etapaAtual.data_fim) > new Date(maior.data_fim)
-                ? etapaAtual
-                : maior;
-        }, etapasValidas[0]);
-
-        return {
-            inicio: new Date(etapaInicial.data_inicio),
-            fim: new Date(etapaFinal.data_fim),
-        };
-    };
-
-    useEffect(() => {
-        const words = formState.resumo?.trim().split(/\s+/).filter(word => word.length > 0) || [];
-        setWordCount(words.length);
-    }, [formState.resumo]);
-
     const validateField = (name, value) => {
         switch (name) {
             case 'titulo':
@@ -105,11 +71,11 @@ export default function CriarAtracaoCard({
                 }
                 break;
             case 'resumo':
-                if (!value || wordCount < LIMITS.resumo.minWords) {
-                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavra (atual: ${wordCount})`;
+                if (!value || resumoWordCount < LIMITS.resumo.minWords) {
+                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavra (atual: ${resumoWordCount})`;
                 }
-                if (wordCount > LIMITS.resumo.maxWords) {
-                    return `Resumo deve ter no máximo ${LIMITS.resumo.maxWords} palavras (atual: ${wordCount})`;
+                if (resumoWordCount > LIMITS.resumo.maxWords) {
+                    return `Resumo deve ter no máximo ${LIMITS.resumo.maxWords} palavras (atual: ${resumoWordCount})`;
                 }
                 break;
             case 'palavras_chave':
@@ -129,42 +95,9 @@ export default function CriarAtracaoCard({
             case 'area_conhecimento':
                 if (!value) return 'Selecione uma área de conhecimento';
                 break;
-            case 'evento':
-                if (!value) return 'Selecione um evento';
+            case 'espaco':
+                if (!value) return 'Selecione um espaço';
                 break;
-            case 'data_hora_inicio':
-            case 'data_hora_fim': {
-                if (!value) {
-                    return 'Informe a data e hora da atração';
-                }
-
-                const valor = new Date(value);
-                if (Number.isNaN(valor.getTime())) {
-                    return 'Informe uma data e hora válidas';
-                }
-
-                const dataInicio = formState.data_hora_inicio
-                    ? new Date(formState.data_hora_inicio)
-                    : null;
-                const dataFim = formState.data_hora_fim
-                    ? new Date(formState.data_hora_fim)
-                    : null;
-
-                if (dataInicio && dataFim && dataInicio > dataFim) {
-                    return 'A data e hora inicial deve ser anterior à final';
-                }
-
-                const janelaEvento = getJanelaEventoSelecionado();
-                if (!janelaEvento) {
-                    return 'O evento selecionado ainda não possui datas configuradas';
-                }
-
-                if (valor < janelaEvento.inicio || valor > janelaEvento.fim) {
-                    return `A data e hora da atração deve ficar entre ${janelaEvento.inicio.toLocaleString('pt-BR')} e ${janelaEvento.fim.toLocaleString('pt-BR')}`;
-                }
-
-                break;
-            }
             default:
                 break;
         }
@@ -239,30 +172,6 @@ export default function CriarAtracaoCard({
         setErrors((prev) => ({ ...prev, [key]: error }));
     };
 
-    const handleEventoChange = (value) => {
-        const eventoAnterior = formState.evento;
-        const areaAtual = formState.area_conhecimento;
-
-        setFormState((prev) => ({
-            ...prev,
-            evento: value,
-            area_conhecimento:
-                eventoAnterior === value && areaAtual ? areaAtual : '',
-        }));
-
-        if (touched.evento) {
-            const error = validateField('evento', value);
-            setErrors({ ...errors, evento: error });
-        }
-
-        if (touched.area_conhecimento) {
-            setErrors((prevErrors) => ({
-                ...prevErrors,
-                area_conhecimento: '',
-            }));
-        }
-    };
-
     const getFieldStyle = (fieldName) => {
         if (!touched[fieldName]) return {};
         const error = errors[fieldName];
@@ -289,7 +198,7 @@ export default function CriarAtracaoCard({
     };
 
     const validateAll = () => {
-        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'evento', 'data_hora_inicio', 'data_hora_fim'];
+        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'espaco'];
         let newErrors = {};
         let isValid = true;
         
@@ -439,6 +348,27 @@ export default function CriarAtracaoCard({
                                     <Form.Text className="text-danger">{errors.modalidade}</Form.Text>
                                 )}
                             </Form.Group>
+                            {modalidadeSelecionadaDetalhe && (
+                                <div className="mt-2 p-3 rounded border bg-white small">
+                                    <div className="fw-bold mb-1" style={{ color: '#00A44B' }}>
+                                        {modalidadeSelecionadaDetalhe.nome}
+                                    </div>
+                                    <div className="text-muted">
+                                        <div>
+                                            <strong>Número de vagas:</strong>{' '}
+                                            {modalidadeSelecionadaDetalhe.limite_vagas > 0
+                                                ? modalidadeSelecionadaDetalhe.limite_vagas
+                                                : 'Sem limite definido'}
+                                        </div>
+                                        <div>
+                                            <strong>Campos customizados:</strong>{' '}
+                                            {Array.isArray(modalidadeSelecionadaDetalhe.campos)
+                                                ? modalidadeSelecionadaDetalhe.campos.length
+                                                : 0}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </Col>
                         <Col md={4}>
                             <Form.Group className="mb-3">
@@ -525,7 +455,7 @@ export default function CriarAtracaoCard({
                         <Form.Label style={labelStyle}>
                             Resumo * 
                             <span className="text-muted fw-normal ms-2">
-                                ({wordCount} palavras - mín: {LIMITS.resumo.minWords}, máx: {LIMITS.resumo.maxWords})
+                                ({resumoWordCount} palavras - mín: {LIMITS.resumo.minWords}, máx: {LIMITS.resumo.maxWords})
                             </span>
                         </Form.Label>
                         <Form.Control
@@ -540,11 +470,11 @@ export default function CriarAtracaoCard({
                             isInvalid={touched.resumo && errors.resumo}
                         />
                         <div className="d-flex justify-content-between mt-1">
-                            <Form.Text className={wordCount < LIMITS.resumo.minWords ? 'text-warning' : wordCount > LIMITS.resumo.maxWords ? 'text-danger' : 'text-success'}>
-                                {wordCount < LIMITS.resumo.minWords 
-                                    ? `Faltam ${LIMITS.resumo.minWords - wordCount} palavras` 
-                                    : wordCount > LIMITS.resumo.maxWords 
-                                        ? `Excedeu ${wordCount - LIMITS.resumo.maxWords} palavras`
+                            <Form.Text className={resumoWordCount < LIMITS.resumo.minWords ? 'text-warning' : resumoWordCount > LIMITS.resumo.maxWords ? 'text-danger' : 'text-success'}>
+                                {resumoWordCount < LIMITS.resumo.minWords 
+                                    ? `Faltam ${LIMITS.resumo.minWords - resumoWordCount} palavras` 
+                                    : resumoWordCount > LIMITS.resumo.maxWords 
+                                        ? `Excedeu ${resumoWordCount - LIMITS.resumo.maxWords} palavras`
                                         : 'Quantidade ideal'}
                             </Form.Text>
                         </div>
@@ -576,63 +506,39 @@ export default function CriarAtracaoCard({
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}>Evento *</Form.Label>
+                        <Form.Label style={labelStyle}>Espaço *</Form.Label>
                         <Form.Select
-                            value={formState.evento}
-                            onChange={(e) => handleEventoChange(e.target.value)}
-                            onBlur={() => handleBlur('evento')}
-                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('evento') }}
-                            isValid={touched.evento && !errors.evento}
-                            isInvalid={touched.evento && errors.evento}
+                            value={formState.espaco}
+                            onChange={(e) => handleChange('espaco', e.target.value)}
+                            onBlur={() => handleBlur('espaco')}
+                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('espaco') }}
+                            isValid={touched.espaco && !errors.espaco}
+                            isInvalid={touched.espaco && errors.espaco}
+                            disabled={!formState.evento || espacosDisponiveis.length === 0}
                         >
-                            <option value="">Selecione um Evento</option>
-                            {eventos?.map((evt) => (
-                                <option key={evt.id} value={evt.id}>{evt.nome}</option>
+                            <option value="">
+                                {formState.evento
+                                    ? (espacosDisponiveis.length > 0
+                                        ? 'Selecione um Espaço'
+                                        : 'Evento sem espaços configurados')
+                                    : 'Selecione primeiro um evento'}
+                            </option>
+                            {espacosDisponiveis?.map((espaco) => (
+                                <option key={espaco.id} value={espaco.id}>
+                                    {espaco.nome} - {espaco.predio_bloco}
+                                </option>
                             ))}
                         </Form.Select>
-                        {touched.evento && errors.evento && (
-                            <Form.Text className="text-danger">{errors.evento}</Form.Text>
+                        {touched.espaco && errors.espaco && (
+                            <Form.Text className="text-danger">{errors.espaco}</Form.Text>
+                        )}
+                        {formState.evento && espacosDisponiveis.length > 0 && (
+                            <Form.Text className="text-muted">
+                                Esses espaços pertencem ao local do evento selecionado.
+                            </Form.Text>
                         )}
                     </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}>Data e Hora da Atração *</Form.Label>
-                        <Row>
-                            <Col md={6} className="mb-3 mb-md-0">
-                                <Form.Label className="fw-semibold">Início *</Form.Label>
-                                <Form.Control
-                                    type="datetime-local"
-                                    value={formState.data_hora_inicio}
-                                    onChange={(e) => handleChange('data_hora_inicio', e.target.value)}
-                                    onBlur={() => handleBlur('data_hora_inicio')}
-                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('data_hora_inicio') }}
-                                    isValid={touched.data_hora_inicio && !errors.data_hora_inicio}
-                                    isInvalid={touched.data_hora_inicio && errors.data_hora_inicio}
-                                />
-                                {touched.data_hora_inicio && errors.data_hora_inicio && (
-                                    <Form.Text className="text-danger">{errors.data_hora_inicio}</Form.Text>
-                                )}
-                            </Col>
-                            <Col md={6}>
-                                <Form.Label className="fw-semibold">Fim *</Form.Label>
-                                <Form.Control
-                                    type="datetime-local"
-                                    value={formState.data_hora_fim}
-                                    onChange={(e) => handleChange('data_hora_fim', e.target.value)}
-                                    onBlur={() => handleBlur('data_hora_fim')}
-                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('data_hora_fim') }}
-                                    isValid={touched.data_hora_fim && !errors.data_hora_fim}
-                                    isInvalid={touched.data_hora_fim && errors.data_hora_fim}
-                                />
-                                {touched.data_hora_fim && errors.data_hora_fim && (
-                                    <Form.Text className="text-danger">{errors.data_hora_fim}</Form.Text>
-                                )}
-                            </Col>
-                        </Row>
-                        <Form.Text className="text-muted d-block mt-2">
-                            A atração precisa começar e terminar dentro do período configurado para o evento selecionado.
-                        </Form.Text>
-                    </Form.Group>
                 </SecaoFormulario>
 
                 {(camposModalidade || []).length > 0 && (

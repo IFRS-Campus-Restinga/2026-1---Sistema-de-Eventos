@@ -12,7 +12,8 @@ import {
     salvarRascunho,
 } from '../services/atracaoService';
 import { buscarEventoPorId } from '../services/eventoService';
-import { pegarCampoFormulario } from '../services/campoFormularioService';
+import { pegarModalidade } from '../services/modalidadeService';
+import { pegarEspacos } from '../services/espacoService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
 import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
@@ -33,8 +34,7 @@ export default function AdicionarAtracao() {
         anexo_pdf: null,
         acessibilidade: false,
         evento: '',
-        data_hora_inicio: '',
-        data_hora_fim: '',
+        espaco: '',
         status: 'PREVISTA',
         respostas_campos: {},
         equipe: []
@@ -49,7 +49,8 @@ export default function AdicionarAtracao() {
     });
     const [eventos, setEventos] = useState([]);
     const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
-    const [camposModalidade, setCamposModalidade] = useState([]);
+    const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] = useState(null);
+    const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
@@ -171,22 +172,23 @@ export default function AdicionarAtracao() {
     }, [formState.evento, eventos]);
 
     useEffect(() => {
-        const carregarCamposModalidade = async () => {
+        const carregarDetalheModalidade = async () => {
             if (!formState.modalidade) {
-                setCamposModalidade([]);
+                setModalidadeSelecionadaDetalhe(null);
                 setFormState((prev) => ({ ...prev, respostas_campos: {} }));
                 return;
             }
 
             try {
-                const todosCampos = await pegarCampoFormulario();
-                const camposFiltrados = (todosCampos || []).filter(
-                    (campo) =>
-                        Number(campo.modalidade) === Number(formState.modalidade) &&
-                        campo.ativo !== false,
+                const detalheModalidade = await pegarModalidade(formState.modalidade);
+                const camposFiltrados = (detalheModalidade?.campos || []).filter(
+                    (campo) => campo?.ativo !== false,
                 );
 
-                setCamposModalidade(camposFiltrados);
+                setModalidadeSelecionadaDetalhe({
+                    ...detalheModalidade,
+                    campos: camposFiltrados,
+                });
 
                 setFormState((prev) => {
                     const respostasAtuais = prev.respostas_campos || {};
@@ -207,13 +209,47 @@ export default function AdicionarAtracao() {
                     };
                 });
             } catch (error) {
-                console.error('Erro ao carregar campos da modalidade:', error);
-                setCamposModalidade([]);
+                console.error('Erro ao carregar detalhe da modalidade:', error);
+                setModalidadeSelecionadaDetalhe(null);
             }
         };
 
-        carregarCamposModalidade();
+        carregarDetalheModalidade();
     }, [formState.modalidade]);
+
+    useEffect(() => {
+        const carregarEspacosEvento = async () => {
+            const localId = eventoSelecionadoDetalhe?.local?.id;
+
+            if (!formState.evento || !localId) {
+                setEspacosDisponiveis([]);
+                setFormState((prev) => ({ ...prev, espaco: '' }));
+                return;
+            }
+
+            try {
+                const espacos = await pegarEspacos(localId);
+                setEspacosDisponiveis(espacos || []);
+
+                setFormState((prev) => {
+                    const espacoAtualValido = (espacos || []).some(
+                        (espaco) => String(espaco.id) === String(prev.espaco),
+                    );
+
+                    if (espacoAtualValido) {
+                        return prev;
+                    }
+
+                    return { ...prev, espaco: '' };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar espaços do evento:', error);
+                setEspacosDisponiveis([]);
+            }
+        };
+
+        carregarEspacosEvento();
+    }, [formState.evento, eventoSelecionadoDetalhe]);
 
     const handleSalvarRascunho = async () => {
         if (isLoading) return;
@@ -251,6 +287,11 @@ export default function AdicionarAtracao() {
 
         if (formState.equipe.length === 0) {
             mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
+            return;
+        }
+
+        if (!formState.espaco) {
+            mostrarAlerta('Por favor, selecione um espaço para a atração.');
             return;
         }
 
@@ -298,7 +339,9 @@ export default function AdicionarAtracao() {
                                 opcoes={opcoes}
                                 eventos={eventos}
                                 eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}
-                                camposModalidade={camposModalidade}
+                                modalidadeSelecionadaDetalhe={modalidadeSelecionadaDetalhe}
+                                espacosDisponiveis={espacosDisponiveis}
+                                camposModalidade={modalidadeSelecionadaDetalhe?.campos || []}
                                 usuarios={usuarios}
                                 isLoading={isLoading}
                                 handleSalvarRascunho={handleSalvarRascunho}

@@ -17,6 +17,7 @@ const CAMPOS_ATRACAO = [
     'status',
     'data_hora_inicio',
     'data_hora_fim',
+    'espaco',
     'local_atracao',
     'equipe',
     'respostas_campos',

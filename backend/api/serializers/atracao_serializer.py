@@ -5,8 +5,10 @@ from django.core.exceptions import ValidationError
 from ..models.atracao import Atracao
 from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
+from ..models.espaco import Espaco
 from ..models.resposta import Resposta
 from .coautor_serializer import CoautorSerializer
+from .espaco_serializer import EspacoSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,12 @@ class AtracaoSerializer(serializers.ModelSerializer):
     equipe = CoautorSerializer(many=True, required=False, read_only=True)
     orientador_nome = serializers.ReadOnlyField(source='orientador.get_full_name')
     tipo = serializers.ReadOnlyField(source='modalidade.nome')
+    espaco_detalhe = EspacoSerializer(source='espaco', read_only=True)
+    espaco = serializers.PrimaryKeyRelatedField(
+        queryset=Espaco.objects.all(),
+        required=False,
+        allow_null=True,
+    )
     equipe_json = serializers.CharField(required=False, allow_blank=True, default='')
     respostas_campos = serializers.SerializerMethodField(read_only=True)
     respostas_campos_json = serializers.CharField(required=False, allow_blank=True, default='')
@@ -26,7 +34,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
             'nivel_ensino', 'area_conhecimento', 'orientador', 
             'orientador_nome', 'sou_orientador', 'anexo_pdf', 
             'acessibilidade', 'evento', 'status', 'equipe', 'equipe_json',
-            'data_hora_inicio', 'data_hora_fim', 'local_atracao',
+            'data_hora_inicio', 'data_hora_fim', 'espaco', 'espaco_detalhe', 'local_atracao',
             'respostas_campos', 'respostas_campos_json'
         ]
 
@@ -38,6 +46,10 @@ class AtracaoSerializer(serializers.ModelSerializer):
         model_data = data.copy()
         model_data.pop('equipe_json', None)
         model_data.pop('respostas_campos_json', None)
+
+        espaco = model_data.get('espaco')
+        if espaco:
+            model_data['local_atracao'] = str(espaco)
         
         # Criamos uma instância temporária para rodar o full_clean
         instance = Atracao(**model_data)
@@ -143,6 +155,10 @@ class AtracaoSerializer(serializers.ModelSerializer):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
         equipe_data = validated_data.pop('equipe_json', [])
         respostas_campos_data = validated_data.pop('respostas_campos_json', {})
+
+        espaco = validated_data.get('espaco')
+        if espaco:
+            validated_data['local_atracao'] = str(espaco)
         
         if not isinstance(equipe_data, list):
             equipe_data = []
@@ -158,6 +174,10 @@ class AtracaoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         equipe_data = validated_data.pop('equipe_json', None)
         respostas_campos_data = validated_data.pop('respostas_campos_json', None)
+
+        espaco = validated_data.get('espaco')
+        if espaco:
+            validated_data['local_atracao'] = str(espaco)
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
