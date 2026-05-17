@@ -1,30 +1,431 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Button, ListGroup, Badge, Spinner } from 'react-bootstrap';
-import { MdEvent, MdAddCircle, MdArrowBack, MdAccessTime, MdBusiness, MdInfoOutline, MdPlace } from 'react-icons/md';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    Badge,
+    Button,
+    Col,
+    Container,
+    Form,
+    ListGroup,
+    Modal,
+    Row,
+    Spinner,
+} from 'react-bootstrap';
+import {
+    MdAddCircle,
+    MdArrowBack,
+    MdDelete,
+    MdEdit,
+    MdEvent,
+    MdInfoOutline,
+    MdPlace,
+} from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
-import NavBar from '../components/nav_bar/NavBar';
-import Footer from '../components/footer/Footer';
+import Alerta from '../components/common/Alerta';
 import Card from '../components/common/Card';
-import { listarAtracoes } from '../services/atracaoService';
+import ModalPopup from '../components/common/ModalPopup';
+import Footer from '../components/footer/Footer';
+import NavBar from '../components/nav_bar/NavBar';
+import {
+    buscarEventos,
+    buscarOpcoesAtracao,
+    buscarUsuarios,
+    editarAtracao,
+    excluirAtracao,
+    listarAtracoes,
+} from '../services/atracaoService';
+import { pegarEspacos } from '../services/espacoService';
+import { getSelectedEventoId } from '../utils/selectedEvento';
+import { buscarEventoPorId } from '../services/eventoService';
+
+const LIMITS_EDICAO = {
+    titulo: { minWords: 1, maxWords: 150 },
+    palavrasChave: { maxChars: 100 },
+};
 
 export default function ListarAtracoes() {
     const [atracoes, setAtracoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
+    const [termoBusca, setTermoBusca] = useState('');
+    const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+    const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
+    const [mostrarModalExclusao, setMostrarModalExclusao] = useState(false);
+    const [atracaoSelecionada, setAtracaoSelecionada] = useState(null);
+    const [formEdicao, setFormEdicao] = useState({
+        id: null,
+        titulo: '',
+        resumo: '',
+        espaco: '',
+        status: 'PREVISTA',
+    });
+    const [alerta, setAlerta] = useState({
+        mensagem: '',
+        variacao: 'danger',
+        reacao: 0,
+    });
+    const [opcoesEdicao, setOpcoesEdicao] = useState({
+        modalidades: [],
+        niveis_ensino: [],
+    });
+    const [eventosEdicao, setEventosEdicao] = useState([]);
+    const [usuariosEdicao, setUsuariosEdicao] = useState([]);
+    const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
+    const [espacosEdicao, setEspacosEdicao] = useState([]);
+
     const navigate = useNavigate();
+    const eventoFiltroId = getSelectedEventoId();
+    const eventoSelecionadoLista = useMemo(() => {
+        if (!eventoFiltroId) return null;
+
+        return (
+            eventosEdicao.find((evento) => String(evento.id) === String(eventoFiltroId)) ||
+            null
+        );
+    }, [eventosEdicao, eventoFiltroId]);
+
+    const contarPalavras = (texto) =>
+        texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
+
+    const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
+        setAlerta((prev) => ({
+            ...prev,
+            mensagem,
+            variacao,
+            reacao: (prev.reacao || 0) + 1,
+        }));
+    }, []);
+
+    const carregarAtracoes = useCallback(async () => {
+        try {
+            setCarregando(true);
+            const eventoId = getSelectedEventoId();
+            const dados = await listarAtracoes(eventoId);
+            setAtracoes(dados);
+            setAlerta((prev) => ({
+                ...prev,
+                mensagem: '',
+            }));
+        } catch (error) {
+            console.error('Erro ao buscar atrações:', error);
+            const status = error?.response?.status;
+            const detalhe = error?.response?.data?.detail;
+            const mensagem =
+                detalhe ||
+                (status
+                    ? `Não foi possível carregar as atrações (HTTP ${status}).`
+                    : 'Não foi possível carregar as atrações. Verifique backend e URL da API.');
+            mostrarAlerta(mensagem);
+        } finally {
+            setCarregando(false);
+        }
+    }, [mostrarAlerta]);
 
     useEffect(() => {
-        const carregarAtracoes = async () => {
-            try {
-                const dados = await listarAtracoes();
-                setAtracoes(dados);
-            } catch (error) {
-                console.error('Erro ao buscar atrações:', error);
-            } finally {
-                setCarregando(false);
+        carregarAtracoes();
+    }, [carregarAtracoes]);
+
+    useEffect(() => {
+        const carregarOpcoesEdicao = async () => {
+            const [dadosOpcoes, dadosEventos, dadosUsuarios] = await Promise.allSettled([
+                buscarOpcoesAtracao(),
+                buscarEventos(),
+                buscarUsuarios(),
+            ]);
+
+            if (dadosOpcoes.status === 'fulfilled') {
+                setOpcoesEdicao({
+                    modalidades: dadosOpcoes.value?.modalidades || [],
+                    niveis_ensino: dadosOpcoes.value?.niveis_ensino || [],
+                });
+            }
+
+            if (dadosEventos.status === 'fulfilled') {
+                setEventosEdicao(dadosEventos.value || []);
+            }
+
+            if (dadosUsuarios.status === 'fulfilled') {
+                setUsuariosEdicao(dadosUsuarios.value || []);
             }
         };
-        carregarAtracoes();
+
+        carregarOpcoesEdicao();
     }, []);
+
+    useEffect(() => {
+        const carregarDetalheEventoEdicao = async () => {
+            if (!mostrarModalEdicao || !formEdicao.evento) {
+                setEventoEdicaoDetalhe(null);
+                return;
+            }
+
+            const eventoResumo = eventosEdicao.find(
+                (evento) => String(evento.id) === String(formEdicao.evento),
+            );
+
+            if (eventoResumo?.area_conhecimento_detalhes?.length) {
+                setEventoEdicaoDetalhe(eventoResumo);
+                return;
+            }
+
+            try {
+                const detalhe = await buscarEventoPorId(formEdicao.evento);
+                setEventoEdicaoDetalhe(detalhe);
+            } catch (error) {
+                console.error('Erro ao carregar detalhe do evento na edicao:', error);
+                setEventoEdicaoDetalhe(null);
+            }
+        };
+
+        carregarDetalheEventoEdicao();
+    }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
+
+    useEffect(() => {
+        const carregarEspacosEdicao = async () => {
+            const localId = eventoEdicaoDetalhe?.local?.id;
+
+            if (!mostrarModalEdicao || !formEdicao.evento || !localId) {
+                setEspacosEdicao([]);
+                return;
+            }
+
+            try {
+                const espacos = await pegarEspacos(localId);
+                setEspacosEdicao(espacos || []);
+
+                setFormEdicao((prev) => {
+                    const espacoAtualValido = (espacos || []).some(
+                        (espaco) => String(espaco.id) === String(prev.espaco),
+                    );
+
+                    if (espacoAtualValido) {
+                        return prev;
+                    }
+
+                    return { ...prev, espaco: '' };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar espaços da edição:', error);
+                setEspacosEdicao([]);
+            }
+        };
+
+        carregarEspacosEdicao();
+    }, [mostrarModalEdicao, formEdicao.evento, eventoEdicaoDetalhe]);
+
+    const getStatusConfig = (status) => {
+        const statusNormalizado = (status || '').toUpperCase();
+
+        const mapa = {
+            RASCUNHO: { label: 'RASCUNHO', bg: 'secondary' },
+            PREVISTA: { label: 'SUBMETIDA', bg: 'primary' },
+            CONFIRMADA: { label: 'CONFIRMADA', bg: 'success' },
+            EM_ANDAMENTO: { label: 'EM ANDAMENTO', bg: 'warning' },
+            ENCERRADA: { label: 'ENCERRADA', bg: 'dark' },
+            CANCELADA: { label: 'CANCELADA', bg: 'danger' },
+            EM_AVALIACAO: { label: 'EM AVALIACAO', bg: 'warning' },
+            APROVADA: { label: 'APROVADA', bg: 'success' },
+            REPROVADA: { label: 'REPROVADA', bg: 'danger' },
+        };
+
+        return (
+            mapa[statusNormalizado] || {
+                label: statusNormalizado || 'N/A',
+                bg: 'secondary',
+            }
+        );
+    };
+
+    const getAreasEventoEdicao = () => {
+        const areasDoEvento = eventoEdicaoDetalhe?.area_conhecimento_detalhes;
+        if (Array.isArray(areasDoEvento) && areasDoEvento.length > 0) {
+            return areasDoEvento;
+        }
+
+        const areasSimples = eventoEdicaoDetalhe?.area_conhecimento;
+        if (Array.isArray(areasSimples) && areasSimples.length > 0) {
+            return areasSimples;
+        }
+
+        return [];
+    };
+
+    const normalizarAreaEdicao = (area) => ({
+        value: area?.area_conhecimento ?? area?.value ?? area?.id ?? area,
+        label:
+            area?.area_conhecimento_display ||
+            area?.nome ||
+            area?.descricao ||
+            area?.label ||
+            String(area),
+    });
+
+    const normalizarTexto = (texto) =>
+        (texto || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+    const atracoesFiltradas = useMemo(() => {
+        const termo = normalizarTexto(termoBusca.trim());
+        if (!termo) return atracoes;
+
+        return atracoes.filter((atracao) => {
+            const conteudoBusca = [
+                atracao.titulo,
+                atracao.tipo,
+                atracao.local_atracao,
+                getStatusConfig(atracao.status).label,
+            ]
+                .map((valor) => normalizarTexto(valor))
+                .join(' ');
+
+            return conteudoBusca.includes(termo);
+        });
+    }, [atracoes, termoBusca]);
+
+    const abrirModalEdicao = (atracao) => {
+        setFormEdicao({
+            id: atracao.id,
+            titulo: atracao.titulo || '',
+            resumo: atracao.resumo || '',
+            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
+            status: atracao.status || 'PREVISTA',
+            palavras_chave: atracao.palavras_chave || '',
+            modalidade: atracao.modalidade || '',
+            nivel_ensino: atracao.nivel_ensino || '',
+            area_conhecimento: atracao.area_conhecimento || '',
+            orientador: atracao.orientador,
+            sou_orientador: atracao.sou_orientador || false,
+            acessibilidade: atracao.acessibilidade || false,
+            evento: atracao.evento,
+            equipe: Array.isArray(atracao.equipe)
+                ? atracao.equipe.map((membro) => ({
+                      nome: membro.nome || '',
+                      instituicao_curso: membro.instituicao_curso || '',
+                      funcao: membro.funcao || '',
+                  }))
+                : [],
+        });
+        setMostrarModalEdicao(true);
+    };
+
+    const getNomeUsuario = (usuario) =>
+        usuario?.nome ||
+        usuario?.name ||
+        usuario?.username ||
+        `Usuário ${usuario?.id}`;
+
+    const handleAdicionarMembroEdicao = () => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            equipe: [
+                ...(prev.equipe || []),
+                { nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
+            ],
+        }));
+    };
+
+    const handleRemoverMembroEdicao = (index) => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            equipe: (prev.equipe || []).filter((_, i) => i !== index),
+        }));
+    };
+
+    const handleMembroEdicaoChange = (index, campo, valor) => {
+        setFormEdicao((prev) => {
+            const equipeAtualizada = [...(prev.equipe || [])];
+            equipeAtualizada[index] = {
+                ...equipeAtualizada[index],
+                [campo]: valor,
+            };
+            return {
+                ...prev,
+                equipe: equipeAtualizada,
+            };
+        });
+    };
+
+    const handleSalvarEdicao = async () => {
+        if (!formEdicao.id) return;
+
+        const tituloPalavras = contarPalavras(formEdicao.titulo || '');
+
+        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || !formEdicao.nivel_ensino || !formEdicao.area_conhecimento) {
+            mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
+            return;
+        }
+
+        if (tituloPalavras < LIMITS_EDICAO.titulo.minWords) {
+            mostrarAlerta(
+                `O título deve ter pelo menos ${LIMITS_EDICAO.titulo.minWords} palavra.`,
+            );
+            return;
+        }
+
+        if (tituloPalavras > LIMITS_EDICAO.titulo.maxWords) {
+            mostrarAlerta(
+                `O título deve ter no máximo ${LIMITS_EDICAO.titulo.maxWords} palavras.`,
+            );
+            return;
+        }
+
+        if ((formEdicao.palavras_chave || '').length > LIMITS_EDICAO.palavrasChave.maxChars) {
+            mostrarAlerta(
+                `Palavras-chave deve ter no máximo ${LIMITS_EDICAO.palavrasChave.maxChars} caracteres.`,
+            );
+            return;
+        }
+
+        if (!formEdicao.sou_orientador && !formEdicao.orientador) {
+            mostrarAlerta('Selecione um orientador ou marque a opcao Sou o orientador.');
+            return;
+        }
+
+        if (!formEdicao.espaco) {
+            mostrarAlerta('Selecione um espaço para a submissão.');
+            return;
+        }
+
+        const equipeComNome = (formEdicao.equipe || []).filter(
+            (membro) => (membro?.nome || '').trim().length > 0,
+        );
+        if (equipeComNome.length === 0) {
+            mostrarAlerta('Adicione pelo menos um membro com nome na equipe.');
+            return;
+        }
+
+        try {
+            setSalvandoEdicao(true);
+            await editarAtracao(formEdicao.id, formEdicao);
+            mostrarAlerta('Submissão atualizada com sucesso.', 'success');
+            setMostrarModalEdicao(false);
+            await carregarAtracoes();
+        } catch (error) {
+            console.error('Erro ao editar atração:', error);
+            const mensagemErro = error.response?.data
+                ? JSON.stringify(error.response.data)
+                : 'Não foi possível salvar a edição.';
+            mostrarAlerta(mensagemErro);
+        } finally {
+            setSalvandoEdicao(false);
+        }
+    };
+
+    const handleConfirmarExclusao = async () => {
+        if (!atracaoSelecionada?.id) return;
+
+        try {
+            await excluirAtracao(atracaoSelecionada.id);
+            mostrarAlerta('Submissão excluída com sucesso.', 'success');
+            setMostrarModalExclusao(false);
+            setAtracaoSelecionada(null);
+            await carregarAtracoes();
+        } catch (error) {
+            console.error('Erro ao excluir atração:', error);
+            mostrarAlerta('Não foi possível excluir a submissão.');
+        }
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -32,36 +433,80 @@ export default function ListarAtracoes() {
 
             <main className="flex-fill py-4">
                 <Container>
+                    {alerta.mensagem && (
+                        <Alerta
+                            mensagem={alerta.mensagem}
+                            variacao={alerta.variacao}
+                            reacao={alerta.reacao}
+                        />
+                    )}
+
                     <Card corBorda="#00A44B">
                         <Container fluid className="mb-5 px-4">
                             <Row className="pt-5 pb-2">
                                 <Col className="d-flex align-items-center">
                                     <MdEvent color="#00A44B" size={35} />
-                                    <h3 className="fw-bold ms-2 mb-0" style={{ color: "#00A44B" }}>
-                                        Atrações Cadastradas
+                                    <h3 className="fw-bold ms-2 mb-0" style={{ color: '#00A44B' }}>
+                                        Gerenciar Submissões
                                     </h3>
                                 </Col>
                             </Row>
                             <hr className="mb-4" />
 
+                            {eventoFiltroId && (
+                                <Row className="mb-4">
+                                    <Col>
+                                        <div
+                                            className="rounded px-3 py-2"
+                                            style={{
+                                                backgroundColor: '#e7f1ff',
+                                                border: '1px solid #9ec5fe',
+                                                color: '#084298',
+                                            }}
+                                        >
+                                            <strong>Evento selecionado:</strong>{' '}
+                                            {eventoSelecionadoLista?.nome || `ID ${eventoFiltroId}`}
+                                        </div>
+                                    </Col>
+                                </Row>
+                            )}
+
+                            <Row className="mb-4">
+                                <Col md={8} lg={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Buscar submissão
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={termoBusca}
+                                            onChange={(e) => setTermoBusca(e.target.value)}
+                                            placeholder="Digite titulo, tipo, local ou status"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
                             {carregando ? (
                                 <div className="text-center py-5">
                                     <Spinner animation="border" variant="success" />
-                                    <p className="mt-2 text-muted">Buscando atrações no sistema...</p>
+                                    <p className="mt-2 text-muted">Buscando submissões no sistema...</p>
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
-                                    {atracoes?.length > 0 ? (
-                                        atracoes.map((atracao, index) => (
+                                    {atracoesFiltradas?.length > 0 ? (
+                                        atracoesFiltradas.map((atracao, index) => (
                                             <ListGroup.Item
                                                 key={atracao.id || index}
                                                 className="d-flex justify-content-between align-items-center mb-3 border rounded shadow-sm p-3"
                                                 style={{ borderLeft: '5px solid #00A44B' }}
                                             >
                                                 <div className="d-flex flex-column">
-                                                    <div className="fs-5 fw-bold text-dark mb-1">
-                                                        {atracao.titulo}
-                                                    </div>
+                                                    <div className="fs-5 fw-bold text-dark mb-1">{atracao.titulo}</div>
                                                     <div className="d-flex flex-wrap gap-3 text-muted small">
                                                         <span className="d-flex align-items-center gap-1">
                                                             <MdInfoOutline /> <strong>Tipo:</strong> {atracao.tipo}
@@ -69,22 +514,46 @@ export default function ListarAtracoes() {
                                                         <span className="d-flex align-items-center gap-1">
                                                             <MdPlace /> <strong>Local:</strong> {atracao.local_atracao}
                                                         </span>
-                                                        <span className="d-flex align-items-center gap-1">
-                                                            <MdAccessTime /> <strong>Início:</strong> {new Date(atracao.data_hora_inicio).toLocaleString()}
-                                                        </span>
                                                     </div>
                                                 </div>
-                                                
-                                                <div className="text-end">
-                                                    <Badge pill bg="success" className="px-3 py-2">
-                                                        {atracao.status?.toUpperCase() || 'N/A'}
+
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <Badge
+                                                        pill
+                                                        bg={getStatusConfig(atracao.status).bg}
+                                                        className="px-3 py-2"
+                                                    >
+                                                        {getStatusConfig(atracao.status).label}
                                                     </Badge>
+
+                                                    <Button
+                                                        variant="outline-primary"
+                                                        className="d-flex align-items-center gap-1"
+                                                        onClick={() => abrirModalEdicao(atracao)}
+                                                    >
+                                                        <MdEdit /> Editar
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="outline-danger"
+                                                        className="d-flex align-items-center gap-1"
+                                                        onClick={() => {
+                                                            setAtracaoSelecionada(atracao);
+                                                            setMostrarModalExclusao(true);
+                                                        }}
+                                                    >
+                                                        <MdDelete /> Excluir
+                                                    </Button>
                                                 </div>
                                             </ListGroup.Item>
                                         ))
                                     ) : (
                                         <div className="text-center py-5 border rounded bg-white">
-                                            <p className="text-muted mb-0">Nenhuma atração cadastrada até o momento.</p>
+                                            <p className="text-muted mb-0">
+                                                {atracoes.length > 0
+                                                    ? 'Nenhuma submissao encontrada para o termo informado.'
+                                                    : 'Nenhuma submissao cadastrada ate o momento.'}
+                                            </p>
                                         </div>
                                     )}
                                 </ListGroup>
@@ -93,12 +562,12 @@ export default function ListarAtracoes() {
                             <div className="mt-4">
                                 <Button
                                     as={Link}
-                                    to="/adicionarAtracao"
+                                    to="/adicionar_atracao"
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                                     style={{ backgroundColor: '#00A44B', border: 'none' }}
                                 >
-                                    <MdAddCircle size={20} /> Nova Atração
+                                    <MdAddCircle size={20} /> Nova Submissão
                                 </Button>
                             </div>
                         </Container>
@@ -106,7 +575,7 @@ export default function ListarAtracoes() {
 
                     <div className="d-flex justify-content-end mt-4">
                         <Button
-                            onClick={() => navigate(-1)} 
+                            onClick={() => navigate(-1)}
                             variant="outline-secondary"
                             className="d-flex align-items-center gap-2 px-4 py-2"
                         >
@@ -114,9 +583,409 @@ export default function ListarAtracoes() {
                         </Button>
                     </div>
                 </Container>
+
+                <Modal
+                    show={mostrarModalEdicao}
+                    onHide={() => setMostrarModalEdicao(false)}
+                    centered
+                    size="lg"
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title style={{ color: '#00A44B' }}>Editar Submissão</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form>
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                    Título
+                                </Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={formEdicao.titulo || ''}
+                                    onChange={(e) =>
+                                        setFormEdicao((prev) => ({
+                                            ...prev,
+                                            titulo: e.target.value,
+                                        }))
+                                    }
+                                />
+                                <Form.Text className="text-muted">
+                                    {contarPalavras(formEdicao.titulo || '')}/{LIMITS_EDICAO.titulo.maxWords} palavras
+                                </Form.Text>
+                            </Form.Group>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                    Resumo
+                                </Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={5}
+                                    value={formEdicao.resumo || ''}
+                                    onChange={(e) =>
+                                        setFormEdicao((prev) => ({
+                                            ...prev,
+                                            resumo: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Modalidade
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.modalidade || ''}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    modalidade: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione a modalidade</option>
+                                            {opcoesEdicao.modalidades.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Nivel de Ensino
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.nivel_ensino || ''}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    nivel_ensino: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione o nivel</option>
+                                            {opcoesEdicao.niveis_ensino.map((opt) => (
+                                                <option key={opt.value} value={opt.value}>
+                                                    {opt.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Area do Conhecimento
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.area_conhecimento || ''}
+                                            disabled={!formEdicao.evento}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    area_conhecimento: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">
+                                                {formEdicao.evento
+                                                    ? (getAreasEventoEdicao().length > 0
+                                                        ? 'Selecione a area'
+                                                        : 'Evento sem areas configuradas')
+                                                    : 'Selecione primeiro um evento'}
+                                            </option>
+                                            {getAreasEventoEdicao().map((area) => {
+                                                const normalizada = normalizarAreaEdicao(area);
+                                                return (
+                                                    <option key={normalizada.value} value={normalizada.value}>
+                                                        {normalizada.label}
+                                                    </option>
+                                                );
+                                            })}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Form.Group className="mb-3">
+                                <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                    Palavras-chave
+                                </Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={formEdicao.palavras_chave || ''}
+                                    maxLength={LIMITS_EDICAO.palavrasChave.maxChars}
+                                    onChange={(e) =>
+                                        setFormEdicao((prev) => ({
+                                            ...prev,
+                                            palavras_chave: e.target.value,
+                                        }))
+                                    }
+                                />
+                                <Form.Text className="text-muted">
+                                    {(formEdicao.palavras_chave || '').length}/{LIMITS_EDICAO.palavrasChave.maxChars} caracteres
+                                </Form.Text>
+                            </Form.Group>
+
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Orientador(a)
+                                        </Form.Label>
+                                        <Form.Check
+                                            type="checkbox"
+                                            id="edicao-sou-orientador"
+                                            label="Sou o orientador"
+                                            className="mb-2"
+                                            checked={!!formEdicao.sou_orientador}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    sou_orientador: e.target.checked,
+                                                    orientador: e.target.checked
+                                                        ? null
+                                                        : prev.orientador,
+                                                }))
+                                            }
+                                        />
+                                        <Form.Select
+                                            value={formEdicao.orientador || ''}
+                                            disabled={!!formEdicao.sou_orientador}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    orientador: e.target.value
+                                                        ? Number(e.target.value)
+                                                        : null,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">Selecione o orientador</option>
+                                            {usuariosEdicao.map((usuario) => (
+                                                <option key={usuario.id} value={usuario.id}>
+                                                    {getNomeUsuario(usuario)}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Recursos
+                                        </Form.Label>
+                                        <Form.Check
+                                            type="checkbox"
+                                            id="edicao-acessibilidade"
+                                            label="Necessita recursos de acessibilidade"
+                                            checked={!!formEdicao.acessibilidade}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    acessibilidade: e.target.checked,
+                                                }))
+                                            }
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <Row>
+                                <Col md={7}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Espaço
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.espaco || ''}
+                                            disabled={!formEdicao.evento || espacosEdicao.length === 0}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    espaco: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="">
+                                                {formEdicao.evento
+                                                    ? (espacosEdicao.length > 0
+                                                        ? 'Selecione um espaço'
+                                                        : 'Evento sem espaços configurados')
+                                                    : 'Selecione primeiro um evento'}
+                                            </option>
+                                            {espacosEdicao.map((espaco) => (
+                                                <option key={espaco.id} value={espaco.id}>
+                                                    {espaco.nome} - {espaco.predio_bloco}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={5}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                            Status de Avaliação
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={formEdicao.status || 'PREVISTA'}
+                                            onChange={(e) =>
+                                                setFormEdicao((prev) => ({
+                                                    ...prev,
+                                                    status: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="RASCUNHO">RASCUNHO</option>
+                                            <option value="PREVISTA">SUBMETIDA</option>
+                                            <option value="CONFIRMADA">CONFIRMADA</option>
+                                            <option value="EM_ANDAMENTO">EM ANDAMENTO</option>
+                                            <option value="ENCERRADA">ENCERRADA</option>
+                                            <option value="CANCELADA">CANCELADA</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
+                            <hr />
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <Form.Label className="fw-bold mb-0" style={{ color: '#00A44B' }}>
+                                    Membros da Equipe
+                                </Form.Label>
+                                <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={handleAdicionarMembroEdicao}
+                                >
+                                    Adicionar membro
+                                </Button>
+                            </div>
+
+                            <div className="table-responsive">
+                                <table className="table table-bordered align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Curso/Instituição</th>
+                                            <th>Papel</th>
+                                            <th style={{ width: '90px' }}>Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(formEdicao.equipe || []).length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="text-center text-muted">
+                                                    Nenhum membro informado.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            (formEdicao.equipe || []).map((membro, index) => (
+                                                <tr key={index}>
+                                                    <td>
+                                                        <Form.Control
+                                                            value={membro.nome || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'nome',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            placeholder="Nome completo"
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <Form.Control
+                                                            value={membro.instituicao_curso || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'instituicao_curso',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            placeholder="Curso ou instituição"
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <Form.Select
+                                                            value={membro.funcao || ''}
+                                                            onChange={(e) =>
+                                                                handleMembroEdicaoChange(
+                                                                    index,
+                                                                    'funcao',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                        >
+                                                            <option value="">Selecione</option>
+                                                            <option value="COAUTOR">Co-autor</option>
+                                                            <option value="APRESENTADOR">Apresentador</option>
+                                                            <option value="REVISOR">Revisor</option>
+                                                        </Form.Select>
+                                                    </td>
+                                                    <td>
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                handleRemoverMembroEdicao(index)
+                                                            }
+                                                        >
+                                                            Remover
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button
+                            variant="outline-secondary"
+                            onClick={() => setMostrarModalEdicao(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="success"
+                            style={{ backgroundColor: '#00A44B', border: 'none' }}
+                            disabled={salvandoEdicao}
+                            onClick={handleSalvarEdicao}
+                        >
+                            {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
             </main>
 
-            <Footer telefone="(51) 3333-1234" endereco="Rua Alberto Hoffmann, 285" ano={2026} campus="Campus Restinga" />
+            <ModalPopup
+                show={mostrarModalExclusao}
+                titulo="Aviso!"
+                tituloSecundario="Excluir Submissão"
+                onAcao={handleConfirmarExclusao}
+                onFechar={() => setMostrarModalExclusao(false)}
+                textoAcao="Excluir"
+            />
+
+            <Footer
+                telefone="(51) 3333-1234"
+                endereco="Rua Alberto Hoffmann, 285"
+                ano={2026}
+                campus="Campus Restinga"
+            />
         </div>
     );
 }

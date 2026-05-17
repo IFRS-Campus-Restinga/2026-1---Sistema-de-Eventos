@@ -14,8 +14,14 @@ class Resposta(Base):
     )
 
     campo_formulario = models.ForeignKey(CampoFormulario, on_delete=models.RESTRICT)
+    atracao = models.ForeignKey(
+        "Atracao",
+        on_delete=models.CASCADE,
+        related_name="respostas",
+        null=True,
+        blank=True,
+    )
     valor = models.TextField(verbose_name=_("Valor"))
-    # atracao = models.ForeinKey(Atracao, on_delete=models.RESTRICT)
 
     def clean(self):
         errors = {}

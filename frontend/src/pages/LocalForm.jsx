@@ -80,7 +80,7 @@ export default function LocalForm({ campus = 'Campus Restinga' }) {
 
         if (resultado.sucesso) {
             const timeout = setTimeout(() => {
-                navigate('/listarLocais');
+                navigate('/listar_locais');
             }, 3000);
         } else {
             if (resultado.erro) {

@@ -37,7 +37,7 @@ export function useOrganizadorEvento() {
         }
     };
 
-    const handleDefinirOrganizador = async (eventoId, userId) => {
+    const handleDefinirOrganizador = async (eventoId, userId, nomeExibido) => {
         if (!eventoId || !userId) {
             setMessage({
                 type: 'warning',
@@ -53,7 +53,7 @@ export function useOrganizadorEvento() {
             setOrganizadoresErro('');
             setMessage({
                 type: 'success',
-                text: `${response.organizador_adicionado.username} agora é organizador`,
+                text: `${nomeExibido} agora é organizador`,
             });
         } catch (erro) {
             console.error('erro:', erro);
@@ -66,7 +66,7 @@ export function useOrganizadorEvento() {
         }
     };
 
-    const handleRemoverOrganizador = async (eventoId, userId) => {
+    const handleRemoverOrganizador = async (eventoId, userId, nomeExibido) => {
         if (!eventoId || !userId) {
             setMessage({
                 type: 'warning',
@@ -82,7 +82,7 @@ export function useOrganizadorEvento() {
             setOrganizadoresErro('');
             setMessage({
                 type: 'success',
-                text: `${response.organizador_removido.username} REMOVIDO de organizadores`,
+                text: `${nomeExibido} REMOVIDO de organizadores`,
             });
         } catch (erro) {
             console.error('erro ao remover organizador:', erro);

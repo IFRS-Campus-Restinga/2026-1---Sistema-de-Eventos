@@ -4,14 +4,24 @@ import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import CriarAtracaoCard from '../components/common/criarAtracaoCard';
-import { criarAtracao, buscarOpcoesAtracao, buscarEventos, buscarUsuarios, salvarRascunho } from '../services/atracaoService';
+import {
+    criarAtracao,
+    buscarOpcoesAtracao,
+    buscarEventos,
+    buscarUsuarios,
+    salvarRascunho,
+} from '../services/atracaoService';
+import { buscarEventoPorId } from '../services/eventoService';
+import { pegarModalidade } from '../services/modalidadeService';
+import { pegarEspacos } from '../services/espacoService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
+import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
 import { useState, useEffect } from 'react';
 
 export default function AdicionarAtracao() {
     const navigate = useNavigate();
-    
+
     const [formState, setFormState] = useState({
         titulo: '',
         resumo: '',
@@ -24,19 +34,25 @@ export default function AdicionarAtracao() {
         anexo_pdf: null,
         acessibilidade: false,
         evento: '',
+        espaco: '',
         status: 'PREVISTA',
-        equipe: [{ nome: '', instituicao_curso: '', funcao: 'COAUTOR' }]
+        respostas_campos: {},
+        equipe: []
     });
 
-    const [opcoes, setOpcoes] = useState({ 
-        modalidades: [], 
-        niveis_ensino: [], 
-        areas_conhecimento: [], 
+    const [opcoes, setOpcoes] = useState({
+        modalidades: [],
+        niveis_ensino: [],
+        areas_conhecimento: [],
         funcoes_equipe: [],
-        status: [] 
+        status: [],
     });
     const [eventos, setEventos] = useState([]);
+    const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
+    const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] = useState(null);
+    const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
@@ -51,6 +67,32 @@ export default function AdicionarAtracao() {
             reacao: (prev.reacao || 0) + 1,
         }));
 
+    const normalizarAreaConhecimentoPayload = (valorArea) => {
+        if (valorArea === null || valorArea === undefined) {
+            return valorArea;
+        }
+
+        const valorTexto = String(valorArea).trim();
+        if (valorTexto === '') {
+            return valorArea;
+        }
+
+        const ehNumero = /^\d+$/.test(valorTexto);
+        if (!ehNumero) {
+            return valorArea;
+        }
+
+        const areaPorDetalhe = (eventoSelecionadoDetalhe?.area_conhecimento_detalhes || []).find(
+            (area) => String(area?.id) === valorTexto,
+        );
+
+        if (areaPorDetalhe?.area_conhecimento) {
+            return areaPorDetalhe.area_conhecimento;
+        }
+
+        return valorArea;
+    };
+
     useEffect(() => {
         const carregarDados = async () => {
             const [dadosOpcoes, dadosEventos, dadosUsuarios] =
@@ -63,21 +105,35 @@ export default function AdicionarAtracao() {
             if (dadosOpcoes.status === 'fulfilled') {
                 setOpcoes(dadosOpcoes.value);
             } else {
-                console.error('Erro ao carregar opções de atração:', dadosOpcoes.reason);
-                mostrarAlerta('Não foi possível carregar as opções da atração.');
+                console.error(
+                    'Erro ao carregar opções de atração:',
+                    dadosOpcoes.reason,
+                );
+                mostrarAlerta(
+                    'Não foi possível carregar as opções da atração.',
+                );
             }
 
             if (dadosEventos.status === 'fulfilled') {
                 setEventos(dadosEventos.value);
+                const eventoSalvo = getSelectedEventoId();
+                if (eventoSalvo) {
+                    setFormState((prev) => ({ ...prev, evento: eventoSalvo }));
+                }
             } else {
                 console.error('Erro ao carregar eventos:', dadosEventos.reason);
-                mostrarAlerta('Não foi possível carregar os eventos disponíveis.');
+                mostrarAlerta(
+                    'Não foi possível carregar os eventos disponíveis.',
+                );
             }
 
             if (dadosUsuarios.status === 'fulfilled') {
                 setUsuarios(dadosUsuarios.value);
             } else {
-                console.error('Erro ao carregar usuários (orientador):', dadosUsuarios.reason);
+                console.error(
+                    'Erro ao carregar usuários (orientador):',
+                    dadosUsuarios.reason,
+                );
                 mostrarAlerta(
                     'Lista de orientadores indisponível no momento. Você ainda pode preencher o restante do formulário.',
                     'warning',
@@ -87,40 +143,179 @@ export default function AdicionarAtracao() {
         carregarDados();
     }, []);
 
+    useEffect(() => {
+        const carregarDetalheEventoSelecionado = async () => {
+            if (!formState.evento) {
+                setEventoSelecionadoDetalhe(null);
+                return;
+            }
+
+            const eventoResumo = eventos.find(
+                (evento) => String(evento.id) === String(formState.evento),
+            );
+
+            if (eventoResumo?.area_conhecimento_detalhes?.length) {
+                setEventoSelecionadoDetalhe(eventoResumo);
+                return;
+            }
+
+            try {
+                const detalhe = await buscarEventoPorId(formState.evento);
+                setEventoSelecionadoDetalhe(detalhe);
+            } catch (error) {
+                console.error('Erro ao carregar detalhe do evento selecionado:', error);
+                setEventoSelecionadoDetalhe(null);
+            }
+        };
+
+        carregarDetalheEventoSelecionado();
+    }, [formState.evento, eventos]);
+
+    useEffect(() => {
+        const carregarDetalheModalidade = async () => {
+            if (!formState.modalidade) {
+                setModalidadeSelecionadaDetalhe(null);
+                setFormState((prev) => ({ ...prev, respostas_campos: {} }));
+                return;
+            }
+
+            try {
+                const detalheModalidade = await pegarModalidade(formState.modalidade);
+                const camposFiltrados = (detalheModalidade?.campos || []).filter(
+                    (campo) => campo?.ativo !== false,
+                );
+
+                setModalidadeSelecionadaDetalhe({
+                    ...detalheModalidade,
+                    campos: camposFiltrados,
+                });
+
+                setFormState((prev) => {
+                    const respostasAtuais = prev.respostas_campos || {};
+                    const respostasFiltradas = {};
+
+                    camposFiltrados.forEach((campo) => {
+                        const chave = `campo_${campo.id}`;
+                        if (chave in respostasAtuais) {
+                            respostasFiltradas[chave] = respostasAtuais[chave];
+                        } else {
+                            respostasFiltradas[chave] = campo.tipo_dado === 'BOOLEANO' ? false : '';
+                        }
+                    });
+
+                    return {
+                        ...prev,
+                        respostas_campos: respostasFiltradas,
+                    };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar detalhe da modalidade:', error);
+                setModalidadeSelecionadaDetalhe(null);
+            }
+        };
+
+        carregarDetalheModalidade();
+    }, [formState.modalidade]);
+
+    useEffect(() => {
+        const carregarEspacosEvento = async () => {
+            const localId = eventoSelecionadoDetalhe?.local?.id;
+
+            if (!formState.evento || !localId) {
+                setEspacosDisponiveis([]);
+                setFormState((prev) => ({ ...prev, espaco: '' }));
+                return;
+            }
+
+            try {
+                const espacos = await pegarEspacos(localId);
+                setEspacosDisponiveis(espacos || []);
+
+                setFormState((prev) => {
+                    const espacoAtualValido = (espacos || []).some(
+                        (espaco) => String(espaco.id) === String(prev.espaco),
+                    );
+
+                    if (espacoAtualValido) {
+                        return prev;
+                    }
+
+                    return { ...prev, espaco: '' };
+                });
+            } catch (error) {
+                console.error('Erro ao carregar espaços do evento:', error);
+                setEspacosDisponiveis([]);
+            }
+        };
+
+        carregarEspacosEvento();
+    }, [formState.evento, eventoSelecionadoDetalhe]);
+
     const handleSalvarRascunho = async () => {
-        const dadosRascunho = { ...formState, status: 'RASCUNHO' };
-        
+        if (isLoading) return;
+        const dadosRascunho = {
+            ...formState,
+            area_conhecimento: normalizarAreaConhecimentoPayload(
+                formState.area_conhecimento,
+            ),
+            status: 'RASCUNHO',
+        };
+
         try {
+            setIsLoading(true);
             await salvarRascunho(dadosRascunho);
+            setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listarAtracoes'), 1500);
+            setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
-            const msg = erro.response?.data?.detail || JSON.stringify(erro.response?.data) || 'Erro ao salvar rascunho. Por favor, tente novamente.';
+            const msg =
+                erro.response?.data?.detail ||
+                JSON.stringify(erro.response?.data) ||
+                'Erro ao salvar rascunho. Por favor, tente novamente.';
             mostrarAlerta(msg);
+            setIsLoading(false);
         }
     };
 
     const handleSubmeter = async () => {
+        if (isLoading) return;
         if (!formState.titulo || !formState.resumo || !formState.modalidade || !formState.nivel_ensino || !formState.area_conhecimento || !formState.evento) {
             mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
             return;
         }
 
-        if (formState.equipe.length === 0 || !formState.equipe[0].nome) {
-            mostrarAlerta('Por favor, adicione pelo menos um autor na seção de Equipe.');
+        if (formState.equipe.length === 0) {
+            mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
+            return;
+        }
+
+        if (!formState.espaco) {
+            mostrarAlerta('Por favor, selecione um espaço para a atração.');
             return;
         }
 
         try {
-            const dadosSubmissao = { ...formState, status: 'PREVISTA' };
+            setIsLoading(true);
+            const dadosSubmissao = {
+                ...formState,
+                area_conhecimento: normalizarAreaConhecimentoPayload(
+                    formState.area_conhecimento,
+                ),
+                status: 'PREVISTA',
+            };
             await criarAtracao(dadosSubmissao);
+            setSelectedEventoId(formState.evento);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listarAtracoes'), 1500);
+            setTimeout(() => navigate('/listar_atracoes'), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
-            const msg = erro.response?.data?.detail || JSON.stringify(erro.response?.data) || 'Erro ao cadastrar. Por favor, tente novamente.';
+            const msg =
+                erro.response?.data?.detail ||
+                JSON.stringify(erro.response?.data) ||
+                'Erro ao cadastrar. Por favor, tente novamente.';
             mostrarAlerta(msg);
+            setIsLoading(false);
         }
     };
 
@@ -143,7 +338,12 @@ export default function AdicionarAtracao() {
                                 setFormState={setFormState}
                                 opcoes={opcoes}
                                 eventos={eventos}
+                                eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}
+                                modalidadeSelecionadaDetalhe={modalidadeSelecionadaDetalhe}
+                                espacosDisponiveis={espacosDisponiveis}
+                                camposModalidade={modalidadeSelecionadaDetalhe?.campos || []}
                                 usuarios={usuarios}
+                                isLoading={isLoading}
                                 handleSalvarRascunho={handleSalvarRascunho}
                                 handleSubmeter={handleSubmeter}
                             />
@@ -151,11 +351,11 @@ export default function AdicionarAtracao() {
                     </Row>
                 </Container>
             </main>
-            <Footer 
-                telefone="(51) 3333-1234" 
-                endereco="Rua Alberto Hoffmann, 285" 
-                ano={2026} 
-                campus="Campus Restinga" 
+            <Footer
+                telefone="(51) 3333-1234"
+                endereco="Rua Alberto Hoffmann, 285"
+                ano={2026}
+                campus="Campus Restinga"
             />
         </div>
     );

@@ -1,49 +1,81 @@
-import { Container, Row, Col, Form, Button, Table, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Table } from 'react-bootstrap';
 import { MdEdit, MdSchool, MdAttachFile, MdSearch, MdDelete, MdArrowBack, MdLocalOffer, MdAddCircle } from 'react-icons/md';
 import { BsCheckCircle, BsPlusCircleFill } from 'react-icons/bs';
 import { FaUsers } from 'react-icons/fa';
 import SecaoFormulario from './secaoFormulario';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const LIMITS = {
-    titulo: { min: 3, max: 250 },
-    resumo: { minWords: 250, maxWords: 500 },
-    palavras_chave: { max: 250 },
+    titulo: { minWords: 1, maxWords: 150 },
+    resumo: { minWords: 1, maxWords: 500 },
+    palavras_chave: { max: 100 },
 };
 
 export default function CriarAtracaoCard({
     formState, setFormState,
     opcoes,
     eventos,
+    eventoSelecionadoDetalhe,
+    modalidadeSelecionadaDetalhe,
+    espacosDisponiveis = [],
+    camposModalidade = [],
     usuarios,
+    isLoading = false,
     handleSalvarRascunho,
     handleSubmeter,
 }) {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
-    const [wordCount, setWordCount] = useState(0);
 
-    useEffect(() => {
-        const words = formState.resumo?.trim().split(/\s+/).filter(word => word.length > 0) || [];
-        setWordCount(words.length);
-    }, [formState.resumo]);
+    const countWords = (text) =>
+        text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
 
+    const tituloWordCount = countWords(formState.titulo);
+    const resumoWordCount = countWords(formState.resumo);
+
+    const eventoSelecionado =
+        eventoSelecionadoDetalhe ||
+        eventos?.find((evento) => String(evento.id) === String(formState.evento));
+
+    const areasConhecimentoDisponiveis = (() => {
+        const areasDoEvento = eventoSelecionado?.area_conhecimento_detalhes;
+        if (Array.isArray(areasDoEvento) && areasDoEvento.length > 0) {
+            return areasDoEvento;
+        }
+
+        const areasSimples = eventoSelecionado?.area_conhecimento;
+        if (Array.isArray(areasSimples) && areasSimples.length > 0) {
+            return areasSimples;
+        }
+
+        return [];
+    })();
+
+    const normalizarAreaConhecimento = (area) => ({
+        value: area?.area_conhecimento ?? area?.value ?? area?.id ?? area,
+        label:
+            area?.area_conhecimento_display ||
+            area?.nome ||
+            area?.descricao ||
+            area?.label ||
+            String(area),
+    });
     const validateField = (name, value) => {
         switch (name) {
             case 'titulo':
-                if (!value || value.length < LIMITS.titulo.min) {
-                    return `Título deve ter pelo menos ${LIMITS.titulo.min} caracteres`;
+                if (!value || tituloWordCount < LIMITS.titulo.minWords) {
+                    return `Título deve ter pelo menos ${LIMITS.titulo.minWords} palavra (atual: ${tituloWordCount})`;
                 }
-                if (value.length > LIMITS.titulo.max) {
-                    return `Título deve ter no máximo ${LIMITS.titulo.max} caracteres`;
+                if (tituloWordCount > LIMITS.titulo.maxWords) {
+                    return `Título deve ter no máximo ${LIMITS.titulo.maxWords} palavras (atual: ${tituloWordCount})`;
                 }
                 break;
             case 'resumo':
-                if (!value || wordCount < LIMITS.resumo.minWords) {
-                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavras (atual: ${wordCount})`;
+                if (!value || resumoWordCount < LIMITS.resumo.minWords) {
+                    return `Resumo deve ter pelo menos ${LIMITS.resumo.minWords} palavra (atual: ${resumoWordCount})`;
                 }
-                if (wordCount > LIMITS.resumo.maxWords) {
-                    return `Resumo deve ter no máximo ${LIMITS.resumo.maxWords} palavras (atual: ${wordCount})`;
+                if (resumoWordCount > LIMITS.resumo.maxWords) {
+                    return `Resumo deve ter no máximo ${LIMITS.resumo.maxWords} palavras (atual: ${resumoWordCount})`;
                 }
                 break;
             case 'palavras_chave':
@@ -63,8 +95,8 @@ export default function CriarAtracaoCard({
             case 'area_conhecimento':
                 if (!value) return 'Selecione uma área de conhecimento';
                 break;
-            case 'evento':
-                if (!value) return 'Selecione um evento';
+            case 'espaco':
+                if (!value) return 'Selecione um espaço';
                 break;
             default:
                 break;
@@ -85,6 +117,59 @@ export default function CriarAtracaoCard({
             const error = validateField(fieldName, value);
             setErrors({ ...errors, [fieldName]: error });
         }
+    };
+
+    const campoKey = (campoId) => `campo_${campoId}`;
+
+    const validateCampoDinamico = (campo, value) => {
+        if (!campo?.obrigatorio) return null;
+
+        if (campo.tipo_dado === 'BOOLEANO') {
+            if (value === null || value === undefined) {
+                return `O campo ${campo.nome} é obrigatório`;
+            }
+            return null;
+        }
+
+        if (campo.tipo_dado === 'ARQUIVO') {
+            if (value instanceof File || value instanceof Blob) {
+                return null;
+            }
+            return `O campo ${campo.nome} é obrigatório`;
+        }
+
+        if (value === null || value === undefined || String(value).trim() === '') {
+            return `O campo ${campo.nome} é obrigatório`;
+        }
+
+        return null;
+    };
+
+    const handleCampoDinamicoChange = (campo, value) => {
+        const key = campoKey(campo.id);
+        const respostas = formState.respostas_campos || {};
+
+        setFormState({
+            ...formState,
+            respostas_campos: {
+                ...respostas,
+                [key]: value,
+            },
+        });
+
+        if (touched[key]) {
+            const error = validateCampoDinamico(campo, value);
+            setErrors((prev) => ({ ...prev, [key]: error }));
+        }
+    };
+
+    const handleCampoDinamicoBlur = (campo) => {
+        const key = campoKey(campo.id);
+        const value = (formState.respostas_campos || {})[key];
+        const error = validateCampoDinamico(campo, value);
+
+        setTouched((prev) => ({ ...prev, [key]: true }));
+        setErrors((prev) => ({ ...prev, [key]: error }));
     };
 
     const getFieldStyle = (fieldName) => {
@@ -113,7 +198,7 @@ export default function CriarAtracaoCard({
     };
 
     const validateAll = () => {
-        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'evento'];
+        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'espaco'];
         let newErrors = {};
         let isValid = true;
         
@@ -124,10 +209,83 @@ export default function CriarAtracaoCard({
                 isValid = false;
             }
         });
+
+        (camposModalidade || []).forEach((campo) => {
+            const key = campoKey(campo.id);
+            const valor = (formState.respostas_campos || {})[key];
+            const error = validateCampoDinamico(campo, valor);
+            if (error) {
+                newErrors[key] = error;
+                isValid = false;
+            }
+        });
         
-        setTouched(fields.reduce((acc, f) => ({ ...acc, [f]: true }), {}));
+        const touchedBase = fields.reduce((acc, f) => ({ ...acc, [f]: true }), {});
+        const touchedDinamicos = (camposModalidade || []).reduce(
+            (acc, campo) => ({ ...acc, [campoKey(campo.id)]: true }),
+            {},
+        );
+        setTouched({ ...touchedBase, ...touchedDinamicos });
         setErrors(newErrors);
         return isValid;
+    };
+
+    const renderCampoDinamico = (campo) => {
+        const key = campoKey(campo.id);
+        const valor = (formState.respostas_campos || {})[key];
+        const style = { backgroundColor: '#eeeeee', ...getFieldStyle(key) };
+
+        if (campo.tipo_dado === 'BOOLEANO') {
+            return (
+                <Form.Check
+                    type="checkbox"
+                    id={key}
+                    checked={!!valor}
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.checked)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    label={campo.nome}
+                />
+            );
+        }
+
+        if (campo.tipo_dado === 'ARQUIVO') {
+            return (
+                <Form.Control
+                    type="file"
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.files?.[0] || null)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    style={style}
+                    isValid={touched[key] && !errors[key]}
+                    isInvalid={touched[key] && errors[key]}
+                />
+            );
+        }
+
+        if (campo.tipo_dado === 'NUMERO') {
+            return (
+                <Form.Control
+                    type="number"
+                    value={valor ?? ''}
+                    onChange={(e) => handleCampoDinamicoChange(campo, e.target.value)}
+                    onBlur={() => handleCampoDinamicoBlur(campo)}
+                    style={style}
+                    isValid={touched[key] && !errors[key]}
+                    isInvalid={touched[key] && errors[key]}
+                />
+            );
+        }
+
+        return (
+            <Form.Control
+                type="text"
+                value={valor ?? ''}
+                onChange={(e) => handleCampoDinamicoChange(campo, e.target.value)}
+                onBlur={() => handleCampoDinamicoBlur(campo)}
+                style={style}
+                isValid={touched[key] && !errors[key]}
+                isInvalid={touched[key] && errors[key]}
+            />
+        );
     };
 
     const labelStyle = { color: '#00A44B', fontWeight: 'bold' };
@@ -135,12 +293,26 @@ export default function CriarAtracaoCard({
     const handleSalvarRascunhoClick = () => {
         if (validateAll()) {
             handleSalvarRascunho();
+            return;
+        }
+
+        const primeiroInvalido = document.querySelector('.is-invalid');
+        if (primeiroInvalido?.scrollIntoView) {
+            primeiroInvalido.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            primeiroInvalido.focus?.();
         }
     };
 
     const handleSubmeterClick = () => {
         if (validateAll()) {
             handleSubmeter();
+            return;
+        }
+
+        const primeiroInvalido = document.querySelector('.is-invalid');
+        if (primeiroInvalido?.scrollIntoView) {
+            primeiroInvalido.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            primeiroInvalido.focus?.();
         }
     };
 
@@ -176,6 +348,27 @@ export default function CriarAtracaoCard({
                                     <Form.Text className="text-danger">{errors.modalidade}</Form.Text>
                                 )}
                             </Form.Group>
+                            {modalidadeSelecionadaDetalhe && (
+                                <div className="mt-2 p-3 rounded border bg-white small">
+                                    <div className="fw-bold mb-1" style={{ color: '#00A44B' }}>
+                                        {modalidadeSelecionadaDetalhe.nome}
+                                    </div>
+                                    <div className="text-muted">
+                                        <div>
+                                            <strong>Número de vagas:</strong>{' '}
+                                            {modalidadeSelecionadaDetalhe.limite_vagas > 0
+                                                ? modalidadeSelecionadaDetalhe.limite_vagas
+                                                : 'Sem limite definido'}
+                                        </div>
+                                        <div>
+                                            <strong>Campos customizados:</strong>{' '}
+                                            {Array.isArray(modalidadeSelecionadaDetalhe.campos)
+                                                ? modalidadeSelecionadaDetalhe.campos.length
+                                                : 0}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </Col>
                         <Col md={4}>
                             <Form.Group className="mb-3">
@@ -208,11 +401,23 @@ export default function CriarAtracaoCard({
                                     style={{ backgroundColor: '#eeeeee', ...getFieldStyle('area_conhecimento') }}
                                     isValid={touched.area_conhecimento && !errors.area_conhecimento}
                                     isInvalid={touched.area_conhecimento && errors.area_conhecimento}
+                                    disabled={!formState.evento}
                                 >
-                                    <option value="">Selecione a Área</option>
-                                    {opcoes.areas_conhecimento?.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
+                                    <option value="">
+                                        {formState.evento
+                                            ? (areasConhecimentoDisponiveis.length > 0
+                                                ? 'Selecione a Área'
+                                                : 'Evento sem áreas configuradas')
+                                            : 'Selecione primeiro um evento'}
+                                    </option>
+                                    {areasConhecimentoDisponiveis?.map((area) => {
+                                        const normalizada = normalizarAreaConhecimento(area);
+                                        return (
+                                            <option key={normalizada.value} value={normalizada.value}>
+                                                {normalizada.label}
+                                            </option>
+                                        );
+                                    })}
                                 </Form.Select>
                                 {touched.area_conhecimento && errors.area_conhecimento && (
                                     <Form.Text className="text-danger">{errors.area_conhecimento}</Form.Text>
@@ -228,7 +433,7 @@ export default function CriarAtracaoCard({
                         <Form.Label style={labelStyle}>
                             Título do Trabalho * 
                             <span className="text-muted fw-normal ms-2">
-                                ({formState.titulo?.length || 0}/{LIMITS.titulo.max})
+                                ({tituloWordCount} palavras - mín: {LIMITS.titulo.minWords}, máx: {LIMITS.titulo.maxWords})
                             </span>
                         </Form.Label>
                         <Form.Control
@@ -250,13 +455,13 @@ export default function CriarAtracaoCard({
                         <Form.Label style={labelStyle}>
                             Resumo * 
                             <span className="text-muted fw-normal ms-2">
-                                ({wordCount} palavras - mín: {LIMITS.resumo.minWords}, máx: {LIMITS.resumo.maxWords})
+                                ({resumoWordCount} palavras - mín: {LIMITS.resumo.minWords}, máx: {LIMITS.resumo.maxWords})
                             </span>
                         </Form.Label>
                         <Form.Control
                             as="textarea"
                             rows={6}
-                            placeholder="Mínimo de 250 e máximo de 500 palavras"
+                            placeholder="Mínimo de 1 e máximo de 500 palavras"
                             value={formState.resumo}
                             onChange={(e) => handleChange('resumo', e.target.value)}
                             onBlur={() => handleBlur('resumo')}
@@ -265,11 +470,11 @@ export default function CriarAtracaoCard({
                             isInvalid={touched.resumo && errors.resumo}
                         />
                         <div className="d-flex justify-content-between mt-1">
-                            <Form.Text className={wordCount < LIMITS.resumo.minWords ? 'text-warning' : wordCount > LIMITS.resumo.maxWords ? 'text-danger' : 'text-success'}>
-                                {wordCount < LIMITS.resumo.minWords 
-                                    ? `Faltam ${LIMITS.resumo.minWords - wordCount} palavras` 
-                                    : wordCount > LIMITS.resumo.maxWords 
-                                        ? `Excedeu ${wordCount - LIMITS.resumo.maxWords} palavras`
+                            <Form.Text className={resumoWordCount < LIMITS.resumo.minWords ? 'text-warning' : resumoWordCount > LIMITS.resumo.maxWords ? 'text-danger' : 'text-success'}>
+                                {resumoWordCount < LIMITS.resumo.minWords 
+                                    ? `Faltam ${LIMITS.resumo.minWords - resumoWordCount} palavras` 
+                                    : resumoWordCount > LIMITS.resumo.maxWords 
+                                        ? `Excedeu ${resumoWordCount - LIMITS.resumo.maxWords} palavras`
                                         : 'Quantidade ideal'}
                             </Form.Text>
                         </div>
@@ -301,32 +506,70 @@ export default function CriarAtracaoCard({
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}>Evento *</Form.Label>
+                        <Form.Label style={labelStyle}>Espaço *</Form.Label>
                         <Form.Select
-                            value={formState.evento}
-                            onChange={(e) => handleChange('evento', e.target.value)}
-                            onBlur={() => handleBlur('evento')}
-                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('evento') }}
-                            isValid={touched.evento && !errors.evento}
-                            isInvalid={touched.evento && errors.evento}
+                            value={formState.espaco}
+                            onChange={(e) => handleChange('espaco', e.target.value)}
+                            onBlur={() => handleBlur('espaco')}
+                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('espaco') }}
+                            isValid={touched.espaco && !errors.espaco}
+                            isInvalid={touched.espaco && errors.espaco}
+                            disabled={!formState.evento || espacosDisponiveis.length === 0}
                         >
-                            <option value="">Selecione um Evento</option>
-                            {eventos?.map((evt) => (
-                                <option key={evt.id} value={evt.id}>{evt.nome}</option>
+                            <option value="">
+                                {formState.evento
+                                    ? (espacosDisponiveis.length > 0
+                                        ? 'Selecione um Espaço'
+                                        : 'Evento sem espaços configurados')
+                                    : 'Selecione primeiro um evento'}
+                            </option>
+                            {espacosDisponiveis?.map((espaco) => (
+                                <option key={espaco.id} value={espaco.id}>
+                                    {espaco.nome} - {espaco.predio_bloco}
+                                </option>
                             ))}
                         </Form.Select>
-                        {touched.evento && errors.evento && (
-                            <Form.Text className="text-danger">{errors.evento}</Form.Text>
+                        {touched.espaco && errors.espaco && (
+                            <Form.Text className="text-danger">{errors.espaco}</Form.Text>
+                        )}
+                        {formState.evento && espacosDisponiveis.length > 0 && (
+                            <Form.Text className="text-muted">
+                                Esses espaços pertencem ao local do evento selecionado.
+                            </Form.Text>
                         )}
                     </Form.Group>
+
                 </SecaoFormulario>
+
+                {(camposModalidade || []).length > 0 && (
+                    <SecaoFormulario icone={MdSchool} titulo="Campos Específicos da Modalidade">
+                        <Row>
+                            {camposModalidade.map((campo) => {
+                                const key = campoKey(campo.id);
+                                return (
+                                    <Col md={6} key={campo.id}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label style={labelStyle}>
+                                                {campo.nome}{campo.obrigatorio ? ' *' : ''}
+                                            </Form.Label>
+                                            {renderCampoDinamico(campo)}
+                                            {touched[key] && errors[key] && (
+                                                <Form.Text className="text-danger">{errors[key]}</Form.Text>
+                                            )}
+                                        </Form.Group>
+                                    </Col>
+                                );
+                            })}
+                        </Row>
+                    </SecaoFormulario>
+                )}
 
                 {/* SEÇÃO 3: EQUIPE */}
                 <SecaoFormulario icone={FaUsers} titulo="Equipe">
                     <div className="mb-4">
                         <div className="d-flex align-items-center gap-4 mb-3">
                             <Form.Label style={labelStyle} className="mb-0">Orientador(a) *</Form.Label>
-                            <Form.Check 
+                            <Form.Check
                                 type="checkbox"
                                 label="Sou o Orientador"
                                 id="check-orientador"
@@ -344,9 +587,7 @@ export default function CriarAtracaoCard({
                                     onChange={(e) =>
                                         setFormState({
                                             ...formState,
-                                            orientador: e.target.value
-                                                ? Number(e.target.value)
-                                                : null,
+                                            orientador: e.target.value ? Number(e.target.value) : null,
                                         })
                                     }
                                     style={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
@@ -367,57 +608,59 @@ export default function CriarAtracaoCard({
                     </div>
 
                     <div className="mt-4">
-                        <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Autores e Coautores</h6>
+                        <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Membros da Equipe</h6>
                         <Table hover className="mt-3 align-middle" style={{ border: '1px solid #dee2e6', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #dee2e6' }}>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nome Completo</th>
-                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição (Req 1.15)</th>
+                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição</th>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '20%' }}>Papel</th>
                                     <th className="py-2 px-3 fw-bold text-dark text-center" style={{ background: '#F8F9FA', width: '10%' }}>Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Linha do Autor Principal */}
-                                <tr style={{ borderBottom: '1px solid #dee2e6' }}>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>João Silva (Você)</td>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>Sistemas de Informação</td>
-                                    <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                        <span className="badge rounded-pill px-2 py-2 fw-bold" style={{ backgroundColor: '#3B82F6', minWidth: '100px' }}>Autor Principal</span>
-                                    </td>
-                                    <td className="text-center py-2">-</td>
-                                </tr>
-
                                 {formState.equipe.map((membro, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Control 
+                                            <Form.Control
                                                 value={membro.nome}
                                                 onChange={(e) => handleMembroChange(index, 'nome', e.target.value)}
-                                                placeholder="Nome do coautor"
+                                                placeholder="Nome"
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
                                                 className="bg-white"
                                             />
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Select 
+                                            <Form.Select
                                                 value={membro.instituicao_curso}
                                                 onChange={(e) => handleMembroChange(index, 'instituicao_curso', e.target.value)}
-                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
-                                                className="bg-white"
+                                                disabled={true}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: '#e9ecef' }}
+                                                className="bg-disabled"
                                             >
-                                                <option value="">Sistemas de Informação</option>
+                                                <option value="">Curso/Instituição (auto-preenchido)</option>
+                                                <option value="Sistemas de Informação">Sistemas de Informação</option>
                                                 <option value="Administração">Administração</option>
                                                 <option value="Eletrônica">Eletrônica</option>
                                             </Form.Select>
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <span style={{ color: '#666' }}>Coautor</span>
+                                            <Form.Select
+                                                value={membro.funcao || ''}
+                                                onChange={(e) => handleMembroChange(index, 'funcao', e.target.value)}
+                                                disabled={!membro.nome}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.nome ? '#e9ecef' : '#fff' }}
+                                            >
+                                                <option value="">Selecione um papel</option>
+                                                <option value="COAUTOR">Co-autor</option>
+                                                <option value="APRESENTADOR">Apresentador</option>
+                                                <option value="REVISOR">Revisor</option>
+                                            </Form.Select>
                                         </td>
                                         <td className="text-center py-2">
-                                            <Button 
-                                                variant="danger" 
-                                                className="p-1" 
+                                            <Button
+                                                variant="danger"
+                                                className="p-1"
                                                 style={{ backgroundColor: '#e24c4c', border: 'none', borderRadius: '6px', width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => handleRemoveMembro(index)}
                                             >
@@ -428,15 +671,15 @@ export default function CriarAtracaoCard({
                                 ))}
                             </tbody>
                         </Table>
-                        
-                    <Button 
-                            variant="primary" 
-                            size="sm" 
+
+                        <Button
+                            variant="primary"
+                            size="sm"
                             onClick={handleAddMembro}
                             className="d-flex align-items-center gap-2 px-3 py-2 fw-bold mt-3"
                             style={{ backgroundColor: '#3B9BFF', border: 'none', borderRadius: '10px' }}
                         >
-                            <BsPlusCircleFill size={18} /> Adicionar Coautor
+                            <BsPlusCircleFill size={18} /> Adicionar Membro da Equipe
                         </Button>
                     </div>
                 </SecaoFormulario>
@@ -480,19 +723,21 @@ export default function CriarAtracaoCard({
                     <Button 
                         variant="secondary" 
                         className="px-4 shadow-sm"
-                        style={{ backgroundColor: '#707070', border: 'none', borderRadius: '12px' }}
+                        disabled={isLoading}
+                        style={{ backgroundColor: isLoading ? '#9aa0a6' : '#707070', border: 'none', borderRadius: '12px' }}
                         onClick={handleSalvarRascunhoClick}
                     >
-                        Salvar rascunho
+                        {isLoading ? 'Salvando...' : 'Salvar rascunho'}
                     </Button>
 
                     <Button 
                         onClick={handleSubmeterClick}
+                        disabled={isLoading}
                         variant="success" 
                         className="px-4 d-flex align-items-center gap-2 shadow-sm"
-                        style={{ backgroundColor: '#38A149', border: 'none', borderRadius: '12px' }}
+                        style={{ backgroundColor: isLoading ? '#8cc79a' : '#38A149', border: 'none', borderRadius: '12px' }}
                     >
-                        <BsCheckCircle size={20} /> Submeter o Trabalho
+                        <BsCheckCircle size={20} /> {isLoading ? 'Enviando...' : 'Submeter Trabalho'}
                     </Button>
                 </div>
             </Form>

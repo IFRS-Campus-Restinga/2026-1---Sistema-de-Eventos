@@ -33,7 +33,7 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
         try {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
-            navigate('/listarModalidades');
+            navigate('/listar_modalidades');
         } catch {
             mostrarAlerta('Não foi possível excluir a modalidade.');
         }
@@ -50,13 +50,13 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                         titulo="Modalidades"
                         itens={modalidades}
                         textoAdicionar="Adicionar Modalidade"
-                        rotaAdicionar="/adicionarModalidade"
-                        rotaEditarBase="/editarModalidade"
+                        rotaAdicionar="/adicionar_modalidade"
+                        rotaEditarBase="/editar_modalidade"
                         onDeletar={(id) => {
                             setMostrarModal(true);
                             setIdSelecionado(id);
                         }}
-                        paginacao={3}
+                        paginacao={5}
                     />
                     <div className="d-flex justify-content-end mt-4">
                         <Button

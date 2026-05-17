@@ -7,7 +7,7 @@ from .base import Base
 from .modalidade import Modalidade
 
 
-class CriterioAvaliacao(Base):
+class CriterioAvaliacaoAtracao(Base):
     nome = models.CharField(
         verbose_name=_("Nome"),
         help_text=_("Informe o nome do Critério"),

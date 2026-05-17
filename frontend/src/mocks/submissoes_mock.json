@@ -1,0 +1,84 @@
+{
+  "submissoes": [
+    {
+      "id": 1,
+      "titulo": "Desenvolvimento de aplicativo mobile para gestão agrícola",
+      "modalidade": "Trabalho Completo",
+      "areaConhecimento": "ENGENHARIAS",
+      "nivelEnsino": "GRADUACAO",
+      "resumo": "Este trabalho apresenta o desenvolvimento de um aplicativo mobile para auxiliar pequenos produtores rurais na gestão de suas plantações. Utilizando tecnologias como React Native e Firebase, foi criada uma solução que permite monitorar clima, irrigação e colheita em tempo real.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 2,
+      "titulo": "Análise de impactos ambientais em projetos de infraestrutura",
+      "modalidade": "Artigo Científico",
+      "areaConhecimento": "CIENCIAS_EXATAS_E_DA_TERRA",
+      "nivelEnsino": "MESTRADO",
+      "resumo": "O presente artigo discute metodologias para avaliação de impactos ambientais em grandes projetos de infraestrutura. Foram estudados 15 projetos realizados nos últimos 5 anos no Brasil, com foco em análise de ciclo de vida.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 3,
+      "titulo": "Eficiência energética em sistemas de climatização inteligente",
+      "modalidade": "Trabalho Completo",
+      "areaConhecimento": "ENGENHARIAS",
+      "nivelEnsino": "GRADUACAO",
+      "resumo": "Projeto desenvolvido com o objetivo de otimizar o consumo de energia em sistemas de ar condicionado através de automação inteligente. Foi implementado um sistema baseado em IoT que reduz o consumo em até 35%.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 4,
+      "titulo": "Estratégias pedagógicas para educação inclusiva em escolas públicas",
+      "modalidade": "Relato de Experiência",
+      "areaConhecimento": "CIENCIAS_HUMANAS",
+      "nivelEnsino": "SUBSEQUENTE",
+      "resumo": "Relato de experiência de implementação de estratégias pedagógicas para inclusão de alunos com deficiência visual em ambiente escolar regular. Foram utilizadas tecnologias assistivas e adaptações curriculares.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 5,
+      "titulo": "Bioprospecção de compostos antimicrobianos em fungos amazônicos",
+      "modalidade": "Trabalho Completo",
+      "areaConhecimento": "CIENCIAS_BIOLOGICAS",
+      "nivelEnsino": "POS_GRADUACAO",
+      "resumo": "Pesquisa que investigou propriedades antimicrobianas de 50 espécies de fungos coletadas na Amazônia. Foram isolados 3 compostos com potencial para desenvolvimento de novos antibióticos.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 6,
+      "titulo": "Machine Learning para previsão de demanda em varejo",
+      "modalidade": "Trabalho Completo",
+      "areaConhecimento": "CIENCIAS_EXATAS_E_DA_TERRA",
+      "nivelEnsino": "GRADUACAO",
+      "resumo": "Desenvolvimento de modelo de machine learning usando TensorFlow para prever demanda de produtos em lojas de varejo. O modelo atingiu acurácia de 92% em dados de teste.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 7,
+      "titulo": "Análise sociológica do impacto das redes sociais em adolescentes",
+      "modalidade": "Artigo Científico",
+      "areaConhecimento": "CIENCIAS_SOCIAIS_APLICADAS",
+      "nivelEnsino": "MESTRADO",
+      "resumo": "Estudo qualitativo com 150 adolescentes explorando os efeitos psicossociais do uso intenso de redes sociais. Foram identificados padrões de dependência digital e sugestões de intervenção.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    },
+    {
+      "id": 8,
+      "titulo": "Otimização de processos de manufatura usando lean manufacturing",
+      "modalidade": "Trabalho Completo",
+      "areaConhecimento": "ENGENHARIAS",
+      "nivelEnsino": "ENSINO_MEDIO_INTEGRADO",
+      "resumo": "Implementação de metodologia lean em uma fábrica de componentes eletrônicos resultou em redução de 40% de desperdício e aumento de 25% na produtividade.",
+      "evento": 1,
+      "status": "SUBMETIDO"
+    }
+  ]
+}

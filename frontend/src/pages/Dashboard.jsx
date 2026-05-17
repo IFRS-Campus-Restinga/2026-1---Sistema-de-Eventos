@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Container, Row, Col, Button, Spinner, Alert } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import BarrasStatus from '../components/barras_status/BarrasStatus';
 import MenuColuna from '../components/menu_coluna/MenuColuna';
 import { PiChecks } from 'react-icons/pi';
@@ -15,75 +15,58 @@ import { RiTeamFill } from 'react-icons/ri';
 import { IoMdSchool } from 'react-icons/io';
 import { RiAddBoxFill } from 'react-icons/ri';
 import { IoCalendarOutline } from 'react-icons/io5';
+import { MdOutlineArticle, MdAddCircleOutline } from 'react-icons/md';
 
 import { getDashboardEvento } from '../services/dashboardService';
+import {
+    clearSelectedEventoId,
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
 
-export default function DashboardEvento({}) {
-    // comentei pra n dar conflito, mas meio q ficou assim, agr ele funciona com dados reais. -Breno
-
-    // //Pegar da api, apenas placeholder
-    // const { totalSubmissoes, semAvaliador, desistencias } = {
-    //     totalSubmissoes: 87,
-    //     semAvaliador: 2,
-    //     desistencias: 3,
-    // };
-
-    // //Pegar da api, apenas placeholder
-    // const dados = [
-    //     {
-    //         titulo: 'Ciências Exatas e da Terra',
-    //         valorAtual: 25,
-    //         total: 30,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Ciências Humanas',
-    //         valorAtual: 12,
-    //         total: 30,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    //     {
-    //         titulo: 'Linguística, Letras e Artes',
-    //         valorAtual: 20,
-    //         total: 20,
-    //         textoFim: 'Avaliados',
-    //     },
-    // ];
-
+export default function DashboardEvento() {
     const { id: eventoId } = useParams();
-    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
     const [erro, setErro] = useState('');
     const [dashboard, setDashboard] = useState(null);
 
     useEffect(() => {
         async function carregarDashboard() {
+            // Se não veio ID na URL, resolve o redirecionamento e interrompe a execução
             if (!eventoId) {
-                setErro('Selecione um evento para visualizar o dashboard.');
-                setDashboard(null);
+                const eventoSalvo = getSelectedEventoId();
+                if (eventoSalvo) {
+                    navigate(`/dashboard/${eventoSalvo}`, { replace: true });
+                } else {
+                    navigate('/listar_eventos', { replace: true });
+                }
                 return;
             }
 
+            // Define o ID ativo apenas se ele veio na URL
+            setSelectedEventoId(eventoId);
             setLoading(true);
             setErro('');
+
             try {
                 const data = await getDashboardEvento(eventoId);
                 setDashboard(data);
             } catch (error) {
+                console.error("Erro ao buscar dashboard:", error);
+                const status = error?.response?.status;
+                
+                if (status === 404) {
+                    clearSelectedEventoId();
+                    navigate('/listar_eventos', { replace: true });
+                    return;
+                }
+
                 setDashboard(null);
                 setErro(
-                    error?.message || 'Erro ao carregar dashboard do evento.',
+                    error?.response?.data?.detail || 
+                    error?.message || 
+                    'Erro ao carregar os dados do painel do evento no servidor.'
                 );
             } finally {
                 setLoading(false);
@@ -91,8 +74,9 @@ export default function DashboardEvento({}) {
         }
 
         carregarDashboard();
-    }, [eventoId]);
+    }, [eventoId, navigate]);
 
+    // Fallbacks seguros para evitar que o código quebre caso a API traga objetos vazios
     const metricas = dashboard?.metricas || {};
     const totalSubmissoes = metricas.totalSubmissoes || 0;
     const semAvaliador = metricas.semAvaliador || 0;
@@ -103,33 +87,33 @@ export default function DashboardEvento({}) {
         () =>
             (dashboard?.areas || []).map((area) => ({
                 titulo: area.nome,
-                valorAtual: area.avaliados,
-                total: area.total,
+                valorAtual: area.avaliados || 0,
+                total: area.total || 0,
                 textoFim: 'Avaliados',
             })),
         [dashboard],
     );
 
-    const links = [
+    const links = useMemo(() => [
         {
             texto: 'Homologar e Definir Avaliadores de Trabalhos',
             icone: <PiChecks color="#14AE5C" size={20} />,
-            to: '#',
+            to: eventoId ? `/gerenciar_atracoes?evento_id=${eventoId}` : '/gerenciar_atracoes',
         },
         {
             texto: 'Editar Informações do Evento',
             icone: <BiSolidEdit color="#727272" size={20} />,
-            to: eventoId ? `/editarEvento/${eventoId}` : '#',
+            to: eventoId ? `/editar_evento/${eventoId}` : '#',
         },
         {
             texto: 'Definir Locais de Trabalhos',
             icone: <TbMapPinFilled color="#f00" size={20} />,
-            to: '/listarLocaisEspacos',
+            to: '/listar_locais_espacos',
         },
         {
             texto: 'Enviar Emails',
             icone: <TbMail color="#0D99FF" size={20} />,
-            to: `/dashboard/${eventoId}/enviaremails`,
+            to: eventoId ? `/dashboard/${eventoId}/enviaremails` : '#',
         },
         {
             texto: 'Emitir Certificados',
@@ -139,167 +123,124 @@ export default function DashboardEvento({}) {
         {
             texto: 'Gerenciar Organizadores',
             icone: <RiTeamFill color="#00A44B" size={20} />,
-            to: '/atribuirOrganizador',
+            to: eventoId ? `/atribuir_organizador?eventoId=${eventoId}` : '#',
         },
         {
             texto: 'Adicionar um Novo Evento',
             icone: <RiAddBoxFill color="#016B3F" size={20} />,
-            to: '/adicionarEvento',
+            to: '/adicionar_evento',
         },
         {
             texto: 'Gerenciar Modalidades',
             icone: <IoMdSchool color="#00f" size={20} />,
-            to: '/listarModalidades',
+            to: '/listar_modalidades',
         },
         {
             texto: 'Definir Sessões da Programação do Evento',
             icone: <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />,
-            to: '/sessaoAtribuirData',
+            to: eventoId ? `/dashboard/${eventoId}/sessao_atribuir_data` : '#',
         },
-    ];
+        {
+            texto: 'Gerenciar Submissões',
+            icone: <MdOutlineArticle color="#6200EA" size={20} />,
+            to: '/listar_atracoes',
+        },
+        {
+            texto: 'Adicionar Submissão',
+            icone: <MdAddCircleOutline color="#6200EA" size={20} />,
+            to: '/adicionar_atracao',
+        },
+    ], [eventoId]);
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
-            <main className="flex-fill py-4 mx-auto">
+            <main className="flex-fill py-4 mx-auto w-100" style={{ maxWidth: '1400px' }}>
                 <Container fluid>
-                    <Row>
-                        <Col className="d-flex flex-xl-row gap-5 flex-column">
-                            <h2 className="fw-semibold text-center">
-                                Visão Geral do Evento: {dashboard?.evento?.nome}
-                            </h2>
-                            <div className="d-flex flex-xl-row flex-column gap-3">
-                                <Button
-                                    variant="secondary"
-                                    as={Link}
-                                    to="/ListarEventos"
-                                    className="d-flex align-items-center justify-content-center"
-                                >
-                                    Mudar de Evento
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    as={Link}
-                                    to="#"
-                                    className="d-flex align-items-center justify-content-center"
-                                >
-                                    Analisar Usuários
-                                </Button>
-                                <Button
-                                    variant="success"
-                                    style={{ background: '#05C978' }}
-                                    as={Link}
-                                    to="/listarInscritos"
-                                    className="d-flex align-items-center border-0 justify-content-center"
-                                >
-                                    Inscrições Evento
-                                </Button>
-                                <Button
-                                    variant="success"
-                                    as={Link}
-                                    to={
-                                        eventoId
-                                            ? `/atribuirCoordenador?eventoId=${eventoId}`
-                                            : '#'
-                                    }
-                                    className="d-flex align-items-center justify-content-center"
-                                >
-                                    Coordenadores
+                    {loading ? (
+                        // ✅ Feedback Visual de Carregamento Preventivo
+                        <div className="text-center py-5">
+                            <Spinner animation="border" variant="primary" className="mb-2" />
+                            <p className="text-muted fw-medium">Sincronizando dados do painel...</p>
+                        </div>
+                    ) : erro ? (
+                        // ✅ Alerta Amigável se o Backend falhar por falta de dados vinculados
+                        <div className="py-4">
+                            <Alert variant="danger" className="shadow-sm">
+                                <Alert.Heading>Atenção, Organizador</Alert.Heading>
+                                <p className="mb-0">{erro}</p>
+                            </Alert>
+                            <div className="text-center mt-3">
+                                <Button variant="secondary" onClick={() => navigate('/listar_eventos')}>
+                                    Voltar para Lista de Eventos
                                 </Button>
                             </div>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col className="d-xl-flex flex-xl-row d-none gap-5 mt-4">
-                            <Card corBorda="#003366" largura={400} altura={200}>
-                                <Container className="px-4 pt-4">
-                                    <Row>
-                                        <Col>
-                                            <span className="fs-6 fw-semibold text-secondary">
-                                                TOTAL DE SUBMISSÕES
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-1">
-                                                {totalSubmissoes || 0}
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-6 text-success">
-                                                ⬆ 12% vs ano passado
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Card>
-                            <Card corBorda="#FF0000" largura={400} altura={200}>
-                                <Container className="px-4 pt-4">
-                                    <Row>
-                                        <Col>
-                                            <span className="fs-6 fw-semibold text-secondary">
-                                                SEM AVALIADOR (CRÍTICO)
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-1 text-danger">
-                                                {semAvaliador || 0}
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-6 text-secondary">
-                                                Requer ação imediata
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Card>
-                            <Card corBorda="#727272" largura={400} altura={200}>
-                                <Container className="px-4 pt-4">
-                                    <Row>
-                                        <Col>
-                                            <span className="fs-6 fw-semibold text-secondary">
-                                                DESISTÊNCIAS
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-1 text-secondary">
-                                                {desistencias || 0}
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-4">
-                                        <Col>
-                                            <span className="fw-bold fs-6 text-secondary">
-                                                Taxa de evasão {taxaEvasao}%
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Card>
-                        </Col>
-                    </Row>
-                    <Row className="mt-5 d-flex flex-lg-row flex-column">
-                        <Col xl={7} sm={0}>
-                            <BarrasStatus
-                                titulo="Status das Avaliações por Área"
-                                dados={dados}
-                            />
-                        </Col>
-                        <Col className="mt-3 mt-xl-0">
-                            <MenuColuna titulo="Ações" itens={links} />
-                        </Col>
-                    </Row>
+                        </div>
+                    ) : (
+                        <>
+                            <Row className="mb-4">
+                                <Col className="d-flex flex-xl-row justify-content-between align-items-center gap-3 flex-column">
+                                    <h2 className="fw-semibold text-xl-start text-center m-0">
+                                        Visão Geral do Evento: <span className="text-primary">{dashboard?.evento?.nome}</span>
+                                    </h2>
+                                    <div className="d-flex flex-wrap gap-2 justify-content-center">
+                                        <Button variant="secondary" as={Link} to="/listar_eventos">
+                                            Mudar de Evento
+                                        </Button>
+                                        <Button variant="primary" as={Link} to="#">
+                                            Analisar Usuários
+                                        </Button>
+                                        <Button variant="success" style={{ backgroundColor: '#05C978', borderColor: '#05C978' }} as={Link} to="/listar_inscritos_evento">
+                                            Inscrições Evento
+                                        </Button>
+                                        <Button variant="success" as={Link} to={eventoId ? `/atribuir_coordenador?eventoId=${eventoId}` : '#'}>
+                                            Coordenadores
+                                        </Button>
+                                    </div>
+                                </Col>
+                            </Row>
+
+                            <Row className="g-4 mb-4">
+                                <Col xs={12} md={4}>
+                                    <Card corBorda="#003366" largura="100%" altura={180}>
+                                        <Container className="p-3">
+                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">TOTAL DE SUBMISSÕES</span>
+                                            <span className="fw-bold fs-1 d-block mb-2">{totalSubmissoes}</span>
+                                            <span className="fw-bold small text-success">⬆ 12% vs ano passado</span>
+                                        </Container>
+                                    </Card>
+                                </Col>
+                                <Col xs={12} md={4}>
+                                    <Card corBorda="#FF0000" largura="100%" altura={180}>
+                                        <Container className="p-3">
+                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">SEM AVALIADOR (CRÍTICO)</span>
+                                            <span className="fw-bold fs-1 text-danger d-block mb-2">{semAvaliador}</span>
+                                            <span className="fw-bold small text-muted">Requer ação imediata</span>
+                                        </Container>
+                                    </Card>
+                                </Col>
+                                <Col xs={12} md={4}>
+                                    <Card corBorda="#727272" largura="100%" altura={180}>
+                                        <Container className="p-3">
+                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">DESISTÊNCIAS</span>
+                                            <span className="fw-bold fs-1 text-secondary d-block mb-2">{desistencias}</span>
+                                            <span className="fw-bold small text-secondary">Taxa de evasão {taxaEvasao}%</span>
+                                        </Container>
+                                    </Card>
+                                </Col>
+                            </Row>
+
+                            <Row className="g-4">
+                                <Col lg={7} xs={12}>
+                                    <BarrasStatus titulo="Status das Avaliações por Área" dados={dados} />
+                                </Col>
+                                <Col lg={5} xs={12}>
+                                    <MenuColuna titulo="Ações" itens={links} />
+                                </Col>
+                            </Row>
+                        </>
+                    )}
                 </Container>
             </main>
 

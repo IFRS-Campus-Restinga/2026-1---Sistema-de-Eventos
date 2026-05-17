@@ -25,7 +25,7 @@ export function useCoordenadorEvento() {
         }
     };
 
-    const handleDefinirCoordenador = async (eventoId, userId) => {
+    const handleDefinirCoordenador = async (eventoId, userId, nomeExibido) => {
         if (!eventoId || !userId) {
             setMessage({
                 type: 'warning',
@@ -40,7 +40,7 @@ export function useCoordenadorEvento() {
             setCoordenadores(response?.coordenadores || []);
             setMessage({
                 type: 'success',
-                text: `${response.coordenador.username} agora é coordenador`,
+                text: `${nomeExibido} agora é coordenador`,
             });
         } catch (erro) {
             console.error('erro:', erro);
@@ -53,7 +53,7 @@ export function useCoordenadorEvento() {
         }
     };
 
-    const handleRemoverCoordenador = async (eventoId, userId) => {
+    const handleRemoverCoordenador = async (eventoId, userId, nomeExibido) => {
         if (!eventoId || !userId) {
             setMessage({
                 type: 'warning',
@@ -68,7 +68,7 @@ export function useCoordenadorEvento() {
             setCoordenadores(response?.coordenadores || []);
             setMessage({
                 type: 'success',
-                text: `${response.coordenador_removido.username} REMOVIDO de coordenadores`,
+                text: `${nomeExibido} REMOVIDO de coordenadores`,
             });
         } catch (erro) {
             console.error('erro ao remover coordenador:', erro);
@@ -81,11 +81,13 @@ export function useCoordenadorEvento() {
         }
     };
 
-    return { handleDefinirCoordenador,
+    return {
+        handleDefinirCoordenador,
         handleRemoverCoordenador,
         carregarCoordenadores,
         coordenadores,
         loading,
         message,
-        setMessage };
+        setMessage,
+    };
 }

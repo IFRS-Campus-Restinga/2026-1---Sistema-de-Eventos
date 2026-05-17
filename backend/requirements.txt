@@ -25,3 +25,5 @@ sqlparse==0.5.5
 tzdata==2026.1
 urllib3==2.6.3
 virtualenv==21.2.0
+celery==5.4.0
+redis==5.2.0

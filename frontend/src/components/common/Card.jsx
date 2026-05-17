@@ -11,7 +11,6 @@ export default function Card({
                 style={{
                     width: largura || '100%',
                     height: altura || 'auto',
-                    minHeight: 200,
                     boxShadow:
                         '0px 4px 4px rgba(0, 0, 0, 0.25), 0px 1px 1px rgba(0, 0, 0, 0.25) inset',
                     borderRadius: 18,

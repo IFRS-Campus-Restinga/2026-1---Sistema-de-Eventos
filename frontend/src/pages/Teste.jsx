@@ -193,7 +193,7 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
             'success',
         );
         setTimeout(() => {
-            navegate('/listarEventos');
+            navegate('/listar_eventos');
         }, 3000);
     }, [
         carregandoEdicao,
@@ -214,7 +214,7 @@ export default function CriarEvento({ campus = 'Campus Restinga' }) {
             await deletarEvento(id);
             mostrarAlerta('Evento excluído com sucesso.', 'success');
             setTimeout(() => {
-                navegate('/listarEventos');
+                navegate('/listar_eventos');
             }, 3000);
         } catch {
             mostrarAlerta('Não foi possível excluir o evento.');

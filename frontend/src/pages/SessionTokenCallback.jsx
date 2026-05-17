@@ -24,20 +24,23 @@ export default function SessionTokenCallback() {
                     data.created === 1 ||
                     data.created === '1';
 
-                const mensagem = foiCadastro
-                    ? 'Usuário cadastrado com sucesso no sistema.'
-                    : 'Login confirmado.';
-
                 setStatus('Autenticação concluída. Redirecionando...');
-                navigate('/', {
-                    replace: true,
-                    state: {
-                        loginAlert: {
-                            mensagem,
-                            variacao: foiCadastro ? 'success' : 'info',
+
+                if (foiCadastro) {
+                    // Primeiro login: redirecionar para cadastro complementar
+                    navigate('/cadastrocomplementar', { replace: true });
+                } else {
+                    // Login subsequentes
+                    navigate('/', {
+                        replace: true,
+                        state: {
+                            loginAlert: {
+                                mensagem: 'Login confirmado.',
+                                variacao: 'info',
+                            },
                         },
-                    },
-                });
+                    });
+                }
             } catch (error) {
                 setStatus(error.message || 'Falha ao autenticar.');
             }

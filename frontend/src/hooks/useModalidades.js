@@ -7,7 +7,8 @@ import {
     deletarModalidade,
     validarModalidade,
     validarCampoFormulario,
-    validarCriterioAvaliacao,
+    validarCriterioAvaliacaoAtracao,
+    validarCriterioAvaliacaoSubmissao,
 } from '../services/modalidadeService';
 import {
     criarCampoFormulario,
@@ -16,11 +17,17 @@ import {
     pegarCampoFormulario,
 } from '../services/campoFormularioService';
 import {
-    criarCriterioAvaliacao,
-    atualizarCriterioAvaliacao,
-    deletarCriterioAvaliacao,
-    pegarCriterioAvaliacao,
-} from '../services/criterioAvaliacaoService';
+    criarCriterioAvaliacaoAtracao,
+    atualizarCriterioAvaliacaoAtracao,
+    deletarCriterioAvaliacaoAtracao,
+    pegarCriterioAvaliacaoAtracao,
+} from '../services/criterioAvaliacaoAtracaoService';
+import {
+    criarCriterioAvaliacaoSubmissao,
+    atualizarCriterioAvaliacaoSubmissao,
+    deletarCriterioAvaliacaoSubmissao,
+    pegarCriterioAvaliacaoSubmissao,
+} from '../services/criterioAvaliacaoSubmissaoService';
 
 const paraLista = (data) =>
     eArray(data) ? data : eArray(data?.results) ? data.results : [];
@@ -105,7 +112,15 @@ export const useModalidades = () => {
         try {
             // Extrai campos e criterios do payload, pois o endpoint de modalidade
             // não aceita esses relacionamentos no POST
-            const { campos = [], criterios = [], ...payload } = e || {};
+            const {
+                campos = [],
+                criterios = [],
+                criteriosAtracao,
+                criteriosSubmissao,
+                ...payload
+            } = e || {};
+            const criteriosAtracaoFinal = criteriosAtracao ?? criterios ?? [];
+            const criteriosSubmissaoFinal = criteriosSubmissao ?? [];
 
             const createdModalidade = await criarModalidade(payload);
             setModalidades((prev) => [createdModalidade, ...prev]);
@@ -119,14 +134,27 @@ export const useModalidades = () => {
                 ),
             );
 
-            await Promise.allSettled(
-                criterios.map((criterio) =>
-                    criarCriterioAvaliacao({
-                        ...criterio,
-                        modalidade: createdModalidade.id,
-                    }),
-                ),
-            );
+            if (payload.requer_avaliacao) {
+                await Promise.allSettled(
+                    criteriosAtracaoFinal.map((criterio) =>
+                        criarCriterioAvaliacaoAtracao({
+                            ...criterio,
+                            modalidade: createdModalidade.id,
+                        }),
+                    ),
+                );
+            }
+
+            if (payload.requer_avaliacao_submissao) {
+                await Promise.allSettled(
+                    criteriosSubmissaoFinal.map((criterio) =>
+                        criarCriterioAvaliacaoSubmissao({
+                            ...criterio,
+                            modalidade: createdModalidade.id,
+                        }),
+                    ),
+                );
+            }
 
             return createdModalidade;
         } catch (erro) {
@@ -138,19 +166,27 @@ export const useModalidades = () => {
     const sincronizarRelacionadosModalidade = async (
         modalidadeId,
         campos = [],
-        criterios = [],
+        criteriosAtracao = [],
+        criteriosSubmissao = [],
     ) => {
-        const [todosCampos, todosCriterios] = await Promise.all([
-            pegarCampoFormulario(),
-            pegarCriterioAvaliacao(),
-        ]);
+        const [todosCampos, todosCriteriosAtracao, todosCriteriosSubmissao] =
+            await Promise.all([
+                pegarCampoFormulario(),
+                pegarCriterioAvaliacaoAtracao(),
+                pegarCriterioAvaliacaoSubmissao(),
+            ]);
 
         const camposAtuais = filtrarPorModalidade(
             paraLista(todosCampos),
             modalidadeId,
         );
-        const criteriosAtuais = filtrarPorModalidade(
-            paraLista(todosCriterios),
+        const criteriosAtracaoAtuais = filtrarPorModalidade(
+            paraLista(todosCriteriosAtracao),
+            modalidadeId,
+        );
+
+        const criteriosSubmissaoAtuais = filtrarPorModalidade(
+            paraLista(todosCriteriosSubmissao),
             modalidadeId,
         );
 
@@ -164,26 +200,44 @@ export const useModalidades = () => {
         });
 
         await sincronizarListaRelacionada({
-            existentes: criteriosAtuais,
-            recebidos: criterios,
+            existentes: criteriosAtracaoAtuais,
+            recebidos: criteriosAtracao,
             modalidadeId,
-            criar: criarCriterioAvaliacao,
-            atualizar: atualizarCriterioAvaliacao,
-            deletar: deletarCriterioAvaliacao,
+            criar: criarCriterioAvaliacaoAtracao,
+            atualizar: atualizarCriterioAvaliacaoAtracao,
+            deletar: deletarCriterioAvaliacaoAtracao,
+        });
+
+        await sincronizarListaRelacionada({
+            existentes: criteriosSubmissaoAtuais,
+            recebidos: criteriosSubmissao,
+            modalidadeId,
+            criar: criarCriterioAvaliacaoSubmissao,
+            atualizar: atualizarCriterioAvaliacaoSubmissao,
+            deletar: deletarCriterioAvaliacaoSubmissao,
         });
     };
 
     const atualizarModalidades = async (id, dados) => {
         try {
-            const { campos = [], criterios = [], ...payload } = dados || {};
+            const {
+                campos = [],
+                criterios = [],
+                criteriosAtracao,
+                criteriosSubmissao,
+                ...payload
+            } = dados || {};
+            const criteriosAtracaoFinal = criteriosAtracao ?? criterios ?? [];
+            const criteriosSubmissaoFinal = criteriosSubmissao ?? [];
 
             const modalidadeAtualizada = await atualizarModalidade(id, payload);
 
             await sincronizarRelacionadosModalidade(
                 Number(id),
                 campos,
-                payload.requer_avaliacao || payload.requer_avaliacao_submissao
-                    ? criterios
+                payload.requer_avaliacao ? criteriosAtracaoFinal : [],
+                payload.requer_avaliacao_submissao
+                    ? criteriosSubmissaoFinal
                     : [],
             );
 
@@ -217,11 +271,19 @@ export const useModalidades = () => {
 
     const validarPayloadModalidade = async (payload, method = 'POST') => {
         // payload: { ...modalidadeFields, campos: [], criterios: [] }
-        const { campos = [], criterios = [], ...base } = payload || {};
-        const criteriosConsiderados =
-            base.requer_avaliacao || base.requer_avaliacao_submissao
-                ? criterios
-                : [];
+        const {
+            campos = [],
+            criterios = [],
+            criteriosAtracao,
+            criteriosSubmissao,
+            ...base
+        } = payload || {};
+        const criteriosAtracaoConsiderados = base.requer_avaliacao
+            ? criteriosAtracao ?? criterios ?? []
+            : [];
+        const criteriosSubmissaoConsiderados = base.requer_avaliacao_submissao
+            ? criteriosSubmissao ?? []
+            : [];
 
         // Valida tudo e agrega erros para exibir no formulario completo
         const erros = {};
@@ -236,12 +298,20 @@ export const useModalidades = () => {
             erros.campos = errosCampos;
         }
 
-        const errosCriterios = await validarLista(
-            criteriosConsiderados,
-            validarCriterioAvaliacao,
+        const errosCriteriosAtracao = await validarLista(
+            criteriosAtracaoConsiderados,
+            validarCriterioAvaliacaoAtracao,
         );
-        if (Object.keys(errosCriterios).length > 0) {
-            erros.criterios = errosCriterios;
+        if (Object.keys(errosCriteriosAtracao).length > 0) {
+            erros.criteriosAtracao = errosCriteriosAtracao;
+        }
+
+        const errosCriteriosSubmissao = await validarLista(
+            criteriosSubmissaoConsiderados,
+            validarCriterioAvaliacaoSubmissao,
+        );
+        if (Object.keys(errosCriteriosSubmissao).length > 0) {
+            erros.criteriosSubmissao = errosCriteriosSubmissao;
         }
 
         if (Object.keys(erros).length > 0) {
@@ -253,7 +323,8 @@ export const useModalidades = () => {
             payloadNormalizado: {
                 ...base,
                 campos,
-                criterios: criteriosConsiderados,
+                criteriosAtracao: criteriosAtracaoConsiderados,
+                criteriosSubmissao: criteriosSubmissaoConsiderados,
             },
         };
     };

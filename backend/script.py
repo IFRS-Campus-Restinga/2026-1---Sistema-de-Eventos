@@ -1,7 +1,6 @@
 import os
 import django
 
-
 GROUP_NAMES = [
     "Administrador",
     "Coordenador",
@@ -41,6 +40,38 @@ ESPACOS_DATA = [
         "ativo": True,
         "local_nome": "Campus Centro",
     },
+    {
+        "nome": "Sala 401",
+        "capacidade": 30,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Sala 402",
+        "capacidade": 20,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Sala 403",
+        "capacidade": 25,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
+    {
+        "nome": "Laboratório de Informática 2",
+        "capacidade": 40,
+        "predio_bloco": "Bloco B",
+        "recursos_disponiveis": "Computadores e internet",
+        "ativo": True,
+        "local_nome": "Campus Restinga",
+    },
 ]
 
 MODALIDADES_DATA = [
@@ -78,6 +109,18 @@ MODALIDADES_DATA = [
     },
 ]
 
+# Dicionário de Mapeamento para as chaves reais salvas no Banco (TextChoices)
+MAPA_AREAS_CHOICES = {
+    "Ciências Exatas e da Terra": "CIENCIAS_EXATAS_E_DA_TERRA",
+    "Ciências Biológicas": "CIENCIAS_BIOLOGICAS",
+    "Engenharias": "ENGENHARIAS",
+    "Ciências da Saúde": "CIENCIAS_DA_SAUDE",
+    "Ciências Agrárias": "CIENCIAS_AGRARIAS",
+    "Ciências Sociais Aplicadas": "CIENCIAS_SOCIAIS_APLICADAS",
+    "Ciências Humanas": "CIENCIAS_HUMANAS",
+    "Linguística, Letras e Artes": "LINGUISTICA_LETRAS_E_ARTES"
+}
+
 EVENTOS_DATA = [
     {
         "nome": "Semana Acadêmica de Tecnologia",
@@ -86,11 +129,12 @@ EVENTOS_DATA = [
         "carga_horaria": 20,
         "setor": "ENSINO",
         "tema": "Inovação e Tecnologia",
+        "link_edital": "https://ifrs.edu.br",
         "modalidades_nomes": ["Palestra", "Oficina", "Pôster"],
         "local_nome": "Campus Restinga",
         "areas_conhecimento": [
-            "CIENCIAS_EXATAS_E_DA_TERRA",
-            "ENGENHARIAS",
+            "Ciências Exatas e da Terra",
+            "Engenharias",
         ],
     },
     {
@@ -100,9 +144,10 @@ EVENTOS_DATA = [
         "carga_horaria": 12,
         "setor": "EXTENSAO",
         "tema": "Integração",
+        "link_edital": "https://ifrs.edu.br",
         "modalidades_nomes": ["Palestra", "Mesa-redonda"],
         "local_nome": "Campus Restinga",
-        "areas_conhecimento": ["CIENCIAS_HUMANAS", "CIENCIAS_SOCIAIS_APLICADAS"],
+        "areas_conhecimento": ["Ciências Humanas", "Ciências Sociais Aplicadas"],
     },
     {
         "nome": "Jornada de Pesquisa e Inovação",
@@ -111,12 +156,13 @@ EVENTOS_DATA = [
         "carga_horaria": 16,
         "setor": "PESQUISA",
         "tema": "Ciência, dados e inovação",
+        "link_edital": "https://ifrs.edu.br",
         "modalidades_nomes": ["Palestra", "Oficina", "Pôster"],
         "local_nome": "Campus Centro",
         "areas_conhecimento": [
-            "CIENCIAS_EXATAS_E_DA_TERRA",
-            "CIENCIAS_BIOLOGICAS",
-            "ENGENHARIAS",
+            "Ciências Exatas e da Terra",
+            "Ciências Biológicas",
+            "Engenharias",
         ],
     },
 ]
@@ -138,8 +184,8 @@ ETAPAS_DATA = [
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "INSCRICAO_PUBLICO",
-        "data_inicio": "2025-09-01 08:00:00",
-        "data_fim": "2025-10-15 23:59:59",
+        "data_inicio": "2026-04-01 08:00:00",
+        "data_fim": "2026-06-15 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
@@ -150,44 +196,43 @@ ETAPAS_DATA = [
     {
         "evento_nome": "Mostra de Extensão",
         "tipo_etapa": "INSCRICAO_PUBLICO",
-        "data_inicio": "2025-08-10 00:00:00",
-        "data_fim": "2025-09-10 23:59:59",
+        "data_inicio": "2026-05-10 00:00:00",
+        "data_fim": "2026-05-29 23:59:59",
     },
 ]
 
-# Atualize esta lista no seu arquivo de seed
 AREAS_DATA = [
     {
-        "area": "CIENCIAS_EXATAS_E_DA_TERRA", 
-        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos."
+        "area": "Ciências Exatas e da Terra",
+        "descricao": "Ciências que estudam a matéria, as leis da natureza e fenômenos matemáticos.",
     },
     {
-        "area": "CIENCIAS_BIOLOGICAS", 
-        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução."
+        "area": "Ciências Biológicas",
+        "descricao": "Estudo dos organismos vivos, sua estrutura, funções, crescimento e evolução.",
     },
     {
-        "area": "ENGENHARIAS", 
-        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura."
+        "area": "Engenharias",
+        "descricao": "Aplicação de conhecimentos científicos e técnicos para a criação de soluções e infraestrutura.",
     },
     {
-        "area": "CIENCIAS_DA_SAUDE", 
-        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças."
+        "area": "Ciências da Saúde",
+        "descricao": "Conhecimentos voltados para a prevenção, diagnóstico e tratamento de doenças.",
     },
     {
-        "area": "CIENCIAS_AGRARIAS", 
-        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais."
+        "area": "Ciências Agrárias",
+        "descricao": "Estudo de práticas agrícolas, pecuária e exploração sustentável de recursos naturais.",
     },
     {
-        "area": "CIENCIAS_SOCIAIS_APLICADAS", 
-        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas."
+        "area": "Ciências Sociais Aplicadas",
+        "descricao": "Estudo dos aspectos sociais do mundo humano e das relações jurídicas e econômicas.",
     },
     {
-        "area": "CIENCIAS_HUMANAS", 
-        "descricao": "Investigação do comportamento, cultura, história e sociedade humana."
+        "area": "Ciências Humanas",
+        "descricao": "Investigação do comportamento, cultura, história e sociedade humana.",
     },
     {
-        "area": "LINGUISTICA_LETRAS_E_ARTES", 
-        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais."
+        "area": "Linguística, Letras e Artes",
+        "descricao": "Estudo das linguagens, produção literária e manifestações artísticas e culturais.",
     },
 ]
 
@@ -199,7 +244,7 @@ ATRACOES_DATA = [
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "modalidade_nome": "Pôster",
         "nivel_ensino": "GRADUACAO",
-        "area_conhecimento": "CIENCIAS_EXATAS_E_DA_TERRA",
+        "area_conhecimento": "Ciências Exatas e da Terra",
         "status": "CONFIRMADA",
     },
     {
@@ -209,7 +254,7 @@ ATRACOES_DATA = [
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "modalidade_nome": "Oficina",
         "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
-        "area_conhecimento": "ENGENHARIAS",
+        "area_conhecimento": "Engenharias",
         "status": "CONFIRMADA",
     },
     {
@@ -219,7 +264,7 @@ ATRACOES_DATA = [
         "evento_nome": "Mostra de Extensão",
         "modalidade_nome": "Palestra",
         "nivel_ensino": "SUBSEQUENTE",
-        "area_conhecimento": "CIENCIAS_HUMANAS",
+        "area_conhecimento": "Ciências Humanas",
         "status": "CONFIRMADA",
     },
     {
@@ -229,7 +274,7 @@ ATRACOES_DATA = [
         "evento_nome": "Mostra de Extensão",
         "modalidade_nome": "Mesa-redonda",
         "nivel_ensino": "GRADUACAO",
-        "area_conhecimento": "CIENCIAS_SOCIAIS_APLICADAS",
+        "area_conhecimento": "Ciências Sociais Aplicadas",
         "status": "CONFIRMADA",
     },
     {
@@ -239,7 +284,7 @@ ATRACOES_DATA = [
         "evento_nome": "Jornada de Pesquisa e Inovação",
         "modalidade_nome": "Pôster",
         "nivel_ensino": "MESTRADO",
-        "area_conhecimento": "CIENCIAS_BIOLOGICAS",
+        "area_conhecimento": "Ciências Biológicas",
         "status": "CONFIRMADA",
     },
     {
@@ -249,7 +294,7 @@ ATRACOES_DATA = [
         "evento_nome": "Jornada de Pesquisa e Inovação",
         "modalidade_nome": "Oficina",
         "nivel_ensino": "POS_GRADUACAO",
-        "area_conhecimento": "ENGENHARIAS",
+        "area_conhecimento": "Engenharias",
         "status": "CONFIRMADA",
     },
 ]
@@ -368,8 +413,9 @@ def seed_areas():
 
     created_count = 0
     for item in AREAS_DATA:
+        chave_db = MAPA_AREAS_CHOICES.get(item["area"], item["area"])
         area, created = AreaConhecimento.objects.get_or_create(
-            area_conhecimento=item["area"], defaults={"descricao": item["descricao"]}
+            area_conhecimento=chave_db, defaults={"descricao": item["descricao"]}
         )
         if created:
             created_count += 1
@@ -377,20 +423,18 @@ def seed_areas():
 
 
 def seed_eventos():
-    from api.models.evento import Evento
-    from api.models.modalidade import Modalidade
-    from api.models.local import Local
     from api.models.area_conhecimento import AreaConhecimento
+    from api.models.evento import Evento
+    from api.models.local import Local
+    from api.models.modalidade import Modalidade
 
     for item in EVENTOS_DATA:
         local = Local.objects.filter(nome__iexact=item["local_nome"]).first()
 
-        # Primeiro, tentamos buscar o evento exatamente pelo nome
         evento = Evento.objects.filter(nome__iexact=item["nome"]).first()
         created = False
 
         if not evento:
-            # Se não existe, criamos um novo
             evento = Evento.objects.create(
                 nome=item["nome"],
                 descricao=item["descricao"],
@@ -398,17 +442,16 @@ def seed_eventos():
                 carga_horaria=item["carga_horaria"],
                 setor=item["setor"],
                 tema=item["tema"],
+                link_edital=item["link_edital"],
                 local=local,
             )
             created = True
 
-        # Vincular N:N (Sempre rodar para garantir que os vínculos existam)
         mods = Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
         evento.modalidades.set(mods)
 
-        areas = AreaConhecimento.objects.filter(
-            area_conhecimento__in=item["areas_conhecimento"]
-        )
+        chaves_areas = [MAPA_AREAS_CHOICES.get(nome, nome) for nome in item["areas_conhecimento"]]
+        areas = AreaConhecimento.objects.filter(area_conhecimento__in=chaves_areas)
         evento.area_conhecimento.set(areas)
 
         status = "criado" if created else "já existia"
@@ -426,23 +469,18 @@ def seed_atracoes():
     for item in ATRACOES_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(
-                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'."
-            )
+            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'.")
             continue
 
-        modalidade = Modalidade.objects.filter(
-            nome__iexact=item["modalidade_nome"]
-        ).first()
+        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade_nome"]).first()
         if not modalidade:
-            print(
-                f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'."
-            )
+            print(f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'.")
             continue
 
-        atracao = Atracao.objects.filter(
-            titulo__iexact=item["titulo"], evento=evento
-        ).first()
+        # Converte o nome amigável para a chave de choice correspondente (ex: "CIENCIAS_EXATAS_E_DA_TERRA")
+        chave_area = MAPA_AREAS_CHOICES.get(item["area_conhecimento"], item["area_conhecimento"])
+
+        atracao = Atracao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
         if atracao:
             existing.append(atracao.titulo)
             continue
@@ -453,7 +491,7 @@ def seed_atracoes():
             palavras_chave=item["palavras_chave"],
             modalidade=modalidade,
             nivel_ensino=item["nivel_ensino"],
-            area_conhecimento=item["area_conhecimento"],
+            area_conhecimento=chave_area, 
             evento=evento,
             status=item["status"],
             sou_orientador=False,
@@ -469,10 +507,11 @@ def seed_atracoes():
 
 
 def seed_etapas():
+    from django.utils import timezone
+    from django.utils.dateparse import parse_datetime
+
     from api.models.etapa_evento import EtapaEvento
     from api.models.evento import Evento
-    from django.utils.dateparse import parse_datetime
-    from django.utils import timezone
 
     created_count = 0
     existing_count = 0
@@ -480,15 +519,12 @@ def seed_etapas():
     for item in ETAPAS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(
-                f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}."
-            )
+            print(f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}.")
             continue
 
         data_inicio = parse_datetime(item["data_inicio"])
         data_fim = parse_datetime(item["data_fim"])
 
-        # Convert naive datetimes to timezone-aware
         if data_inicio and timezone.is_naive(data_inicio):
             data_inicio = timezone.make_aware(data_inicio)
         if data_fim and timezone.is_naive(data_fim):
@@ -522,14 +558,10 @@ def seed_arquivos():
     for item in ARQUIVOS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(
-                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo."
-            )
+            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo.")
             continue
 
-        arquivo_obj = Arquivo.objects.filter(
-            nome_arquivo__iexact=item["nome_arquivo"], evento=evento
-        ).first()
+        arquivo_obj = Arquivo.objects.filter(nome_arquivo__iexact=item["nome_arquivo"], evento=evento).first()
 
         if arquivo_obj:
             existing.append(item["nome_arquivo"])
@@ -549,7 +581,6 @@ def seed_arquivos():
 
 
 def seed_admin_user():
-    """Cria um superusuário padrão 'admin' com senha 'admin' e o adiciona ao grupo 'Administrador'."""
     from django.contrib.auth import get_user_model
     from django.contrib.auth.models import Group
 
@@ -562,18 +593,13 @@ def seed_admin_user():
     if user:
         print(f"Superusuário '{username}' já existe.")
     else:
-        # email obrigatório pode variar; usar email genérico
         try:
-            User.objects.create_superuser(
-                username=username, email="admin@example.com", password=password
-            )
+            User.objects.create_superuser(username=username, email="admin@example.com", password=password)
             print(f"Superusuário '{username}' criado com sucesso.")
         except TypeError:
-            # alguns projetos usam campos personalizados (ex.: sem email)
             user = User.objects.create_superuser(username=username, password=password)
             print(f"Superusuário '{username}' criado (compatibilidade sem email).")
 
-    # garantir que o grupo exista e adicionar o usuário
     group, _ = Group.objects.get_or_create(name=group_name)
     user = User.objects.get(username=username)
     user.groups.add(group)

@@ -1,11 +1,13 @@
-from django.db import models
-from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.conf import settings
-from ..enumerations.status_atracao import StatusAtracao
+from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.db import models
+
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.status_atracao import StatusAtracao
 from .base import Base
 from .evento import Evento
+from .espaco import Espaco
 from .modalidade import Modalidade
 
 
@@ -87,14 +89,44 @@ class Atracao(Base):
 
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
+    espaco = models.ForeignKey(
+        Espaco,
+        on_delete=models.SET_NULL,
+        related_name="atracoes",
+        verbose_name="Espaço",
+        null=True,
+        blank=True,
+    )
     local_atracao = models.CharField(
-        max_length=200, null=True, blank=True
-    )  # vira relação com local/espaço
+        max_length=200,
+        null=True,
+        blank=True,
+        verbose_name="Local",
+        help_text="Descrição legada do local da atração",
+    )
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        errors = {}
+
+        if self.espaco_id and self.evento_id:
+            espaco_local_id = getattr(self.espaco, "local_id", None)
+            evento_local_id = getattr(self.evento, "local_id", None)
+
+            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+                errors["espaco"] = (
+                    "O espaço selecionado precisa pertencer ao mesmo local do evento."
+                )
+
+        if errors:
+            raise ValidationError(errors)
 
     class Meta(Base.Meta):
         verbose_name = "Atração / Submissão"
         verbose_name_plural = "Atrações / Submissões"
         ordering = ["-id"]
+        permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
 
     def __str__(self):
         return f"{self.titulo} — {self.evento}"

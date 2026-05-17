@@ -1,17 +1,19 @@
+from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxLengthValidator,
     MaxValueValidator,
     MinValueValidator,
 )
 from django.db import models
-from django.contrib import admin
-from ..enumerations.status_evento import StatusEvento
+from django.utils.text import slugify
+
 from ..enumerations.setor import Setor
-from .base import Base
-from .modalidade import Modalidade
-from .local import Local
+from ..enumerations.status_evento import StatusEvento
 from .area_conhecimento import AreaConhecimento
-from django.core.exceptions import ValidationError
+from .base import Base
+from .local import Local
+from .modalidade import Modalidade
 
 
 class Evento(Base):
@@ -49,24 +51,31 @@ class Evento(Base):
         max_length=100,
         validators=[MaxLengthValidator(100)],
     )
-    local = models.ForeignKey(Local, on_delete=models.CASCADE, null=False,blank=False)
-    modalidades = models.ManyToManyField(Modalidade,
-                                         related_name="eventos",
-                                         null=False,
-                                         blank=False)
-    area_conhecimento = models.ManyToManyField(AreaConhecimento,
-                                               related_name="eventos",
-                                               verbose_name="áreas de conhecimento",
-                                               null=False,
-                                               blank=False)
-    
+    local = models.ForeignKey(Local, on_delete=models.RESTRICT, null=False, blank=False)
+    modalidades = models.ManyToManyField(
+        Modalidade, related_name="eventos", null=False, blank=False
+    )
+    area_conhecimento = models.ManyToManyField(
+        AreaConhecimento,
+        related_name="eventos",
+        verbose_name="áreas de conhecimento",
+        null=False,
+        blank=False,
+    )
+    link_edital = models.URLField(max_length=500, null=True, blank=True)
 
-    # futuramente, fazer relacionamento com local
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        default="",
+    )
+
     class Meta:
         permissions = [
             ("coordenar_evento", "Pode coordenar este evento"),
             ("disabilitar_evento", "Pode desativar este evento"),
             ("organiza_evento", "Pode organizar este evento"),
+            ("avaliador_evento", "Pode atuar como avaliador neste evento"),
         ]
 
     modalidades = models.ManyToManyField(
@@ -93,12 +102,16 @@ class Evento(Base):
             errors["setor"] = "Este campo não pode estar em branco"
         elif self.status_evento == "" or not self.status_evento.strip():
             errors["status_evento"] = "Este campo não pode estar em branco"
-        if not hasattr(self, 'local') or self.local is None:
+        if not hasattr(self, "local") or self.local is None:
             errors["local"] = "Você deve selecionar um local para o evento."
-        
 
         if errors:
             raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        if self.slug is None or self.slug == "":
+            self.slug = slugify(self.nome)
+        super().save(*args, **kwargs)
 
 
 class EventoAdmin(admin.ModelAdmin):

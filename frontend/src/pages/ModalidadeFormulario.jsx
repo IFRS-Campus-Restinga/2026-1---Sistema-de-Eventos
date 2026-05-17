@@ -18,7 +18,8 @@ import { useModalidades } from '../hooks/useModalidades';
 import { useTipoCampo } from '../hooks/useTipoCampo';
 import { pegarModalidade } from '../services/modalidadeService';
 import { pegarCampoFormulario } from '../services/campoFormularioService';
-import { pegarCriterioAvaliacao } from '../services/criterioAvaliacaoService';
+import { pegarCriterioAvaliacaoAtracao } from '../services/criterioAvaliacaoAtracaoService';
+import { pegarCriterioAvaliacaoSubmissao } from '../services/criterioAvaliacaoSubmissaoService';
 import eArray from '../utils/eArray';
 
 export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
@@ -36,7 +37,11 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     const [limiteAvaliadores, setLimiteAvaliadores] = useState(0);
     const [carregandoEdicao, setCarregandoEdicao] = useState(false);
     const [camposIniciais, setCamposIniciais] = useState([]);
-    const [criteriosIniciais, setCriteriosIniciais] = useState([]);
+    const [criteriosAtracaoIniciais, setCriteriosAtracaoIniciais] = useState(
+        [],
+    );
+    const [criteriosSubmissaoIniciais, setCriteriosSubmissaoIniciais] =
+        useState([]);
 
     const {
         submeterModalidade,
@@ -52,7 +57,8 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     });
 
     const formularioCampos = useFormularioDinamico();
-    const formularioCriterios = useFormularioDinamico();
+    const formularioCriteriosAtracao = useFormularioDinamico();
+    const formularioCriteriosSubmissao = useFormularioDinamico();
 
     const paraArray = (data) =>
         eArray(data) ? data : eArray(data?.results) ? data.results : [];
@@ -90,15 +96,21 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
 
             setCarregandoEdicao(true);
             try {
-                const [modalidadeData, campoData, criterioData] =
-                    await Promise.all([
-                        pegarModalidade(id),
-                        pegarCampoFormulario(),
-                        pegarCriterioAvaliacao(),
-                    ]);
+                const [
+                    modalidadeData,
+                    campoData,
+                    criterioAtracaoData,
+                    criterioSubmissaoData,
+                ] = await Promise.all([
+                    pegarModalidade(id),
+                    pegarCampoFormulario(),
+                    pegarCriterioAvaliacaoAtracao(),
+                    pegarCriterioAvaliacaoSubmissao(),
+                ]);
 
                 const campos = paraArray(campoData);
-                const criterios = paraArray(criterioData);
+                const criteriosAtracao = paraArray(criterioAtracaoData);
+                const criteriosSubmissao = paraArray(criterioSubmissaoData);
 
                 setTitulo(modalidadeData?.nome || '');
                 setRequerAvaliacao(Boolean(modalidadeData?.requer_avaliacao));
@@ -115,8 +127,14 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                         (campo) => Number(campo.modalidade) === Number(id),
                     ),
                 );
-                setCriteriosIniciais(
-                    criterios.filter(
+                setCriteriosAtracaoIniciais(
+                    criteriosAtracao.filter(
+                        (criterio) =>
+                            Number(criterio.modalidade) === Number(id),
+                    ),
+                );
+                setCriteriosSubmissaoIniciais(
+                    criteriosSubmissao.filter(
                         (criterio) =>
                             Number(criterio.modalidade) === Number(id),
                     ),
@@ -135,12 +153,18 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
         if (carregandoEdicao) return;
 
         const campos = formularioCampos.paraArray();
-        const criterios = formularioCriterios.paraArray();
+        const criteriosAtracao = formularioCriteriosAtracao.paraArray();
+        const criteriosSubmissao = formularioCriteriosSubmissao.paraArray();
 
         let res;
 
         try {
-            const payload = { ...basePayloadMemo, campos, criterios };
+            const payload = {
+                ...basePayloadMemo,
+                campos,
+                criteriosAtracao,
+                criteriosSubmissao,
+            };
             if (modoEdicao)
                 res = await submeterAtualizacaoModalidade(id, payload);
             else res = await submeterModalidade(payload);
@@ -162,7 +186,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             'success',
         );
         setTimeout(() => {
-            navigate('/listarModalidades');
+            navigate('/listar_modalidades');
         }, 3000);
     }
 
@@ -173,7 +197,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             await excluirModalidades(id);
             mostrarAlerta('Modalidade excluída com sucesso.', 'success');
             setTimeout(() => {
-                navigate('/listarModalidades');
+                navigate('/listar_modalidades');
             }, 3000);
         } catch {
             mostrarAlerta('Não foi possível excluir a modalidade.');
@@ -202,7 +226,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                     },
                                     {
                                         name: 'requer_avaliacao',
-                                        titulo: 'Requer Avaliação',
+                                        titulo: 'Requer Avaliação da atração',
                                         tipo: 'switch',
                                         preValue: requerAvaliacao,
                                         onChange: (e) => setRequerAvaliacao(e),
@@ -305,16 +329,16 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                     },
                                 ]}
                             />
-                            {(requerAvaliacao || requerAvaliacaoSubmissao) && (
+                            {requerAvaliacao && (
                                 <FormularioCustomizado
                                     add
-                                    titulo="Critérios de Avaliação"
+                                    titulo="Critérios de Avaliação de Atração"
                                     Icone={<LuPencil size={30} />}
                                     corTexto="#00A44B"
-                                    erros={erros.criterios || {}}
-                                    gruposIniciais={criteriosIniciais}
+                                    erros={erros.criteriosAtracao || {}}
+                                    gruposIniciais={criteriosAtracaoIniciais}
                                     aoRemoverGrupo={(chaveInst) =>
-                                        formularioCriterios.removerInstancia(
+                                        formularioCriteriosAtracao.removerInstancia(
                                             chaveInst,
                                         )
                                     }
@@ -329,7 +353,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                                 instKey,
                                                 fieldName,
                                             ) =>
-                                                formularioCriterios.aoAlterar(
+                                                formularioCriteriosAtracao.aoAlterar(
                                                     val,
                                                     instKey,
                                                     fieldName,
@@ -346,7 +370,57 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                                 instKey,
                                                 fieldName,
                                             ) =>
-                                                formularioCriterios.aoAlterar(
+                                                formularioCriteriosAtracao.aoAlterar(
+                                                    val,
+                                                    instKey,
+                                                    fieldName,
+                                                ),
+                                        },
+                                    ]}
+                                />
+                            )}
+                            {requerAvaliacaoSubmissao && (
+                                <FormularioCustomizado
+                                    add
+                                    titulo="Critérios de Avaliação de Submissão"
+                                    Icone={<LuPencil size={30} />}
+                                    corTexto="#00A44B"
+                                    erros={erros.criteriosSubmissao || {}}
+                                    gruposIniciais={criteriosSubmissaoIniciais}
+                                    aoRemoverGrupo={(chaveInst) =>
+                                        formularioCriteriosSubmissao.removerInstancia(
+                                            chaveInst,
+                                        )
+                                    }
+                                    campos={[
+                                        {
+                                            name: 'nome',
+                                            titulo: 'Nome do Critério',
+                                            tipo: 'text',
+                                            preValue: '',
+                                            onChange: (
+                                                val,
+                                                instKey,
+                                                fieldName,
+                                            ) =>
+                                                formularioCriteriosSubmissao.aoAlterar(
+                                                    val,
+                                                    instKey,
+                                                    fieldName,
+                                                ),
+                                        },
+
+                                        {
+                                            name: 'descricao',
+                                            titulo: 'Descrição do Critério',
+                                            tipo: 'text',
+                                            preValue: '',
+                                            onChange: (
+                                                val,
+                                                instKey,
+                                                fieldName,
+                                            ) =>
+                                                formularioCriteriosSubmissao.aoAlterar(
                                                     val,
                                                     instKey,
                                                     fieldName,

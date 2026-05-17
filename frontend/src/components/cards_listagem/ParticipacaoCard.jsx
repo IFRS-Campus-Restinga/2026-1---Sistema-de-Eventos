@@ -4,6 +4,7 @@ import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Tag from '../common/Tag';
+import formatNivelEnsino from '../../utils/formatNivelEnsino';
 import { FaCheckCircle } from 'react-icons/fa';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { ImBubbles } from 'react-icons/im';
@@ -70,7 +71,8 @@ export default function ParticipacaoCard({
                                 </Button>
                             ) : null}
                             <span className="text-secondary mx-3">
-                                | ID #{id} | {tipoAtracao} - {nivel}
+                                | ID #{id} | {tipoAtracao} -{' '}
+                                {formatNivelEnsino(nivel)}
                             </span>
                             <Tag {...tag} />
                         </Col>

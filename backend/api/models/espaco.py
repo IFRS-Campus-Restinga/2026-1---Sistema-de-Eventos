@@ -25,7 +25,7 @@ class Espaco(Base):
         help_text=_("Recursos disponíveis no espaço. Ex.: projetor, computador."),
     )
     ativo = models.BooleanField(verbose_name=_("Ativo"))
-    local = models.ForeignKey(Local, on_delete=models.CASCADE, related_name="espacos")
+    local = models.ForeignKey(Local, on_delete=models.RESTRICT, related_name="espacos")
 
     class Meta:
         permissions = [

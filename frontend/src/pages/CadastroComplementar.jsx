@@ -22,67 +22,15 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
         notificacao,
         usuarioHub,
         carregandoUsuario,
-        erroValidacao,
-        setErroValidacao,
+        erros,
     } = useCadastroComplementar();
 
     const { csrfToken } = useCsrf();
-
     const [nivelSelecionado, setNivelSelecionado] = useState('');
     const [areaSelecionada, setAreaSelecionada] = useState('');
-    const [errosIndividuais, setErrosIndividuais] = useState({});
 
     const clicarEmSalvar = () => {
         if (!usuarioHub) return;
-
-        const camposFaltantes = [];
-        const errosLocais = {};
-
-        if (!nivelSelecionado) {
-            camposFaltantes.push('o Nível de Ensino');
-            errosLocais.nivel = 'Campo obrigatório';
-        } else if (
-            !opcoes.niveis.some(
-                (n) => String(n.id) === String(nivelSelecionado),
-            )
-        ) {
-            errosLocais.nivel = 'Opção inválida';
-        }
-
-        if (!areaSelecionada) {
-            camposFaltantes.push('a Área de Conhecimento');
-            errosLocais.area = 'Campo obrigatório';
-        } else if (
-            !opcoes.areas.some((a) => String(a.id) === String(areaSelecionada))
-        ) {
-            errosLocais.area = 'Opção inválida';
-        }
-
-        setErrosIndividuais(errosLocais);
-
-        if (camposFaltantes.length > 0) {
-            const mensagem = `Por favor, selecione ${camposFaltantes.join(
-                ' e ',
-            )}.`;
-            setErroValidacao('');
-            setTimeout(() => setErroValidacao(mensagem), 50);
-            return;
-        }
-
-        if (errosLocais.nivel || errosLocais.area) {
-            setErroValidacao('');
-            setTimeout(
-                () =>
-                    setErroValidacao(
-                        'Opção selecionada inválida. Por favor, recarregue a página.',
-                    ),
-                50,
-            );
-            return;
-        }
-
-        setErroValidacao('');
-        setErrosIndividuais({});
 
         const dados = {
             nivel_ensino: nivelSelecionado,
@@ -95,6 +43,7 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
         <div className="d-flex flex-column min-vh-100">
             <NavBar />
 
+            {/* O Alerta global é mantido apenas para erros de negócio ou de servidor */}
             {notificacao.mensagem && (
                 <Alerta
                     mensagem={notificacao.mensagem}
@@ -104,8 +53,8 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
 
             <main className="d-flex flex-column flex-grow-1">
                 <Container className="d-flex flex-grow-1 align-items-center justify-content-center">
-                    <Col xs={16} sm={14} md={12} lg={10} xl={8}>
-                        <Row className="p-1 w-100 shadow-lg rounded overflow-hidden">
+                    <Col xs={12} sm={12} md={10} lg={8} xl={8}>
+                        <Row className="shadow-lg rounded overflow-hidden mx-2 my-3">
                             <Col
                                 md={5}
                                 className="p-4 d-flex flex-column justify-content-between rounded"
@@ -157,21 +106,11 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                     />
                                 ) : (
                                     <>
-                                        {erroValidacao && (
-                                            <Alerta
-                                                mensagem={erroValidacao}
-                                                variacao="warning"
-                                            />
-                                        )}
-
                                         <Form>
                                             <Form.Group
-                                                className={`text-start ${
-                                                    errosIndividuais.nivel
-                                                        ? 'mb-3'
-                                                        : 'mb-3 pb-4'
-                                                }`}
+                                                className="text-start mb-3 pb-4"
                                                 controlId="nivelEnsino"
+                                                style={{ minHeight: '95px' }}
                                             >
                                                 <Form.Label className="fw-bold small mb-1">
                                                     Nível de Ensino
@@ -180,34 +119,24 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                                     textFundo="Selecione o Nível de Ensino"
                                                     grupos={opcoes.niveis}
                                                     value={nivelSelecionado}
-                                                    onChange={(e) => {
+                                                    onChange={(e) =>
                                                         setNivelSelecionado(
                                                             e.target.value,
-                                                        );
-                                                        setErroValidacao('');
-                                                        setErrosIndividuais(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                nivel: '',
-                                                            }),
-                                                        );
-                                                    }}
+                                                        )
+                                                    }
                                                     isInvalid={
-                                                        !!errosIndividuais.nivel
-                                                    }
+                                                        !!erros?.nivel_ensino
+                                                    } // 2. Aplicação da regra visual de erro
                                                     mensagemErro={
-                                                        errosIndividuais.nivel
-                                                    }
+                                                        erros?.nivel_ensino
+                                                    } // 3. Passagem do texto do erro
                                                 />
                                             </Form.Group>
 
                                             <Form.Group
-                                                className={`text-start ${
-                                                    errosIndividuais.area
-                                                        ? 'mb-4'
-                                                        : 'mb-4 pb-4'
-                                                }`}
+                                                className="text-start mb-3 pb-4"
                                                 controlId="areaConhecimento"
+                                                style={{ minHeight: '95px' }}
                                             >
                                                 <Form.Label className="fw-bold small mb-1">
                                                     Área do conhecimento
@@ -216,23 +145,16 @@ export default function CadastroComplementar({ campus = 'Campus Restinga' }) {
                                                     textFundo="Selecione a Área"
                                                     grupos={opcoes.areas}
                                                     value={areaSelecionada}
-                                                    onChange={(e) => {
+                                                    onChange={(e) =>
                                                         setAreaSelecionada(
                                                             e.target.value,
-                                                        );
-                                                        setErroValidacao('');
-                                                        setErrosIndividuais(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                area: '',
-                                                            }),
-                                                        );
-                                                    }}
+                                                        )
+                                                    }
                                                     isInvalid={
-                                                        !!errosIndividuais.area
+                                                        !!erros?.area_conhecimento
                                                     }
                                                     mensagemErro={
-                                                        errosIndividuais.area
+                                                        erros?.area_conhecimento
                                                     }
                                                 />
                                             </Form.Group>

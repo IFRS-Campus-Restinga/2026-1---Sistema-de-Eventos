@@ -5,9 +5,24 @@ import AuthButton from '../common/AuthButton';
 import IFLogo from '../common/IFLogo';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { BsBell } from 'react-icons/bs';
+import { Link, useNavigate } from 'react-router-dom';
+import { getSelectedEventoId } from '../../utils/selectedEvento';
 
 export default function NavBar() {
     const expand = 'xl';
+    const navigate = useNavigate();
+
+    const handleGestaoClick = (event) => {
+        event.preventDefault();
+        const eventoId = getSelectedEventoId();
+
+        if (eventoId) {
+            navigate(`/dashboard/${eventoId}`);
+            return;
+        }
+
+        navigate('/listar_eventos');
+    };
     return (
         <Navbar
             key={expand}
@@ -49,37 +64,43 @@ export default function NavBar() {
                     </Offcanvas.Header>
                     <Offcanvas.Body>
                         <Nav className="justify-content-center flex-grow-1 pe-3 gap-5 ">
-                            <Nav.Link href="/" className="text-white fw-bold">
+                            <Nav.Link
+                                as={Link}
+                                to="/"
+                                className="text-white fw-bold"
+                            >
                                 Home
                             </Nav.Link>
                             <Nav.Link
-                                href="/meusEventos"
+                                as={Link}
+                                to="/meus_eventos"
                                 className="text-white fw-bold"
                             >
                                 Meus Eventos
                             </Nav.Link>
-                            <Nav.Link href="#" className="text-white fw-bold">
+                            <Nav.Link
+                                as={Link}
+                                to="/meus_eventos_avaliador"
+                                className="text-white fw-bold"
+                            >
                                 Avaliações
                             </Nav.Link>
                             <Nav.Link
-                                href="/dashboard"
+                                as={Link}
+                                to="/dashboard"
                                 className="text-white fw-bold"
+                                onClick={handleGestaoClick}
                             >
                                 Gestão
                             </Nav.Link>
+                            
                             <div className="d-flex d-xl-none">
                                 <div className="pe-3 d-flex fw-bold">
                                     <AuthButton />
                                 </div>
                             </div>
                             <div className="d-flex d-xl-none">
-                                <div className="pe-3 d-flex flex-column justify-content-center fw-bold">
-                                    <BsBell
-                                        size={20}
-                                        color="#fff"
-                                        style={{ cursor: 'pointer' }}
-                                    />
-                                </div>
+                                <div className="pe-3 d-flex flex-column justify-content-center fw-bold"></div>
                             </div>
 
                             <div className="d-none d-xl-flex position-absolute end-0 top-50 translate-middle-y pe-5">

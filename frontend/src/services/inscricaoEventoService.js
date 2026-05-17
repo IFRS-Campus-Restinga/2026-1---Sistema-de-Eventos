@@ -66,3 +66,53 @@ export const cancelarInscricaoEvento = async (inscricaoId) => {
 
     return response.data;
 };
+
+export const marcarPresencaInscricaoEvento = async (inscricao) => {
+    if (!inscricao?.id) throw new Error('id da inscrição é obrigatório');
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const payload = {
+        status: inscricao.status,
+        perfil_id: inscricao.perfil_id,
+        evento_id: inscricao.evento_id,
+        presente: true,
+    };
+
+    const response = await axios.put(
+        `${API_URL}/api/inscricoes_eventos/${inscricao.id}/`,
+        payload,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const retirarPresencaInscricaoEvento = async (inscricao) => {
+    if (!inscricao?.id) throw new Error('id da inscrição é obrigatório');
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const payload = {
+        status: inscricao.status,
+        perfil_id: inscricao.perfil_id,
+        evento_id: inscricao.evento_id,
+        presente: false,
+    };
+
+    const response = await axios.put(
+        `${API_URL}/api/inscricoes_eventos/${inscricao.id}/`,
+        payload,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};

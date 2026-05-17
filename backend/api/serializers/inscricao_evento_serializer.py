@@ -8,8 +8,19 @@ from ..models.perfil import Perfil
 
 
 class InscricaoEventoSerializer(serializers.ModelSerializer):
+    # para fins de criar uma lista mais bonitinha
+    perfil_usuario_nome = serializers.CharField(
+        source="perfil.usuario.nome", read_only=True
+    )
+
     perfil_usuario_id = serializers.IntegerField(
         source="perfil.usuario.id", read_only=True
+    )
+    perfil_usuario_email = serializers.CharField(
+        source="perfil.usuario.email", read_only=True, allow_null=True
+    )
+    perfil_usuario_cpf = serializers.CharField(
+        source="perfil.usuario.cpf", read_only=True, allow_null=True
     )
     perfil_id = serializers.PrimaryKeyRelatedField(
         queryset=Perfil.objects.all(),
@@ -19,6 +30,7 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
         queryset=Evento.objects.all(),
         source="evento",
     )
+    evento_slug = serializers.CharField(source="evento.slug", read_only=True)
 
     def validate(self, attrs):
         perfil = attrs.get("perfil") or getattr(self.instance, "perfil", None)
@@ -102,8 +114,12 @@ class InscricaoEventoSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "data_hora",
+            "perfil_usuario_nome",
             "perfil_usuario_id",
+            "perfil_usuario_email",
+            "perfil_usuario_cpf",
             "perfil_id",
             "evento_id",
+            "evento_slug",
             "presente",
         ]
