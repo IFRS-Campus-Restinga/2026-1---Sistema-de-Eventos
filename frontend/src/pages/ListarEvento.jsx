@@ -42,6 +42,7 @@ import {
 } from '../utils/selectedEvento';
 import { getCurrentUser } from '../services/authService';
 
+
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
     const [carregando, setCarregando] = useState(true);

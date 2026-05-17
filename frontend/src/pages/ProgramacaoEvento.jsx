@@ -5,13 +5,16 @@ import { useParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import AtracaoCard from '../components/common/AtracaoCard';
+import ModalPopup from '../components/common/ModalPopup';
 
 export default function ProgramacaoEvento() {
     const { id } = useParams();
     const verdeIFRS = "#00A44B";
     const [termoBusca, setTermoBusca] = useState('');
-    const [turnoAtivo, setTurnoAtivo] = useState('manha');
+    const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [paginaAtual, setPaginaAtual] = useState(1);
+    const [showModal, setShowModal] = useState(false);
+    const [atracaoResumo,setAtracaoResumo] = useState(null)
     const itensPorPagina = 3;
 
     const obterCorPorTag = (texto) => {
@@ -34,9 +37,10 @@ export default function ProgramacaoEvento() {
                 {
                     hora: "08:30",
                     sessao: "Sessão 1",
-                    turno: "manha",
+                    turno: "manhã",
                     corCard: "#3B82F6",
                     titulo: "Desenvolvimento de Concreto Sustentável com Resíduos",
+                    descricao: "Este trabalho apresenta o estudo de misturas de concreto utilizando resíduos de demolição civil como agregados substitutos, visando a redução do impacto ambiental na construção civil.",
                     tags: [{ texto: "Apresentação Oral" }, { texto: "Engenharias" }],
                     autores: ["Carlos Lima", "Ana Souza"],
                     local: "Sala 304 - Bloco 3",
@@ -45,9 +49,10 @@ export default function ProgramacaoEvento() {
                 {
                     hora: "09:00",
                     sessao: "Sessão 2",
-                    turno: "manha",
+                    turno: "manhã",
                     corCard: "#EAB308",
                     titulo: "Introdução ao Arduino: Construindo seu primeiro robô",
+                    descricao: "Oficina prática voltada para iniciantes. Serão abordados os conceitos fundamentais de eletrônica digital, portas lógicas e programação aplicada à robótica educacional.",
                     tags: [{ texto: "Oficina" }, { texto: "Ciências Exatas" }],
                     autores: ["Jaqueline Costa"],
                     local: "Sala 302 - Bloco 3",
@@ -56,9 +61,10 @@ export default function ProgramacaoEvento() {
                 {
                     hora: "09:30",
                     sessao: "Sessão 3",
-                    turno: "manha",
+                    turno: "manhã",
                     corCard: "#06B6D4",
                     titulo: "Segurança de Dados em Redes Locais",
+                    descricao: "Discussão técnica sobre as principais vulnerabilidades em infraestruturas de redes locais e roteamento, abordando táticas preventivas e ferramentas de monitoramento de tráfego.",
                     tags: [{ texto: "Apresentação Oral" }, { texto: "Informatica" }],
                     autores: ["Roberto Silveira"],
                     local: "Sala 101 - Bloco 1",
@@ -72,9 +78,10 @@ export default function ProgramacaoEvento() {
                 {
                     hora: "10:30",
                     sessao: "Sessão 1",
-                    turno: "manha",
+                    turno: "manhã",
                     corCard: "#DB2777",
                     titulo: "Intervenção Teatral: O Homem e a Ciência",
+                    descricao: "Performance artística que reflete sobre o papel do cientista na sociedade moderna, os limites éticos do avanço computacional e a desmistificação da tecnologia na periferia.",
                     tags: [{ texto: "Performance Artística" }, { texto: "Letras e Artes" }],
                     autores: ["Jose Silva", "Ana Terra"],
                     local: "Auditório Mirele",
@@ -83,9 +90,10 @@ export default function ProgramacaoEvento() {
                 {
                     hora: "11:15",
                     sessao: "Sessão 2",
-                    turno: "manha",
+                    turno: "manhã",
                     corCard: "#111827",
                     titulo: "Aplicações de IA na Agricultura Familiar",
+                    descricao: "Apresentação de projeto que utiliza visão computacional simples para identificação de pragas comuns em hortaliças, otimizando o manejo agrícola sem o uso de defensivos pesados.",
                     tags: [{ texto: "Tecnologia" }, { texto: "Engenharias" }],
                     autores: ["Marcos Nunes", "Lucas Rocha"],
                     local: "Laboratório 2 - Bloco 1",
@@ -102,6 +110,7 @@ export default function ProgramacaoEvento() {
                     turno: "tarde",
                     corCard: "#EAB308",
                     titulo: "Oficina Avançada de Django Rest Framework",
+                    descricao: "Construção passo a passo de uma API REST robusta, abordando autenticação baseada em JWT, customização de querysets com managers e boas práticas de arquitetura de software.",
                     tags: [{ texto: "Oficina" }, { texto: "Tecnologia" }],
                     autores: ["Pedro Henrique", "Maria Eduarda"],
                     local: "Mini Auditório - Bloco 4",
@@ -113,6 +122,7 @@ export default function ProgramacaoEvento() {
                     turno: "tarde",
                     corCard: "#8B5CF6",
                     titulo: "Mini-curso de Criação de Interfaces com Figma",
+                    descricao: "Abordagem prática de UI/UX design. Os participantes aprenderão a criar componentes dinâmicos, auto-layout responsivo e protótipos navegáveis prontos para validação de produto.",
                     tags: [{ texto: "Oficina" }, { texto: "Letras e Artes" }],
                     autores: ["Maria Eduarda"],
                     local: "Sala 202 - Bloco 2",
@@ -129,6 +139,7 @@ export default function ProgramacaoEvento() {
                     turno: "noite",
                     corCard: "#212529",
                     titulo: "Mesa Redonda: O Futuro da Computação e do ADS na Região",
+                    descricao: "Profissionais do mercado e do setor público debatem as demandas atuais de TI, o mercado para desenvolvedores juniores e os rumos das tecnologias web e mobile na Zona Sul.",
                     tags: [{ texto: "Apresentação Oral" }, { texto: "Tecnologia" }],
                     autores: ["Professor IFRS", "Convidado MPRS"],
                     local: "Auditório Principal",
@@ -139,6 +150,10 @@ export default function ProgramacaoEvento() {
     ];
 
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
+    const selecionarAtracaoResumo = (atracao) => {
+            setAtracaoResumo(atracao)
+            setShowModal(true)
+        }
 
     useEffect(() => {
         setPaginaAtual(1);
@@ -218,7 +233,7 @@ export default function ProgramacaoEvento() {
                 <section style={{ backgroundColor: verdeIFRS, color: 'white' }} className="py-5 text-center shadow-sm">
                     <Container>
                         <h1 className="display-5 fw-bold mb-2">Programação Oficial</h1>
-                        <p className="mb-4 opacity-90">Confira os horários e locais das apresentações do evento #{id}</p>
+                        <p className="mb-4 opacity-90">Confira os horários e locais das apresentações do evento</p>
                         <Row className="justify-content-center">
                             <Col md={8} lg={6}>
                                 <InputGroup className="shadow-sm rounded-pill overflow-hidden bg-white p-1">
@@ -240,7 +255,7 @@ export default function ProgramacaoEvento() {
 
                 <Container className="py-4 mt-2">
                     <div className="d-flex justify-content-center gap-3 mb-5">
-                        {['manha', 'tarde', 'noite'].map((turno) => (
+                        {['manhã', 'tarde', 'noite'].map((turno) => (
                             <Button 
                                 key={turno}
                                 variant={turnoAtivo === turno ? 'dark' : 'outline-secondary'}
@@ -269,7 +284,7 @@ export default function ProgramacaoEvento() {
                                                     key={ativIdx} 
                                                     {...ativ}
                                                     onInscrever={() => console.log(ativ.titulo)}
-                                                    onVerResumo={() => console.log(ativ.titulo)}
+                                                    onVerResumo={()=> selecionarAtracaoResumo(ativ)}
                                                 />
                                             ))}
                                         </div>
@@ -277,7 +292,7 @@ export default function ProgramacaoEvento() {
                                 ))
                             ) : (
                                 <div className="text-center py-5">
-                                    <h5 className="text-muted">Nenhuma atividade encontrada neste turno para "{termoBusca}".</h5>
+                                    <h5 className="text-muted">Nenhuma atividade encontrada neste turno.</h5>
                                 </div>
                             )}
                         </Col>
@@ -307,6 +322,16 @@ export default function ProgramacaoEvento() {
                         </div>
                     )}
                 </Container>
+                {atracaoResumo && (
+                    <ModalPopup
+                        show={showModal}
+                        titulo={atracaoResumo.titulo}
+                        tituloSecundario={`Autores: ${atracaoResumo.autores.join(', ')}`}
+                        texto={atracaoResumo.descricao}
+                        textoFechar="Voltar"
+                        onFechar={() => setShowModal(false)}
+                    />
+                )}
             </main>
             <Footer 
                 telefone="(51) 3333-1234"

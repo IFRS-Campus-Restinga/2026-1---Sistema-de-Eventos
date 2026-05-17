@@ -93,6 +93,7 @@ export default function NavBar() {
                             >
                                 Gestão
                             </Nav.Link>
+                            
                             <div className="d-flex d-xl-none">
                                 <div className="pe-3 d-flex fw-bold">
                                     <AuthButton />
