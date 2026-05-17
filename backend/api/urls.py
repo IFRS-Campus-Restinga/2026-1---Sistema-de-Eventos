@@ -10,7 +10,6 @@ from .views.atracao_view import (
     MinhasAtracoesAvaliadorView,
     AtracaoDetailView,
     AtracaoListView,
-    EnviarEmailsView,
 )
 from .views.avaliacao_atracao_view import (
     AvaliacaoAtracaoDetailView,
@@ -73,6 +72,7 @@ from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import UserListView, UserPermissoesView, ServidorListView
 from .views.visao_geral_view import DashboardView
+from emails.views.enviar_emails_view import EnviarEmailsView
 
 app_name = "api"
 

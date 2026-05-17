@@ -174,3 +174,11 @@ frontend/.vite/
 # Arquivos locais de trabalho (notas, relatórios, to-dos pessoais)
 relatorio-*.md
 todo-*.txt
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+*.pid
+
+# Se configurar o Celery para gerar logs em arquivo local
+*.log
