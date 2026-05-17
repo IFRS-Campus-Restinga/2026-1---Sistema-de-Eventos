@@ -17,6 +17,7 @@ from pathlib import Path
 from django.conf import settings
 from django.conf.urls.static import static
 from dotenv import load_dotenv
+import ssl
 
 urlpatterns = (
     [
@@ -70,6 +71,7 @@ INSTALLED_APPS = [
     "guardian",
     "eventos_session",
     "api",
+    "emails",
 ]
 
 # APARENTIMENTE tem q ter isso, fé fml
@@ -181,15 +183,42 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS = 1
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Configurações de envio de e-mail via SMTP
+# CONFIGURAÇÕES PARA ENVIO DE E-MAIL
+# Envio de e-mail via SMTP
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
-# Informações de autenticação do e-mail
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+# Autenticação do e-mail
+EMAIL_HOST_USER = "sistema.eventos.testes@gmail.com"
+EMAIL_HOST_PASSWORD = "eulnwpqkvvfwqbtn"
 
-# Define o remetente padrão das mensagens
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+# Remetente padrão das mensagens
+DEFAULT_FROM_EMAIL = "sistema.eventos.testes@gmail.com"
+
+# CONFIGURAÇÕES DO CELERY E REDIS (Upstash) para envio de e-mails
+
+# Connection String da UpStash
+CELERY_BROKER_URL = "rediss://default:gQAAAAAAAfC-AAIgcDI2OTA0NjIzYTE2Njg0YjkxOTM5Y2YxMTkwMGNkYjQ1MQ@popular-falcon-127166.upstash.io:6379"
+
+# SSL parâmetros de segurança
+CELERY_BROKER_USE_SSL = {
+    "ssl_cert_reqs": ssl.CERT_NONE  # Em produção deve ser configurado o Certificado e mudar a linha para: 'ssl_cert_reqs': ssl.CERT_REQUIRED
+}
+
+# Padrões de segurança e formato de dados para a fila
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# OTIMIZAÇÃO DE CONSUMO (UPSTASH / REDIS) => REMOVER NO FINAL ANTES DE IR PARA PRODUÇÃO INICIO
+# Explicação: Essas opções ajuda a monitorar, mas estão consumindo muita taxa de envio no UpStash.
+# Quando o projeto entrar em produção é interessante ligar essas opções para ajudar no monitoramento de e-mails.
+CELERY_TASK_IGNORE_RESULT = True  # Ignorar o mensagens de resultado das tarefas
+# Corta o envio de relatórios contínuos de status. (monitoramento)
+CELERY_WORKER_SEND_TASK_EVENTS = False
+CELERY_TASK_SEND_SENT_EVENT = False
+CELERY_WORKER_ENABLE_REMOTE_CONTROL = False  # Evita a criação de caixas de correio virtuais e comandos de checagem (pings) para gerenciamento externo.
+# OTIMIZAÇÃO DE CONSUMO (UPSTASH / REDIS) => REMOVER NO FINAL ANTES DE IR PARA PRODUÇÃO FIM
