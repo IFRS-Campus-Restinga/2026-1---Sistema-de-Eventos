@@ -54,6 +54,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
     // dados do form de sessao
     const [formSessao, setFormSessao] = useState({
+        nome: '',
         data_horario_inicio: '',
         data_horario_fim: '',
         espaco: null,
@@ -241,9 +242,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const validarSessao = () => {
         const novosErros = {};
 
-        const { data_horario_inicio, data_horario_fim } = formSessao;
+        const { nome, data_horario_inicio, data_horario_fim } = formSessao;
 
-        // 1. Campos obrigatórios
+        // Campos obrigatórios
+        if (!nome) {
+            novosErros.nome = 'Nome da sessão é obrigatório';
+        }
+
         if (!data_horario_inicio) {
             novosErros.inicio = 'Horário de início é obrigatório';
         }
@@ -300,6 +305,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         if (!validarSessao()) return;
 
         const dadosSessao = {
+            nome: formSessao.nome,
             data_horario_inicio: `${dataSelecionada}T${formSessao.data_horario_inicio}`,
             data_horario_fim: `${dataSelecionada}T${formSessao.data_horario_fim}`,
         };
@@ -491,7 +497,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                     <strong style={{ fontSize: '14px' }}>
                         {formatarHora(sessao.data_horario_inicio)} -{' '}
-                        {formatarHora(sessao.data_horario_fim)}
+                        {formatarHora(sessao.data_horario_fim)}: {sessao.nome}
                     </strong>
 
                     <MdEdit
@@ -729,6 +735,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                     sessao,
                                                                 );
                                                                 setFormSessao({
+                                                                    nome: sessao.nome,
                                                                     data_horario_inicio:
                                                                         sessao.data_horario_inicio.split(
                                                                             'T',
@@ -953,6 +960,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 titulo={sessaoEditando ? 'Editar Sessão' : 'Criar Sessão'}
                 textoFechar="Cancelar"
                 textoAcao="Salvar"
+                variante="success"
                 onFechar={() => {
                     setMostrarModalSessao(false);
                     setErrors({});
@@ -960,6 +968,25 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 onAcao={salvarSessao}
             >
                 <Form>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Nome da sessão</Form.Label>
+                        <Form.Control
+                            type="text"
+                            value={formSessao.nome}
+                            isInvalid={!!errors.nome}
+                            placeholder="Ex.: Sessão 1"
+                            onChange={(e) =>
+                                setFormSessao({
+                                    ...formSessao,
+                                    nome: e.target.value,
+                                })
+                            }
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.nome}
+                        </Form.Control.Feedback>
+                    </Form.Group>
+
                     <Form.Group className="mb-2">
                         <Form.Label>Horário início</Form.Label>
                         <Form.Control

@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +17,11 @@ class Sessao(Base):
         related_name="sessoes",
         verbose_name=_("Espaço"),
     )
+    nome = models.CharField(
+        max_length=100,
+        validators=[MinLengthValidator(3)],
+        verbose_name=_("Nome da sessão"),
+    )
     data_horario_inicio = models.DateTimeField(
         verbose_name=_("Data e hora de início da sessão")
     )
@@ -27,7 +33,7 @@ class Sessao(Base):
     """Não sei se é assim que funciona
 
     sim, é assim a primeira parte das permissões, vou deixar assim pra mais tarde. -Breno
-    
+
     class Meta:
         permissions = [
             ("ver_sessao", "Pode visualizar as sessões"),
@@ -69,4 +75,4 @@ class Sessao(Base):
             raise ValidationError(errors)
 
     def __str__(self):
-        return f"{self.evento.nome}: {self.data_horario_inicio}"
+        return f"{self.evento.nome} / {self.nome}: {self.data_horario_inicio}"
