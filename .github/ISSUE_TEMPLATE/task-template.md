@@ -1,6 +1,6 @@
 ---
-name: "[TASK] Titulo_task"
-about: Suggest an idea for this project
+name: TASK TEMPLATE
+about: "[TASK] Titulo_task"
 title: ''
 labels: task
 assignees: ''
