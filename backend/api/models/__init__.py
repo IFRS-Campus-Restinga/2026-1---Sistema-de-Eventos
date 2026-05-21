@@ -15,6 +15,7 @@ from .inscricao_atracao import *
 from .inscricao_evento import *
 from .local import *
 from .modalidade import *
+from .ordem_apresentacao_atracao import *
 from .perfil import *
 from .resposta import *
 from .sessao import *
