@@ -1,7 +1,7 @@
 ---
 name: TASK TEMPLATE
 about: "[TASK] Titulo_task"
-title: ''
+title: '[TASK] '
 labels: task
 assignees: ''
 
