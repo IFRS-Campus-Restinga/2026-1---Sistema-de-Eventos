@@ -141,7 +141,7 @@ urlpatterns = [
     path("users/", UserListView.as_view()),
     path("users/servidores/", ServidorListView.as_view()),
     path("users/<int:pk>/", UserPermissoesView.as_view()),
-    path("usuarios/cadastro-complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
+    path("usuarios/cadastro_complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
     path("permissoes/", PermissaoListView.as_view()),
     path("grupos/", GrupoListView.as_view()),
     path("grupos/<int:pk>/", GrupoPermissoesView.as_view()),

@@ -35,7 +35,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
         }
 
         if (!usuarioLogado.perfil_id) {
-            navigate('/cadastrocomplementar', {
+            navigate('/cadastro_complementar', {
                 state: { from: location },
             });
             return;
