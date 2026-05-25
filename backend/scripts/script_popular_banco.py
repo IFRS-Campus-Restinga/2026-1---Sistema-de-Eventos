@@ -3,6 +3,7 @@ import sys
 import platform
 import subprocess
 import django
+from django.utils.text import slugify
 
 # Definição de caminhos apartir do S.O
 diretorio_script = os.path.dirname(os.path.abspath(__file__))
@@ -578,6 +579,7 @@ def seed_atracoes():
             status=item["status"],
             sou_orientador=False,
             acessibilidade=False,
+            slug=slugify(item["titulo"]),
         )
         atracao.full_clean()
         atracao.save()

@@ -9,6 +9,7 @@ from .base import Base
 from .evento import Evento
 from .espaco import Espaco
 from .modalidade import Modalidade
+from django.utils.text import slugify
 
 
 class Atracao(Base):
@@ -105,6 +106,13 @@ class Atracao(Base):
         help_text="Descrição legada do local da atração",
     )
 
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        default="",
+        null=True,
+    )
+
     def clean(self):
         from django.core.exceptions import ValidationError
 
@@ -114,7 +122,11 @@ class Atracao(Base):
             espaco_local_id = getattr(self.espaco, "local_id", None)
             evento_local_id = getattr(self.evento, "local_id", None)
 
-            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+            if (
+                espaco_local_id
+                and evento_local_id
+                and espaco_local_id != evento_local_id
+            ):
                 errors["espaco"] = (
                     "O espaço selecionado precisa pertencer ao mesmo local do evento."
                 )
@@ -127,6 +139,11 @@ class Atracao(Base):
         verbose_name_plural = "Atrações / Submissões"
         ordering = ["-id"]
         permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
+
+    def save(self, *args, **kwargs):
+        if self.slug is None or self.slug == "":
+            self.slug = slugify(self.nome)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.titulo} — {self.evento}"
