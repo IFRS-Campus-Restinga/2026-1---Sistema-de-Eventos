@@ -21,6 +21,8 @@ class Sessao(Base):
         max_length=100,
         validators=[MinLengthValidator(3)],
         verbose_name=_("Nome da sessão"),
+        null=True,
+        blank=True,
     )
     data_horario_inicio = models.DateTimeField(
         verbose_name=_("Data e hora de início da sessão")
