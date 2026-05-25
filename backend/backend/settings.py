@@ -172,9 +172,9 @@ STATIC_URL = "static/"
 
 AUTH_USER_MODEL = "eventos_session.Usuario"
 
-BASE_SYSTEM_URL = os.getenv("BASE_SYSTEM_URL", "http://localhost:8000")
-SYSTEM_ID = os.getenv("SYSTEM_ID", "")
-API_KEY = os.getenv("API_KEY", "")
+BASE_SYSTEM_URL = "http://localhost:8000"
+SYSTEM_ID = "9e1ca445-1f9d-45a9-975a-a83d77b3c204"
+API_KEY = "2e70f7f30c4f939debf70a0bbcc6777f0ef8ee9cbeded00ab530fc2b9929f49b"
 JWT_SECRET_KEY = SECRET_KEY
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
