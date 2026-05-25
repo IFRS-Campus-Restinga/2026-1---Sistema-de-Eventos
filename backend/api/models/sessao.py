@@ -17,6 +17,11 @@ class Sessao(Base):
         related_name="sessoes",
         verbose_name=_("Espaço"),
     )
+    atracoes = models.ManyToManyField(
+        "Atracao",
+        through="OrdemApresentacaoAtracao",
+        related_name="sessoes",
+    )
     nome = models.CharField(
         max_length=100,
         validators=[MinLengthValidator(3)],
@@ -25,10 +30,21 @@ class Sessao(Base):
         blank=True,
     )
     data_horario_inicio = models.DateTimeField(
-        verbose_name=_("Data e hora de início da sessão")
+        auto_now=False,
+        auto_now_add=False,
+        verbose_name=_("Data e hora de início da sessão"),
     )
     data_horario_fim = models.DateTimeField(
-        verbose_name=_("Data e hora de término da sessão")
+        auto_now=False,
+        auto_now_add=False,
+        verbose_name=_("Data e hora de término da sessão"),
+    )
+    publicado_em = models.DateTimeField(
+        auto_now=False,
+        auto_now_add=True,
+        blank=True,
+        null=True,
+        verbose_name=_("Data de publicação da programação"),
     )
     ativo = models.BooleanField(verbose_name=_("Ativo"), default=True)
 
@@ -60,6 +76,9 @@ class Sessao(Base):
             errors["data_horario_inicio"] = _(
                 "A data de início não pode ser no passado."
             )
+
+        if self.publicado_em and self.publicado_em < timezone.now():
+            errors["publicado_em"] = _("A data de publicação não pode ser no passado.")
 
         # o mesmo espaço seja usado em sessões diferentes ao mesmo tempo
         conflitos = Sessao.objects.filter(

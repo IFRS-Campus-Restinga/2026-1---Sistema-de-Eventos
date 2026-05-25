@@ -19,7 +19,7 @@ export function useVerificarPerfilComplementar() {
                 if (resultado.autenticado && resultado.usuario) {
                     // Se não tem perfil_id preenchido, redireciona para cadastro complementar
                     if (!resultado.usuario.perfil_id) {
-                        navegar('/cadastrocomplementar', {
+                        navegar('/cadastro_complementar', {
                             replace: true,
                             state: { de: localizacao },
                         });

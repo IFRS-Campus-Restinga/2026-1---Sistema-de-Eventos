@@ -15,6 +15,7 @@ from .models import (
     InscricaoEvento,
     Local,
     Modalidade,
+    OrdemApresentacaoAtracao,
     Perfil,
     Resposta,
     Sessao,
@@ -38,6 +39,7 @@ admin.site.register(InscricaoEvento)
 admin.site.register(EtapaEvento)
 admin.site.register(AvaliacaoSubmissao)
 admin.site.register(AvaliacaoAtracao)
+admin.site.register(OrdemApresentacaoAtracao)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)

@@ -66,7 +66,7 @@ function App() {
             <Routes>
                 {/* Publico / Abertas        */}
                 <Route path="/" element={<Home />} />
-                <Route path="/cadastrocomplementar" element={<CadastroComplementar />} />
+                <Route path="/cadastro_complementar" element={<CadastroComplementar />} />
 
                 {/* Sessao / Autenticacao    */}
                 {/* callback para session/token e auth (SSO) */}
@@ -132,7 +132,7 @@ function App() {
 
                 {/* Programação / Sessão de Eventos */}
                 <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
-                
+
 
 
 

@@ -5,7 +5,6 @@ from api.enumerations.area_conhecimento_escolha import (
 from api.enumerations.nivel_ensino import NivelEnsino
 from api.models.perfil import Perfil
 from ..validators.cadastro_complementar_validator import validar_novo_perfil
-from emails.services import enviar_email_boas_vindas
 
 
 class CadastroComplementarSerializer(serializers.Serializer):
@@ -41,13 +40,6 @@ class CadastroComplementarSerializer(serializers.Serializer):
             usuario=user,
             nivel_ensino=validated_data["nivel_ensino"],
             area_conhecimento=validated_data["area_conhecimento"],
-        )
-
-        # Disparo da tarefa assíncrona após a garantia de salvamento
-        enviar_email_boas_vindas(
-            nome_usuario=user.first_name,
-            sobrenome_usuario=user.last_name,
-            email_usuario=user.email,
         )
 
         return perfil
