@@ -11,13 +11,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import ssl
 from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
 from django.conf.urls.static import static
 from dotenv import load_dotenv
-import ssl
 
 urlpatterns = (
     [
@@ -173,8 +173,8 @@ STATIC_URL = "static/"
 AUTH_USER_MODEL = "eventos_session.Usuario"
 
 BASE_SYSTEM_URL = "http://localhost:8000"
-SYSTEM_ID = "9e1ca445-1f9d-45a9-975a-a83d77b3c204"
-API_KEY = "2e70f7f30c4f939debf70a0bbcc6777f0ef8ee9cbeded00ab530fc2b9929f49b"
+SYSTEM_ID = "4b055e06-b02a-4fc7-abe5-3d8d5dd81006"
+API_KEY = "2e567c11e97215f381de0fe08e362743373ca4c67fd17c86bbdb57cc3dca088292"
 JWT_SECRET_KEY = SECRET_KEY
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
