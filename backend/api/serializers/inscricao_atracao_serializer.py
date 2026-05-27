@@ -60,6 +60,20 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
                     {"mensagem": ["Este perfil já está inscrito nesta atração."]}
                 )
 
+        # Somente permitir inscrição em atracoes do tipo 'oficina'
+        modalidade = getattr(atracao, "modalidade", None)
+        modalidade_nome = (
+            getattr(modalidade, "nome", "") if modalidade is not None else ""
+        )
+        if modalidade_nome and modalidade_nome.strip().lower() != "oficina":
+            raise serializers.ValidationError(
+                {
+                    "atracao_id": [
+                        "Inscrições somente são permitidas para atrações do tipo 'Oficina'."
+                    ]
+                }
+            )
+
         return attrs
 
     def create(self, validated_data):
