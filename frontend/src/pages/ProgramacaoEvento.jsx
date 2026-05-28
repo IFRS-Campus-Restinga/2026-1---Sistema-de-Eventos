@@ -6,6 +6,9 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import ModalPopup from '../components/common/ModalPopup';
 
+// ✅ Importando a função de padronização de cores das tags do grupo
+import { obterCorPorTag } from '../utils/themeTags';
+
 export default function ProgramacaoEvento() {
     const { id } = useParams();
     const verdeIFRS = "#00A44B";
@@ -13,19 +16,6 @@ export default function ProgramacaoEvento() {
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [showModal, setShowModal] = useState(false);
     const [atracaoResumo, setAtracaoResumo] = useState(null);
-
-    const obterCorPorTag = (texto) => {
-        const t = texto.toLowerCase();
-        if (t.includes('oficina')) return '#EAB308';
-        if (t.includes('engenharia')) return '#EF4444';
-        if (t.includes('apresentação')) return '#3B82F6';
-        if (t.includes('exatas')) return '#212529';
-        if (t.includes('performance')) return '#DB2777';
-        if (t.includes('artes') || t.includes('letras')) return '#8B5CF6';
-        if (t.includes('informatica')) return '#06B6D4';
-        if (t.includes('tecnologia')) return '#111827';
-        return '#6B7280';
-    };
 
     const sessoesMockadas = [
         {
@@ -164,7 +154,7 @@ export default function ProgramacaoEvento() {
                             ...ativ,
                             tags: ativ.tags.map(t => ({
                                 texto: t.texto,
-                                corFundo: obterCorPorTag(t.texto),
+                                corFundo: obterCorPorTag(t.texto), 
                                 corTexto: '#FFFFFF'
                             }))
                         }))
@@ -223,7 +213,6 @@ export default function ProgramacaoEvento() {
                             {sessoesFiltradas.length > 0 ? (
                                 sessoesFiltradas.map((sessaoGlobal, idx) => (
                                     <div key={idx} className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: '16px' }}>
-                                        {/* Cabeçalho unificado do bloco de horário (Sessão Única) */}
                                         <div className="card-header bg-white text-dark py-3 px-4 d-flex align-items-center justify-content-between">
                                             <div className="d-flex align-items-center gap-2 m-0 fw-bold">
                                                 <MdCalendarToday size={20} color={verdeIFRS} />
@@ -234,7 +223,6 @@ export default function ProgramacaoEvento() {
                                             </span>
                                         </div>
                                         
-                                        {/* Lista corrida e sem paginação de todas as apresentações do período */}
                                         <div className="card-body p-0">
                                             {sessaoGlobal.atividades.map((ativ, ativIdx) => (
                                                 <div 
