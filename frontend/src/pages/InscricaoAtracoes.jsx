@@ -36,6 +36,7 @@ import {
 import { pegarEspacos } from '../services/espacoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
+import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -82,6 +83,13 @@ export default function InscricaoAtracoes() {
             ) || null
         );
     }, [eventosEdicao, eventoFiltroId]);
+    const {
+        criarInscricao,
+        usuarioLogado,
+        carregandoUsuario,
+        estaInscritoEmAtracao,
+        loading: carregandoInscricao,
+    } = useInscricoesAtracao();
 
     const contarPalavras = (texto) =>
         texto
@@ -317,134 +325,69 @@ export default function InscricaoAtracoes() {
         setMostrarModalEdicao(true);
     };
 
+    const abrirModalInscricao = (atracao) => {
+        setFormEdicao({
+            id: atracao.id,
+            titulo: atracao.titulo || '',
+            resumo: atracao.resumo || '',
+            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
+            status: atracao.status || 'PREVISTA',
+            palavras_chave: atracao.palavras_chave || '',
+            modalidade: atracao.modalidade || '',
+            nivel_ensino: atracao.nivel_ensino || '',
+            area_conhecimento: atracao.area_conhecimento || '',
+            orientador: atracao.orientador,
+            sou_orientador: atracao.sou_orientador || false,
+            acessibilidade: atracao.acessibilidade || false,
+            evento: atracao.evento,
+            equipe: Array.isArray(atracao.equipe)
+                ? atracao.equipe.map((membro) => ({
+                      nome: membro.nome || '',
+                      instituicao_curso: membro.instituicao_curso || '',
+                      funcao: membro.funcao || '',
+                  }))
+                : [],
+        });
+        setMostrarModalEdicao(true);
+    };
+
     const getNomeUsuario = (usuario) =>
         usuario?.nome ||
         usuario?.name ||
         usuario?.username ||
         `Usuário ${usuario?.id}`;
 
-    const handleAdicionarMembroEdicao = () => {
-        setFormEdicao((prev) => ({
-            ...prev,
-            equipe: [
-                ...(prev.equipe || []),
-                { nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
-            ],
-        }));
-    };
-
-    const handleRemoverMembroEdicao = (index) => {
-        setFormEdicao((prev) => ({
-            ...prev,
-            equipe: (prev.equipe || []).filter((_, i) => i !== index),
-        }));
-    };
-
-    const handleMembroEdicaoChange = (index, campo, valor) => {
-        setFormEdicao((prev) => {
-            const equipeAtualizada = [...(prev.equipe || [])];
-            equipeAtualizada[index] = {
-                ...equipeAtualizada[index],
-                [campo]: valor,
-            };
-            return {
-                ...prev,
-                equipe: equipeAtualizada,
-            };
-        });
-    };
-
-    const handleSalvarEdicao = async () => {
-        if (!formEdicao.id) return;
-
-        const tituloPalavras = contarPalavras(formEdicao.titulo || '');
-
-        if (
-            !formEdicao.titulo ||
-            !formEdicao.evento ||
-            !formEdicao.modalidade ||
-            !formEdicao.nivel_ensino ||
-            !formEdicao.area_conhecimento
-        ) {
-            mostrarAlerta(
-                'Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.',
-            );
+    const handleInscrever = async () => {
+        if (!usuarioLogado) {
+            mostrarAlerta('Faça login antes de se inscrever.', 'danger');
             return;
         }
+        if (!formEdicao?.id) return;
 
-        if (tituloPalavras < LIMITS_EDICAO.titulo.minWords) {
-            mostrarAlerta(
-                `O título deve ter pelo menos ${LIMITS_EDICAO.titulo.minWords} palavra.`,
-            );
-            return;
-        }
-
-        if (tituloPalavras > LIMITS_EDICAO.titulo.maxWords) {
-            mostrarAlerta(
-                `O título deve ter no máximo ${LIMITS_EDICAO.titulo.maxWords} palavras.`,
-            );
-            return;
-        }
-
-        if (
-            (formEdicao.palavras_chave || '').length >
-            LIMITS_EDICAO.palavrasChave.maxChars
-        ) {
-            mostrarAlerta(
-                `Palavras-chave deve ter no máximo ${LIMITS_EDICAO.palavrasChave.maxChars} caracteres.`,
-            );
-            return;
-        }
-
-        if (!formEdicao.sou_orientador && !formEdicao.orientador) {
-            mostrarAlerta(
-                'Selecione um orientador ou marque a opcao Sou o orientador.',
-            );
-            return;
-        }
-
-        if (!formEdicao.espaco) {
-            mostrarAlerta('Selecione um espaço para a submissão.');
-            return;
-        }
-
-        const equipeComNome = (formEdicao.equipe || []).filter(
-            (membro) => (membro?.nome || '').trim().length > 0,
-        );
-        if (equipeComNome.length === 0) {
-            mostrarAlerta('Adicione pelo menos um membro com nome na equipe.');
+        const jaInscrito = estaInscritoEmAtracao(formEdicao.id);
+        if (jaInscrito) {
+            mostrarAlerta('Você já está inscrito nessa atração.', 'warning');
             return;
         }
 
         try {
             setSalvandoEdicao(true);
-            await editarAtracao(formEdicao.id, formEdicao);
-            mostrarAlerta('Submissão atualizada com sucesso.', 'success');
+            await criarInscricao({
+                perfil_id: usuarioLogado.perfil_id,
+                atracao_id: formEdicao.id,
+            });
+            mostrarAlerta('Inscrição realizada com sucesso.', 'success');
             setMostrarModalEdicao(false);
             await carregarAtracoes();
-        } catch (error) {
-            console.error('Erro ao editar atração:', error);
-            const mensagemErro = error.response?.data
-                ? JSON.stringify(error.response.data)
-                : 'Não foi possível salvar a edição.';
-            mostrarAlerta(mensagemErro);
+        } catch (erro) {
+            const msg =
+                erro?.response?.data?.mensagem ||
+                erro?.response?.data ||
+                erro?.message ||
+                'Erro ao inscrever.';
+            mostrarAlerta(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
             setSalvandoEdicao(false);
-        }
-    };
-
-    const handleConfirmarExclusao = async () => {
-        if (!atracaoSelecionada?.id) return;
-
-        try {
-            await excluirAtracao(atracaoSelecionada.id);
-            mostrarAlerta('Submissão excluída com sucesso.', 'success');
-            setMostrarModalExclusao(false);
-            setAtracaoSelecionada(null);
-            await carregarAtracoes();
-        } catch (error) {
-            console.error('Erro ao excluir atração:', error);
-            mostrarAlerta('Não foi possível excluir a submissão.');
         }
     };
 
@@ -486,7 +429,7 @@ export default function InscricaoAtracoes() {
                                             className="fw-bold"
                                             style={{ color: '#00A44B' }}
                                         >
-                                            Buscar submissão
+                                            Buscar atração
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
@@ -567,15 +510,14 @@ export default function InscricaoAtracoes() {
                                                     <div className="d-flex align-items-center gap-2">
                                                         {/* não exibir badge de status e nem permitir editar/excluir nesta página de inscrição */}
                                                         <Button
-                                                            variant="outline-secondary"
+                                                            variant="outline-success"
                                                             className="d-flex align-items-center gap-1"
                                                             onClick={() =>
-                                                                abrirModalEdicao(
+                                                                abrirModalInscricao(
                                                                     atracao,
                                                                 )
                                                             }
                                                         >
-                                                            <MdEdit />{' '}
                                                             Visualizar
                                                         </Button>
                                                     </div>
@@ -635,6 +577,19 @@ export default function InscricaoAtracoes() {
                         onClick={() => setMostrarModalEdicao(false)}
                     >
                         Fechar
+                    </Button>
+
+                    <Button
+                        variant="success"
+                        onClick={handleInscrever}
+                        disabled={
+                            salvandoEdicao ||
+                            carregandoUsuario ||
+                            carregandoInscricao ||
+                            !formEdicao?.id
+                        }
+                    >
+                        {salvandoEdicao ? 'Inscrevendo...' : 'Inscrever-se'}
                     </Button>
                 </Modal.Footer>
             </Modal>
