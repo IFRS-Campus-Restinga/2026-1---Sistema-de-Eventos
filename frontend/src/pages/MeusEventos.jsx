@@ -1,14 +1,17 @@
 import { Container, Row, Col } from 'react-bootstrap';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
+import { setSelectedEventoId } from '../utils/selectedEvento';
 import { useEventos } from '../hooks/useEventos';
 import { useMinhasInscricoes } from '../hooks/useMinhasInscricoes';
 
 export default function MeusEventos({ campus = 'Campus Restinga' }) {
+    const navigate = useNavigate();
     const { eventos } = useEventos();
     const {
         eventosInscritos,
@@ -20,6 +23,11 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
     const [alerta, setAlerta] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [inscricaoSelecionada, setInscricaoSelecionada] = useState(null);
+
+    const abrirParticipacoes = (eventoId) => {
+        setSelectedEventoId(eventoId);
+        navigate(`/meus_eventos/${eventoId}/participacoes`);
+    };
 
     const handleCancelar = async (inscricaoId) => {
         try {
@@ -98,7 +106,9 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                                                     ? 'Cancelar inscrição'
                                                     : ''
                                             }
-                                            onClick1={() => {}}
+                                            onClick1={() =>
+                                                abrirParticipacoes(evento.id)
+                                            }
                                             onClick2={
                                                 podeCancelar
                                                     ? () => {

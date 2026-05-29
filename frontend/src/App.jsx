@@ -26,6 +26,7 @@ import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
 import MeusEventos from './pages/MeusEventos';
+import MinhasParticipacoes from './pages/MinhasParticipacoes';
 import MeusEventosAvaliador from './pages/MeusEventosAvaliador';
 import SemResultado from './pages/SemResultado';
 import AvaliarSubmissao from './pages/AvaliarSubmissao';
@@ -103,6 +104,7 @@ function App() {
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
+                <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
                 <Route path="/meus_eventos_avaliador" element={protegido(<MeusEventosAvaliador />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 

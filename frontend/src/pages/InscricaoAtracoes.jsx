@@ -25,15 +25,7 @@ import Card from '../components/common/Card';
 import ModalPopup from '../components/common/ModalPopup';
 import Footer from '../components/footer/Footer';
 import NavBar from '../components/nav_bar/NavBar';
-import {
-    buscarEventos,
-    buscarOpcoesAtracao,
-    buscarUsuarios,
-    editarAtracao,
-    excluirAtracao,
-    listarAtracoes,
-} from '../services/atracaoService';
-import { pegarEspacos } from '../services/espacoService';
+import { listarAtracoes } from '../services/atracaoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
@@ -49,44 +41,48 @@ export default function InscricaoAtracoes() {
     const [termoBusca, setTermoBusca] = useState('');
     const [salvandoEdicao, setSalvandoEdicao] = useState(false);
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
-    const [mostrarModalExclusao, setMostrarModalExclusao] = useState(false);
-    const [atracaoSelecionada, setAtracaoSelecionada] = useState(null);
     const [formEdicao, setFormEdicao] = useState({
         id: null,
         titulo: '',
         resumo: '',
         espaco: '',
         status: 'PREVISTA',
+        orientador_nome: '',
     });
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
         reacao: 0,
     });
-    const [opcoesEdicao, setOpcoesEdicao] = useState({
-        modalidades: [],
-        niveis_ensino: [],
-    });
-    const [eventosEdicao, setEventosEdicao] = useState([]);
-    const [usuariosEdicao, setUsuariosEdicao] = useState([]);
-    const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
-    const [espacosEdicao, setEspacosEdicao] = useState([]);
+    const [opcoesEdicao] = useState({ modalidades: [], niveis_ensino: [] });
 
     const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
-    const eventoSelecionadoLista = useMemo(() => {
-        if (!eventoFiltroId) return null;
+    const [eventoSelecionadoLista, setEventoSelecionadoLista] = useState(null);
 
-        return (
-            eventosEdicao.find(
-                (evento) => String(evento.id) === String(eventoFiltroId),
-            ) || null
-        );
-    }, [eventosEdicao, eventoFiltroId]);
+    useEffect(() => {
+        const carregarEvento = async () => {
+            if (!eventoFiltroId) {
+                setEventoSelecionadoLista(null);
+                return;
+            }
+
+            try {
+                const ev = await buscarEventoPorId(eventoFiltroId);
+                setEventoSelecionadoLista(ev);
+            } catch (err) {
+                console.error('Erro ao carregar evento selecionado:', err);
+                setEventoSelecionadoLista(null);
+            }
+        };
+
+        carregarEvento();
+    }, [eventoFiltroId]);
     const {
         criarInscricao,
         usuarioLogado,
         carregandoUsuario,
+        obterStatusInscricao,
         estaInscritoEmAtracao,
         loading: carregandoInscricao,
     } = useInscricoesAtracao();
@@ -135,97 +131,11 @@ export default function InscricaoAtracoes() {
         carregarAtracoes();
     }, [carregarAtracoes]);
 
-    useEffect(() => {
-        const carregarOpcoesEdicao = async () => {
-            const [dadosOpcoes, dadosEventos, dadosUsuarios] =
-                await Promise.allSettled([
-                    buscarOpcoesAtracao(),
-                    buscarEventos(),
-                    buscarUsuarios(),
-                ]);
+    // não carregamos opções de edição nesta página (somente inscrição)
 
-            if (dadosOpcoes.status === 'fulfilled') {
-                setOpcoesEdicao({
-                    modalidades: dadosOpcoes.value?.modalidades || [],
-                    niveis_ensino: dadosOpcoes.value?.niveis_ensino || [],
-                });
-            }
+    // não precisamos do detalhe do evento para inscrição/visualização simples
 
-            if (dadosEventos.status === 'fulfilled') {
-                setEventosEdicao(dadosEventos.value || []);
-            }
-
-            if (dadosUsuarios.status === 'fulfilled') {
-                setUsuariosEdicao(dadosUsuarios.value || []);
-            }
-        };
-
-        carregarOpcoesEdicao();
-    }, []);
-
-    useEffect(() => {
-        const carregarDetalheEventoEdicao = async () => {
-            if (!mostrarModalEdicao || !formEdicao.evento) {
-                setEventoEdicaoDetalhe(null);
-                return;
-            }
-
-            const eventoResumo = eventosEdicao.find(
-                (evento) => String(evento.id) === String(formEdicao.evento),
-            );
-
-            if (eventoResumo?.area_conhecimento_detalhes?.length) {
-                setEventoEdicaoDetalhe(eventoResumo);
-                return;
-            }
-
-            try {
-                const detalhe = await buscarEventoPorId(formEdicao.evento);
-                setEventoEdicaoDetalhe(detalhe);
-            } catch (error) {
-                console.error(
-                    'Erro ao carregar detalhe do evento na edicao:',
-                    error,
-                );
-                setEventoEdicaoDetalhe(null);
-            }
-        };
-
-        carregarDetalheEventoEdicao();
-    }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
-
-    useEffect(() => {
-        const carregarEspacosEdicao = async () => {
-            const localId = eventoEdicaoDetalhe?.local?.id;
-
-            if (!mostrarModalEdicao || !formEdicao.evento || !localId) {
-                setEspacosEdicao([]);
-                return;
-            }
-
-            try {
-                const espacos = await pegarEspacos(localId);
-                setEspacosEdicao(espacos || []);
-
-                setFormEdicao((prev) => {
-                    const espacoAtualValido = (espacos || []).some(
-                        (espaco) => String(espaco.id) === String(prev.espaco),
-                    );
-
-                    if (espacoAtualValido) {
-                        return prev;
-                    }
-
-                    return { ...prev, espaco: '' };
-                });
-            } catch (error) {
-                console.error('Erro ao carregar espaços da edição:', error);
-                setEspacosEdicao([]);
-            }
-        };
-
-        carregarEspacosEdicao();
-    }, [mostrarModalEdicao, formEdicao.evento, eventoEdicaoDetalhe]);
+    // não precisamos carregar espaços aqui
 
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
@@ -250,13 +160,17 @@ export default function InscricaoAtracoes() {
         );
     };
 
+    const inscrito = estaInscritoEmAtracao(formEdicao.id);
+    const statusInscricao = obterStatusInscricao(formEdicao.id);
+
     const getAreasEventoEdicao = () => {
-        const areasDoEvento = eventoEdicaoDetalhe?.area_conhecimento_detalhes;
+        const areasDoEvento =
+            eventoSelecionadoLista?.area_conhecimento_detalhes;
         if (Array.isArray(areasDoEvento) && areasDoEvento.length > 0) {
             return areasDoEvento;
         }
 
-        const areasSimples = eventoEdicaoDetalhe?.area_conhecimento;
+        const areasSimples = eventoSelecionadoLista?.area_conhecimento;
         if (Array.isArray(areasSimples) && areasSimples.length > 0) {
             return areasSimples;
         }
@@ -299,31 +213,7 @@ export default function InscricaoAtracoes() {
         });
     }, [atracoes, termoBusca]);
 
-    const abrirModalEdicao = (atracao) => {
-        setFormEdicao({
-            id: atracao.id,
-            titulo: atracao.titulo || '',
-            resumo: atracao.resumo || '',
-            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
-            status: atracao.status || 'PREVISTA',
-            palavras_chave: atracao.palavras_chave || '',
-            modalidade: atracao.modalidade || '',
-            nivel_ensino: atracao.nivel_ensino || '',
-            area_conhecimento: atracao.area_conhecimento || '',
-            orientador: atracao.orientador,
-            sou_orientador: atracao.sou_orientador || false,
-            acessibilidade: atracao.acessibilidade || false,
-            evento: atracao.evento,
-            equipe: Array.isArray(atracao.equipe)
-                ? atracao.equipe.map((membro) => ({
-                      nome: membro.nome || '',
-                      instituicao_curso: membro.instituicao_curso || '',
-                      funcao: membro.funcao || '',
-                  }))
-                : [],
-        });
-        setMostrarModalEdicao(true);
-    };
+    // função de visualização simplificada não utilizada (mantida apenas para referência)
 
     const abrirModalInscricao = (atracao) => {
         setFormEdicao({
@@ -337,25 +227,21 @@ export default function InscricaoAtracoes() {
             nivel_ensino: atracao.nivel_ensino || '',
             area_conhecimento: atracao.area_conhecimento || '',
             orientador: atracao.orientador,
+            orientador_nome: atracao.orientador_nome || '',
             sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
-            equipe: Array.isArray(atracao.equipe)
-                ? atracao.equipe.map((membro) => ({
-                      nome: membro.nome || '',
-                      instituicao_curso: membro.instituicao_curso || '',
-                      funcao: membro.funcao || '',
-                  }))
-                : [],
         });
         setMostrarModalEdicao(true);
     };
 
     const getNomeUsuario = (usuario) =>
-        usuario?.nome ||
-        usuario?.name ||
-        usuario?.username ||
-        `Usuário ${usuario?.id}`;
+        (usuario &&
+            typeof usuario === 'object' &&
+            (usuario.nome || usuario.name || usuario.username)) ||
+        (typeof usuario === 'number' || typeof usuario === 'string'
+            ? `Usuário ${usuario}`
+            : null);
 
     const handleInscrever = async () => {
         if (!usuarioLogado) {
@@ -508,7 +394,6 @@ export default function InscricaoAtracoes() {
                                                     </div>
 
                                                     <div className="d-flex align-items-center gap-2">
-                                                        {/* não exibir badge de status e nem permitir editar/excluir nesta página de inscrição */}
                                                         <Button
                                                             variant="outline-success"
                                                             className="d-flex align-items-center gap-1"
@@ -579,18 +464,24 @@ export default function InscricaoAtracoes() {
                         Fechar
                     </Button>
 
-                    <Button
-                        variant="success"
-                        onClick={handleInscrever}
-                        disabled={
-                            salvandoEdicao ||
-                            carregandoUsuario ||
-                            carregandoInscricao ||
-                            !formEdicao?.id
-                        }
-                    >
-                        {salvandoEdicao ? 'Inscrevendo...' : 'Inscrever-se'}
-                    </Button>
+                    {inscrito ? (
+                        <Button variant="outline-success" disabled>
+                            Inscrito
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="success"
+                            onClick={handleInscrever}
+                            disabled={
+                                salvandoEdicao ||
+                                carregandoUsuario ||
+                                carregandoInscricao ||
+                                !formEdicao?.id
+                            }
+                        >
+                            {salvandoEdicao ? 'Inscrevendo...' : 'Inscrever-se'}
+                        </Button>
+                    )}
                 </Modal.Footer>
             </Modal>
 

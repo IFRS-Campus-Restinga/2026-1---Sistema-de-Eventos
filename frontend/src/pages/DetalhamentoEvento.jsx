@@ -18,12 +18,14 @@ import { setSelectedEventoId } from '../utils/selectedEvento';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { buscarEventoPorId } from '../services/eventoService';
+import { listarMinhasInscricoesEventos } from '../services/inscricaoEventoService';
 import { useNavigate } from 'react-router-dom';
 
 export default function DetalheEvento() {
     const { id } = useParams();
     const [evento, setEvento] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [estaInscritoEvento, setEstaInscritoEvento] = useState(false);
     const navigate = useNavigate();
     const verdeIFRS = '#00A44B';
 
@@ -42,6 +44,20 @@ export default function DetalheEvento() {
                 setLoading(true);
                 const dados = await buscarEventoPorId(id);
                 setEvento(dados);
+                // ve se o usuário está inscrito no evento pra disponibilizar o botão de inscrição em atrações
+                try {
+                    const minhas = await listarMinhasInscricoesEventos();
+                    const inscrito = Array.isArray(minhas)
+                        ? minhas.some((i) => Number(i.evento_id) === Number(id))
+                        : false;
+                    setEstaInscritoEvento(inscrito);
+                } catch (err) {
+                    console.debug(
+                        'Não foi possível verificar inscrições do usuário:',
+                        err,
+                    );
+                    setEstaInscritoEvento(false);
+                }
             } catch (error) {
                 console.error('Erro ao buscar detalhes do evento:', error);
             } finally {
@@ -105,16 +121,20 @@ export default function DetalheEvento() {
                             >
                                 <MdSend className="me-2" /> Submeter Trabalho
                             </Button>
-                            <Button
-                                variant="outline-light"
-                                as={Link}
-                                to={`/inscrever_atracoes/${evento.id}`}
-                                onClick={() => setSelectedEventoId(evento.id)}
-                                className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
-                            >
-                                <MdFactCheck className="me-2" /> Inscrever em
-                                Atrações
-                            </Button>
+                            {estaInscritoEvento && (
+                                <Button
+                                    variant="outline-light"
+                                    as={Link}
+                                    to={`/inscrever_atracoes/${evento.id}`}
+                                    onClick={() =>
+                                        setSelectedEventoId(evento.id)
+                                    }
+                                    className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
+                                >
+                                    <MdFactCheck className="me-2" /> Inscrever
+                                    em Atrações
+                                </Button>
+                            )}
                             <Button
                                 variant="outline-light"
                                 className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
