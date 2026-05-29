@@ -8,11 +8,11 @@ from .sessao import Sessao
 
 class OrdemApresentacaoAtracao(Base):
     sessao = models.ForeignKey(
-        Sessao, on_delete=models.RESTRICT, related_name="ordem_apresentacoes"
+        Sessao, on_delete=models.CASCADE, related_name="ordem_apresentacoes"
     )
 
     atracao = models.ForeignKey(
-        Atracao, on_delete=models.CASCADE, related_name="ordem_apresentacoes"
+        Atracao, on_delete=models.RESTRICT, related_name="ordem_apresentacoes"
     )
 
     ordem = models.IntegerField(

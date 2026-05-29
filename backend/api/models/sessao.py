@@ -41,7 +41,7 @@ class Sessao(Base):
     )
     publicado_em = models.DateTimeField(
         auto_now=False,
-        auto_now_add=True,
+        auto_now_add=False,
         blank=True,
         null=True,
         verbose_name=_("Data de publicação da programação"),

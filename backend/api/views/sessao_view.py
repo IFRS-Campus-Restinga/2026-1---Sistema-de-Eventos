@@ -73,6 +73,7 @@ class SessaoDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
+        # caso seja necessário futuramente. Hoje não é usada a deleção de sessão 22/05/2026
         # deleção lógica
         sessao = self.get_object(pk)
         if not sessao:

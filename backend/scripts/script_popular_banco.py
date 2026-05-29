@@ -1,7 +1,8 @@
 import os
-import sys
 import platform
 import subprocess
+import sys
+
 import django
 from django.utils.text import slugify
 
@@ -218,11 +219,13 @@ EVENTOS_DATA = [
         "tema": "Ciência, dados e inovação",
         "link_edital": "https://ifrs.edu.br",
         "modalidades_nomes": ["Palestra", "Oficina", "Pôster"],
-        "local_nome": "Campus Centro",
+        "local_nome": "Campus Restinga",
         "areas_conhecimento": [
             "Ciências Exatas e da Terra",
             "Ciências Biológicas",
             "Engenharias",
+            "Linguística, Letras e Artes",
+            "Ciências da Saúde",
         ],
     },
 ]
@@ -258,6 +261,12 @@ ETAPAS_DATA = [
         "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2026-05-10 00:00:00",
         "data_fim": "2026-05-29 23:59:59",
+    },
+    {
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "tipo_etapa": "REALIZACAO_EVENTO",
+        "data_inicio": "2026-10-20 08:00:00",
+        "data_fim": "2026-10-22 18:00:00",
     },
 ]
 
@@ -355,6 +364,86 @@ ATRACOES_DATA = [
         "modalidade_nome": "Oficina",
         "nivel_ensino": "POS_GRADUACAO",
         "area_conhecimento": "Engenharias",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Robótica: uso de lego",
+        "resumo": "Lego. Desenvolvimento de kits de baixo custo para ensino de robótica.",
+        "palavras_chave": "robótica, educação, automação",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
+        "area_conhecimento": "Engenharias",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Artes visuais: pintura moderna",
+        "resumo": "Projeto artístico em escolas de ensino médio.",
+        "palavras_chave": "artes, pintura, moderna",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "IF Niños",
+        "resumo": "Projeto de ensino de espanhol para crianças e adolescentes.",
+        "palavras_chave": "espanhol, educação, crianças",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Ciclo de leituras",
+        "resumo": "Série de leituras e discussões sobre textos literários.",
+        "palavras_chave": "leitura, literatura, discussão",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Esporte na vida adulta",
+        "resumo": "Discussões sobre a importância do esporte na vida dos adultos.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Palestra",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Dança e expressão corporal",
+        "resumo": "Exploração da dança como forma de expressão e bem-estar físico e emocional.",
+        "palavras_chave": "dança, expressão corporal, bem-estar",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Tênis de mesa, um esporte para todas as idades",
+        "resumo": "Apresentação dos benefícios do tênis de mesa para a saúde física e mental em diferentes faixas etárias.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Vivendo bem: a importância do esporte na vida adulta",
+        "resumo": "Exploração dos benefícios do esporte para a saúde e qualidade de vida dos adultos.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Palestra",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
         "status": "CONFIRMADA",
     },
 ]

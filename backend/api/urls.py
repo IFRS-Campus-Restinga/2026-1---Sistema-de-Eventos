@@ -169,8 +169,8 @@ urlpatterns = [
     path("eventos/<int:evento_id>/minhas_avaliacoes/atracoes/", MinhasAtracoesAvaliadorView.as_view()),
 
     # programação do evento
-    path("sessao/", SessaoListView.as_view()),
-    path("sessao/<int:pk>/", SessaoDetailView.as_view()),
+    path("sessoes/", SessaoListView.as_view()),
+    path("sessoes/<int:pk>/", SessaoDetailView.as_view()),
     path("ordem_apresentacao_atracao/", OrdemApresentacaoAtracaoListView.as_view()),
     path("ordem_apresentacao_atracao/<int:pk>/", OrdemApresentacaoAtracaoDetailView.as_view()),
 
