@@ -33,7 +33,6 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
-import { pegarEspacos } from '../services/espacoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 
@@ -54,7 +53,6 @@ export default function ListarAtracoes() {
         id: null,
         titulo: '',
         resumo: '',
-        espaco: '',
         status: 'PREVISTA',
     });
     const [alerta, setAlerta] = useState({
@@ -69,7 +67,6 @@ export default function ListarAtracoes() {
     const [eventosEdicao, setEventosEdicao] = useState([]);
     const [usuariosEdicao, setUsuariosEdicao] = useState([]);
     const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
-    const [espacosEdicao, setEspacosEdicao] = useState([]);
 
     const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
@@ -178,39 +175,6 @@ export default function ListarAtracoes() {
         carregarDetalheEventoEdicao();
     }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
 
-    useEffect(() => {
-        const carregarEspacosEdicao = async () => {
-            const localId = eventoEdicaoDetalhe?.local?.id;
-
-            if (!mostrarModalEdicao || !formEdicao.evento || !localId) {
-                setEspacosEdicao([]);
-                return;
-            }
-
-            try {
-                const espacos = await pegarEspacos(localId);
-                setEspacosEdicao(espacos || []);
-
-                setFormEdicao((prev) => {
-                    const espacoAtualValido = (espacos || []).some(
-                        (espaco) => String(espaco.id) === String(prev.espaco),
-                    );
-
-                    if (espacoAtualValido) {
-                        return prev;
-                    }
-
-                    return { ...prev, espaco: '' };
-                });
-            } catch (error) {
-                console.error('Erro ao carregar espaços da edição:', error);
-                setEspacosEdicao([]);
-            }
-        };
-
-        carregarEspacosEdicao();
-    }, [mostrarModalEdicao, formEdicao.evento, eventoEdicaoDetalhe]);
-
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
 
@@ -288,7 +252,6 @@ export default function ListarAtracoes() {
             id: atracao.id,
             titulo: atracao.titulo || '',
             resumo: atracao.resumo || '',
-            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
             status: atracao.status || 'PREVISTA',
             palavras_chave: atracao.palavras_chave || '',
             modalidade: atracao.modalidade || '',
@@ -314,6 +277,21 @@ export default function ListarAtracoes() {
         usuario?.name ||
         usuario?.username ||
         `Usuário ${usuario?.id}`;
+
+    const getNivelEnsinoUsuario = (nomeMembro) => {
+        const nomeNormalizado = (nomeMembro || '').trim().toLowerCase();
+        if (!nomeNormalizado) return '';
+
+        const usuarioEncontrado = (usuariosEdicao || []).find(
+            (usuario) => getNomeUsuario(usuario).trim().toLowerCase() === nomeNormalizado,
+        );
+
+        return (
+            usuarioEncontrado?.nivel_ensino_display ||
+            usuarioEncontrado?.nivel_ensino ||
+            ''
+        );
+    };
 
     const handleAdicionarMembroEdicao = () => {
         setFormEdicao((prev) => ({
@@ -379,11 +357,6 @@ export default function ListarAtracoes() {
 
         if (!formEdicao.sou_orientador && !formEdicao.orientador) {
             mostrarAlerta('Selecione um orientador ou marque a opcao Sou o orientador.');
-            return;
-        }
-
-        if (!formEdicao.espaco) {
-            mostrarAlerta('Selecione um espaço para a submissão.');
             return;
         }
 
@@ -801,37 +774,7 @@ export default function ListarAtracoes() {
                             </Row>
 
                             <Row>
-                                <Col md={7}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Espaço
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={formEdicao.espaco || ''}
-                                            disabled={!formEdicao.evento || espacosEdicao.length === 0}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    espaco: e.target.value,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">
-                                                {formEdicao.evento
-                                                    ? (espacosEdicao.length > 0
-                                                        ? 'Selecione um espaço'
-                                                        : 'Evento sem espaços configurados')
-                                                    : 'Selecione primeiro um evento'}
-                                            </option>
-                                            {espacosEdicao.map((espaco) => (
-                                                <option key={espaco.id} value={espaco.id}>
-                                                    {espaco.nome} - {espaco.predio_bloco}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={5}>
+                                <Col md={12}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                             Status de Avaliação
@@ -875,7 +818,7 @@ export default function ListarAtracoes() {
                                     <thead>
                                         <tr>
                                             <th>Nome</th>
-                                            <th>Curso/Instituição</th>
+                                            <th>Nível de Ensino</th>
                                             <th>Papel</th>
                                             <th style={{ width: '90px' }}>Ação</th>
                                         </tr>
@@ -905,15 +848,13 @@ export default function ListarAtracoes() {
                                                     </td>
                                                     <td>
                                                         <Form.Control
-                                                            value={membro.instituicao_curso || ''}
-                                                            onChange={(e) =>
-                                                                handleMembroEdicaoChange(
-                                                                    index,
-                                                                    'instituicao_curso',
-                                                                    e.target.value,
-                                                                )
+                                                            value={
+                                                                getNivelEnsinoUsuario(membro.nome) ||
+                                                                membro.instituicao_curso ||
+                                                                ''
                                                             }
-                                                            placeholder="Curso ou instituição"
+                                                            placeholder="Nível de ensino (auto-preenchido)"
+                                                            disabled
                                                         />
                                                     </td>
                                                     <td>

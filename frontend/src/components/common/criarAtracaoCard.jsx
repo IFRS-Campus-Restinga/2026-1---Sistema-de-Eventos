@@ -17,7 +17,6 @@ export default function CriarAtracaoCard({
     eventos,
     eventoSelecionadoDetalhe,
     modalidadeSelecionadaDetalhe,
-    espacosDisponiveis = [],
     camposModalidade = [],
     usuarios,
     isLoading = false,
@@ -94,9 +93,6 @@ export default function CriarAtracaoCard({
                 break;
             case 'area_conhecimento':
                 if (!value) return 'Selecione uma área de conhecimento';
-                break;
-            case 'espaco':
-                if (!value) return 'Selecione um espaço';
                 break;
             default:
                 break;
@@ -198,7 +194,7 @@ export default function CriarAtracaoCard({
     };
 
     const validateAll = () => {
-        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'espaco'];
+        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento'];
         let newErrors = {};
         let isValid = true;
         
@@ -321,6 +317,21 @@ export default function CriarAtracaoCard({
         usuario?.name ||
         usuario?.username ||
         `Usuário ${usuario?.id}`;
+
+    const getNivelEnsinoUsuario = (nomeMembro) => {
+        const nomeNormalizado = (nomeMembro || '').trim().toLowerCase();
+        if (!nomeNormalizado) return '';
+
+        const usuarioEncontrado = (usuarios || []).find(
+            (usuario) => getNomeUsuario(usuario).trim().toLowerCase() === nomeNormalizado,
+        );
+
+        return (
+            usuarioEncontrado?.nivel_ensino_display ||
+            usuarioEncontrado?.nivel_ensino ||
+            ''
+        );
+    };
 
     return (
         <Container className="py-2">
@@ -505,40 +516,6 @@ export default function CriarAtracaoCard({
                         </Form.Control.Feedback>
                     </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}>Espaço *</Form.Label>
-                        <Form.Select
-                            value={formState.espaco}
-                            onChange={(e) => handleChange('espaco', e.target.value)}
-                            onBlur={() => handleBlur('espaco')}
-                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('espaco') }}
-                            isValid={touched.espaco && !errors.espaco}
-                            isInvalid={touched.espaco && errors.espaco}
-                            disabled={!formState.evento || espacosDisponiveis.length === 0}
-                        >
-                            <option value="">
-                                {formState.evento
-                                    ? (espacosDisponiveis.length > 0
-                                        ? 'Selecione um Espaço'
-                                        : 'Evento sem espaços configurados')
-                                    : 'Selecione primeiro um evento'}
-                            </option>
-                            {espacosDisponiveis?.map((espaco) => (
-                                <option key={espaco.id} value={espaco.id}>
-                                    {espaco.nome} - {espaco.predio_bloco}
-                                </option>
-                            ))}
-                        </Form.Select>
-                        {touched.espaco && errors.espaco && (
-                            <Form.Text className="text-danger">{errors.espaco}</Form.Text>
-                        )}
-                        {formState.evento && espacosDisponiveis.length > 0 && (
-                            <Form.Text className="text-muted">
-                                Esses espaços pertencem ao local do evento selecionado.
-                            </Form.Text>
-                        )}
-                    </Form.Group>
-
                 </SecaoFormulario>
 
                 {(camposModalidade || []).length > 0 && (
@@ -613,7 +590,7 @@ export default function CriarAtracaoCard({
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #dee2e6' }}>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nome Completo</th>
-                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição</th>
+                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nível de Ensino</th>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '20%' }}>Papel</th>
                                     <th className="py-2 px-3 fw-bold text-dark text-center" style={{ background: '#F8F9FA', width: '10%' }}>Ação</th>
                                 </tr>
@@ -631,18 +608,13 @@ export default function CriarAtracaoCard({
                                             />
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Select
-                                                value={membro.instituicao_curso}
-                                                onChange={(e) => handleMembroChange(index, 'instituicao_curso', e.target.value)}
-                                                disabled={true}
+                                            <Form.Control
+                                                value={getNivelEnsinoUsuario(membro.nome) || membro.instituicao_curso || ''}
+                                                placeholder="Nível de ensino (auto-preenchido)"
+                                                disabled
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: '#e9ecef' }}
                                                 className="bg-disabled"
-                                            >
-                                                <option value="">Curso/Instituição (auto-preenchido)</option>
-                                                <option value="Sistemas de Informação">Sistemas de Informação</option>
-                                                <option value="Administração">Administração</option>
-                                                <option value="Eletrônica">Eletrônica</option>
-                                            </Form.Select>
+                                            />
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
                                             <Form.Select

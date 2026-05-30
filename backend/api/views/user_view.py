@@ -61,6 +61,12 @@ class ServidorListView(generics.ListAPIView):
                     "perfil_id": perfil_id,
                     "nome": nome,
                     "email": u.email,
+                    "nivel_ensino": getattr(perfil, "nivel_ensino", None)
+                    if perfil
+                    else None,
+                    "nivel_ensino_display": perfil.get_nivel_ensino_display()
+                    if perfil and getattr(perfil, "nivel_ensino", None)
+                    else None,
                     # incluir área de conhecimento do perfil para o frontend
                     "area_conhecimento": getattr(perfil, "area_conhecimento", None)
                     if perfil

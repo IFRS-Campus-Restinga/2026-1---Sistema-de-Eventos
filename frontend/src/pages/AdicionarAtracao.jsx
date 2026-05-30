@@ -13,7 +13,6 @@ import {
 } from '../services/atracaoService';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
-import { pegarEspacos } from '../services/espacoService';
 import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
 import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
@@ -34,7 +33,6 @@ export default function AdicionarAtracao() {
         anexo_pdf: null,
         acessibilidade: false,
         evento: '',
-        espaco: '',
         status: 'PREVISTA',
         respostas_campos: {},
         equipe: []
@@ -50,7 +48,6 @@ export default function AdicionarAtracao() {
     const [eventos, setEventos] = useState([]);
     const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
     const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] = useState(null);
-    const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
@@ -217,40 +214,6 @@ export default function AdicionarAtracao() {
         carregarDetalheModalidade();
     }, [formState.modalidade]);
 
-    useEffect(() => {
-        const carregarEspacosEvento = async () => {
-            const localId = eventoSelecionadoDetalhe?.local?.id;
-
-            if (!formState.evento || !localId) {
-                setEspacosDisponiveis([]);
-                setFormState((prev) => ({ ...prev, espaco: '' }));
-                return;
-            }
-
-            try {
-                const espacos = await pegarEspacos(localId);
-                setEspacosDisponiveis(espacos || []);
-
-                setFormState((prev) => {
-                    const espacoAtualValido = (espacos || []).some(
-                        (espaco) => String(espaco.id) === String(prev.espaco),
-                    );
-
-                    if (espacoAtualValido) {
-                        return prev;
-                    }
-
-                    return { ...prev, espaco: '' };
-                });
-            } catch (error) {
-                console.error('Erro ao carregar espaços do evento:', error);
-                setEspacosDisponiveis([]);
-            }
-        };
-
-        carregarEspacosEvento();
-    }, [formState.evento, eventoSelecionadoDetalhe]);
-
     const handleSalvarRascunho = async () => {
         if (isLoading) return;
         const dadosRascunho = {
@@ -287,11 +250,6 @@ export default function AdicionarAtracao() {
 
         if (formState.equipe.length === 0) {
             mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
-            return;
-        }
-
-        if (!formState.espaco) {
-            mostrarAlerta('Por favor, selecione um espaço para a atração.');
             return;
         }
 
@@ -340,7 +298,6 @@ export default function AdicionarAtracao() {
                                 eventos={eventos}
                                 eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}
                                 modalidadeSelecionadaDetalhe={modalidadeSelecionadaDetalhe}
-                                espacosDisponiveis={espacosDisponiveis}
                                 camposModalidade={modalidadeSelecionadaDetalhe?.campos || []}
                                 usuarios={usuarios}
                                 isLoading={isLoading}
