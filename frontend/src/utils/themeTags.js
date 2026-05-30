@@ -5,10 +5,17 @@
  * Mapeia o termo chave encontrado na tag para sua respectiva cor em formato Hexadecimal.
  */
 export const CORES_TAGS = {
+    'ciencias exatas e da terra': '#2563EB', // Azul
+    'ciencias biologicas': '#16A34A', // Verde
+    engenharias: '#F97316', // Laranja
+    'ciencias da saude': '#14B8A6', // Verde-azulado
+    'ciencias agrarias': '#84CC16', // Lima
+    'ciencias sociais aplicadas': '#6366F1', // Indigo
+    'ciencias humanas': '#F43F5E', // Rosa
+    'linguistica letras e artes': '#F59E0B', // Ambar
     oficina: '#EAB308', // Amarelo
     palestra: '#5ce9ba', // Verde
     poster: '#ff8b2d', // Laranja
-    engenharia: '#EF4444', // Vermelho
     apresentacao: '#3B82F6', // Azul
     exatas: '#212529', // Escuro/Preto
     performance: '#DB2777', // Rosa
