@@ -1,23 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Row, Col, Button, Spinner, Alert } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Container, Row, Col } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import Card from '../components/common/Card';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import BarrasStatus from '../components/barras_status/BarrasStatus';
-import MenuColuna from '../components/menu_coluna/MenuColuna';
-import { PiChecks } from 'react-icons/pi';
 import { BiSolidEdit } from 'react-icons/bi';
 import { TbMapPinFilled } from 'react-icons/tb';
 import { TbMail } from 'react-icons/tb';
 import { TbFileCertificate } from 'react-icons/tb';
 import { RiTeamFill } from 'react-icons/ri';
-import { IoMdSchool } from 'react-icons/io';
-import { RiAddBoxFill } from 'react-icons/ri';
 import { IoCalendarOutline } from 'react-icons/io5';
 import { FaCalendarDay } from 'react-icons/fa';
-import { MdOutlineArticle, MdAddCircleOutline } from 'react-icons/md';
-import { MdPeopleAlt } from 'react-icons/md';
 import { HiOutlineTicket } from 'react-icons/hi';
 import { HiOutlineSwitchHorizontal } from 'react-icons/hi';
 import { FaRegFileAlt } from 'react-icons/fa';
@@ -103,19 +95,6 @@ export default function Dashboard() {
 
         carregarDashboard();
     }, [eventoId, navigate]);
-
-    console.log(dashboard);
-
-    const dados = useMemo(
-        () =>
-            (dashboard?.areas || []).map((area) => ({
-                titulo: area.nome,
-                valorAtual: area.avaliados || 0,
-                total: area.total || 0,
-                textoFim: 'Avaliados',
-            })),
-        [dashboard],
-    );
 
     return (
         <>

@@ -78,8 +78,8 @@ function App() {
 
                 {/* Eventos (criacao/edicao) */}
                 {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
-                <Route path="/dashboard" element={protegido(<Teste />, ADMIN_GROUPS)} />
-                <Route path="/dashboard/:id" element={protegido(<Teste />, ADMIN_GROUPS)} />
+                <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
                 <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
                 <Route path="/listar_eventos" element={<ListarEvento />} />

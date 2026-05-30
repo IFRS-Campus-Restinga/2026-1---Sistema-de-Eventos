@@ -1,35 +1,80 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Row, Col, Button, Spinner, Alert } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Container, Row, Col } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import Card from '../components/common/Card';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import BarrasStatus from '../components/barras_status/BarrasStatus';
-import MenuColuna from '../components/menu_coluna/MenuColuna';
-import { PiChecks } from 'react-icons/pi';
 import { BiSolidEdit } from 'react-icons/bi';
 import { TbMapPinFilled } from 'react-icons/tb';
 import { TbMail } from 'react-icons/tb';
 import { TbFileCertificate } from 'react-icons/tb';
 import { RiTeamFill } from 'react-icons/ri';
-import { IoMdSchool } from 'react-icons/io';
-import { RiAddBoxFill } from 'react-icons/ri';
 import { IoCalendarOutline } from 'react-icons/io5';
-import { MdOutlineArticle, MdAddCircleOutline } from 'react-icons/md';
+import { FaCalendarDay } from 'react-icons/fa';
+import { HiOutlineTicket } from 'react-icons/hi';
+import { HiOutlineSwitchHorizontal } from 'react-icons/hi';
+import { FaRegFileAlt } from 'react-icons/fa';
+import { IoMdSettings } from 'react-icons/io';
+import { LuFileCheck2 } from 'react-icons/lu';
+import { GoTasklist } from 'react-icons/go';
+import { LuStar } from 'react-icons/lu';
+import { BsPersonFillCheck } from 'react-icons/bs';
+import { AiOutlineUnorderedList } from 'react-icons/ai';
+import { BiPaperPlane } from 'react-icons/bi';
+import { FaCogs } from 'react-icons/fa';
+import { HiOutlineClipboardList } from 'react-icons/hi';
 
-import { getDashboardEvento } from '../services/dashboardService';
 import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
 } from '../utils/selectedEvento';
+import { getDashboardEvento } from '../services/dashboardService';
 
-export default function DashboardEvento() {
+export default function Dashboard() {
     const { id: eventoId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
     const [erro, setErro] = useState('');
+
     const [dashboard, setDashboard] = useState(null);
+
+    const formatarData = (valor) => {
+        if (!valor) {
+            return '';
+        }
+
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) {
+            return '';
+        }
+
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(data);
+    };
+
+    const formatarStatus = (status) => {
+        if (!status) {
+            return '';
+        }
+
+        const statusLabels = {
+            EM_ANDAMENTO: 'Em andamento',
+            ENCERRADO: 'Encerrado',
+            EM_PLANEJAMENTO: 'Em planejamento',
+        };
+
+        if (statusLabels[status]) {
+            return statusLabels[status];
+        }
+
+        return status
+            .toLowerCase()
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (letra) => letra.toUpperCase());
+    };
 
     useEffect(() => {
         async function carregarDashboard() {
@@ -76,270 +121,574 @@ export default function DashboardEvento() {
         carregarDashboard();
     }, [eventoId, navigate]);
 
-    // Fallbacks seguros para evitar que o código quebre caso a API traga objetos vazios
-    const metricas = dashboard?.metricas || {};
-    const totalAtracoes = metricas.total_atracoes || 0;
-    const semAvaliador = metricas.semAvaliador || 0;
-    const desistencias = metricas.desistencias || 0;
-    const taxaEvasao = metricas.taxaEvasao || 0;
-
-    const dados = useMemo(
-        () =>
-            (dashboard?.areas || []).map((area) => ({
-                titulo: area.nome,
-                valorAtual: area.avaliados || 0,
-                total: area.total || 0,
-                textoFim: 'Avaliados',
-            })),
-        [dashboard],
-    );
-
-    const links = useMemo(
-        () => [
-            {
-                texto: 'Homologar e Definir Avaliadores de Trabalhos',
-                icone: <PiChecks color="#14AE5C" size={20} />,
-                to: eventoId
-                    ? `/gerenciar_avaliadores_atracoes?evento_id=${eventoId}`
-                    : '#',
-            },
-            {
-                texto: 'Editar Informações do Evento',
-                icone: <BiSolidEdit color="#727272" size={20} />,
-                to: eventoId ? `/editar_evento/${eventoId}` : '#',
-            },
-            {
-                texto: 'Definir Locais de Trabalhos',
-                icone: <TbMapPinFilled color="#f00" size={20} />,
-                to: '/listar_locais_espacos',
-            },
-            {
-                texto: 'Enviar Emails',
-                icone: <TbMail color="#0D99FF" size={20} />,
-                to: eventoId ? `/dashboard/${eventoId}/enviaremails` : '#',
-            },
-            {
-                texto: 'Emitir Certificados',
-                icone: <TbFileCertificate color="#FFCD29" size={20} />,
-                to: '#',
-            },
-            {
-                texto: 'Gerenciar Organizadores',
-                icone: <RiTeamFill color="#00A44B" size={20} />,
-                to: eventoId
-                    ? `/atribuir_organizador?eventoId=${eventoId}`
-                    : '#',
-            },
-            {
-                texto: 'Adicionar um Novo Evento',
-                icone: <RiAddBoxFill color="#016B3F" size={20} />,
-                to: '/adicionar_evento',
-            },
-            {
-                texto: 'Gerenciar Modalidades',
-                icone: <IoMdSchool color="#00f" size={20} />,
-                to: '/listar_modalidades',
-            },
-            {
-                texto: 'Definir Sessões da Programação do Evento',
-                icone: (
-                    <IoCalendarOutline color="rgb(223, 24, 146)" size={20} />
-                ),
-                to: eventoId
-                    ? `/dashboard/${eventoId}/sessao_atribuir_data`
-                    : '#',
-            },
-            {
-                texto: 'Gerenciar Submissões',
-                icone: <MdOutlineArticle color="#6200EA" size={20} />,
-                to: '/listar_atracoes',
-            },
-            {
-                texto: 'Adicionar Submissão',
-                icone: <MdAddCircleOutline color="#6200EA" size={20} />,
-                to: '/adicionar_atracao',
-            },
-            {
-                texto: 'Listrar Atrações Inscritíveis',
-                icone: <MdOutlineArticle color="#10c7ff" size={20} />,
-                to: eventoId ? `/inscrever_atracoes/${eventoId}` : '#',
-            },
-        ],
-        [eventoId],
-    );
-
     return (
-        <div className="d-flex flex-column min-vh-100 bg-light">
-            <NavBar />
+        <>
+            <div className="d-flex flex-column min-vh-100 bg-light">
+                <NavBar />
 
-            <main
-                className="flex-fill py-4 mx-auto w-100"
-                style={{ maxWidth: '1400px' }}
-            >
-                <Container fluid>
-                    {loading ? (
-                        // ✅ Feedback Visual de Carregamento Preventivo
-                        <div className="text-center py-5">
-                            <Spinner
-                                animation="border"
-                                variant="primary"
-                                className="mb-2"
-                            />
-                            <p className="text-muted fw-medium">
-                                Sincronizando dados do painel...
-                            </p>
-                        </div>
-                    ) : erro ? (
-                        // ✅ Alerta Amigável se o Backend falhar por falta de dados vinculados
-                        <div className="py-4">
-                            <Alert variant="danger" className="shadow-sm">
-                                <Alert.Heading>
-                                    Atenção, Organizador
-                                </Alert.Heading>
-                                <p className="mb-0">{erro}</p>
-                            </Alert>
-                            <div className="text-center mt-3">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => navigate('/listar_eventos')}
-                                >
-                                    Voltar para Lista de Eventos
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <Row className="mb-4">
-                                <Col className="d-flex flex-xl-row justify-content-between align-items-center gap-3 flex-column">
-                                    <h2 className="fw-semibold text-xl-start text-center m-0">
-                                        Visão Geral do Evento:{' '}
-                                        <span className="text-primary">
+                <main
+                    className="flex-fill py-4 mx-auto w-100"
+                    style={{ maxWidth: '1400px' }}
+                >
+                    <Container>
+                        <Row>
+                            <Col>
+                                <Row className="rounded-4 bg-success p-3">
+                                    <Col
+                                        sm={1}
+                                        className="d-flex flex-column flex-md-row"
+                                    >
+                                        <div
+                                            className="px-3  d-flex justify-content-center align-items-center rounded-3"
+                                            style={{ background: '#ffffff26' }}
+                                        >
+                                            <IoCalendarOutline
+                                                size={30}
+                                                color="white"
+                                            />
+                                        </div>
+                                    </Col>
+                                    <Col className="text-white d-flex flex-column justify-content-start">
+                                        <p className="m-0 fw-bold fs-4">
                                             {dashboard?.evento?.nome}
+                                        </p>
+                                        <div className="d-flex flex-column flex-md-row gap-3">
+                                            <span className="d-flex align-items-center">
+                                                <FaCalendarDay className="me-2" />{' '}
+                                                {formatarData(
+                                                    dashboard?.evento?.inicio,
+                                                )}
+                                                {' – '}
+                                                {formatarData(
+                                                    dashboard?.evento?.fim,
+                                                )}
+                                            </span>
+                                            <span className="d-flex align-items-center">
+                                                <TbMapPinFilled className="me-2" />{' '}
+                                                {dashboard?.evento?.local}
+                                            </span>
+                                        </div>
+                                    </Col>
+                                    <Col
+                                        sm={2}
+                                        className="d-flex  align-items-center"
+                                    >
+                                        <div className="d-flex flex-column align-items-center">
+                                            <span
+                                                className="px-3 py-1 text-white rounded-5 text-center mb-2"
+                                                style={{
+                                                    background: '#ffffff26',
+                                                    border: '1px solid rgba(255,255,255,0.25)',
+                                                }}
+                                            >
+                                                {formatarStatus(
+                                                    dashboard?.evento
+                                                        ?.status_evento,
+                                                )}
+                                            </span>
+                                            <Link
+                                                to="/listar_eventos"
+                                                className="rounded-4 btn btn-light text-white"
+                                                style={{
+                                                    background: '#ffffff26',
+                                                    border: '1px solid rgba(255,255,255,0.25)',
+                                                }}
+                                            >
+                                                <HiOutlineSwitchHorizontal className="me-1" />
+                                                Trocar de evento
+                                            </Link>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        {/* Cards */}
+                        <Row className="d-flex flex-column flex-md-row gap-3 mt-3">
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <HiOutlineTicket className="me-2" />
+                                            inscrições
                                         </span>
-                                    </h2>
-                                    <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                        <Button
-                                            variant="secondary"
-                                            as={Link}
-                                            to="/listar_eventos"
+                                        <span className="fw-bold fs-3 text-black">
+                                            {dashboard?.metricas
+                                                ?.total_inscricoes ||
+                                                'sem inscrições'}
+                                        </span>
+                                        <span>No evento</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <FaRegFileAlt className="me-2" />
+                                            Submissões
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            mock
+                                        </span>
+                                        <span>Submetidas</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <HiOutlineTicket className="me-2" />
+                                            atrações
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            {dashboard?.metricas
+                                                ?.total_atracoes ||
+                                                'sem atrações'}
+                                        </span>
+                                        <span>Homologadas</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        {/* Configurações do evento */}
+                        <Row className="mt-3">
+                            <Col
+                                className="bg-white rounded-4"
+                                style={{ border: '1px solid rgba(0,0,0,0.09)' }}
+                            >
+                                <Row className="p-2">
+                                    <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                        <div
+                                            className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                            style={{ background: '#e8f5ed' }}
                                         >
-                                            Mudar de Evento
-                                        </Button>
-                                        <Button
-                                            variant="primary"
-                                            as={Link}
-                                            to="#"
+                                            <IoMdSettings
+                                                size={20}
+                                                color="green"
+                                            />
+                                        </div>
+                                        <span className="fw-semibold">
+                                            Configurações do Evento
+                                        </span>
+                                    </Col>
+                                </Row>
+                                <hr />
+                                {/* Links */}
+                                <Row>
+                                    <Col className="bg-white rounded-4 py-3 px-2">
+                                        <Row
+                                            className="d-flex flex-column flex-md-row px-3 flex-wrap"
+                                            style={{ gap: '1rem' }}
                                         >
-                                            Analisar Usuários
-                                        </Button>
-                                        <Button
-                                            variant="success"
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/editar_evento/${eventoId}`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <BiSolidEdit
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Editar informações
+                                                </Link>
+                                            </Col>
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/dashboard/${eventoId}/sessao_atribuir_data`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <IoCalendarOutline
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Configurar programação
+                                                </Link>
+                                            </Col>
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        '/listar_locais_espacos'
+                                                    }
+                                                >
+                                                    <TbMapPinFilled
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Definir locais de trabalho
+                                                </Link>
+                                            </Col>
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/atribuir_organizador?eventoId=${eventoId}`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <RiTeamFill
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Gerenciar organizadores
+                                                </Link>
+                                            </Col>
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/atribuir_coordenador?eventoId=${eventoId}`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <FaCogs
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Definir Coordenadores
+                                                </Link>
+                                            </Col>
+                                            <Col
+                                                className="d-flex flex-column p-0 text-secondary"
+                                                style={{
+                                                    flex: '1 1 calc(25% - 1rem)',
+                                                }}
+                                            >
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        '/listar_inscritos_evento'
+                                                    }
+                                                >
+                                                    <HiOutlineClipboardList
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Lista de inscritos
+                                                </Link>
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Row className="mt-3">
+                            <Col className="d-flex flex-md-row flex-column p-0 d-flex flex-row gap-3">
+                                {/* Submissoes */}
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
+                                >
+                                    <Row className="p-2 ">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <LuFileCheck2
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Submissões e Atrações
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row
+                                        className="px-4 pb-3 d-flex flex-column flex-md-row flex-wrap"
+                                        style={{ gap: '1rem' }}
+                                    >
+                                        <Col
+                                            className="p-0"
                                             style={{
-                                                backgroundColor: '#05C978',
-                                                borderColor: '#05C978',
+                                                flex: '1 1 calc(50% - 1rem)',
                                             }}
-                                            as={Link}
-                                            to="/listar_inscritos_evento"
                                         >
-                                            Inscrições Evento
-                                        </Button>
-                                        <Button
-                                            variant="success"
-                                            as={Link}
-                                            to={
-                                                eventoId
-                                                    ? `/atribuir_coordenador?eventoId=${eventoId}`
-                                                    : '#'
-                                            }
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'#'}
+                                            >
+                                                <GoTasklist
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Gerenciar Submissões
+                                            </Link>
+                                        </Col>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
                                         >
-                                            Coordenadores
-                                        </Button>
-                                    </div>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
+                                                to={'#'}
+                                            >
+                                                + Adicionar Submissão
+                                            </Link>
+                                        </Col>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
+                                        >
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'/listar_atracoes'}
+                                            >
+                                                <GoTasklist
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Gerenciar Atrações
+                                            </Link>
+                                        </Col>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
+                                        >
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
+                                                to={'/adicionar_atracao'}
+                                            >
+                                                + Adicionar Atração
+                                            </Link>
+                                        </Col>
+                                    </Row>
                                 </Col>
-                            </Row>
-
-                            <Row className="g-4 mb-4">
-                                <Col xs={12} md={4}>
-                                    <Card
-                                        corBorda="#003366"
-                                        largura="100%"
-                                        altura={180}
+                                {/* Avaliações */}
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
+                                >
+                                    <Row className="p-2 ">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <LuStar
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Avaliações
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row
+                                        className="px-4 pb-3 d-flex flex-column flex-md-row flex-wrap"
+                                        style={{ gap: '1rem' }}
                                     >
-                                        <Container className="p-3">
-                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">
-                                                TOTAL DE SUBMISSÕES
-                                            </span>
-                                            <span className="fw-bold fs-1 d-block mb-2">
-                                                {totalAtracoes}
-                                            </span>
-                                            <span className="fw-bold small text-success">
-                                                ⬆ 12% vs ano passado
-                                            </span>
-                                        </Container>
-                                    </Card>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
+                                        >
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'#'}
+                                            >
+                                                <BsPersonFillCheck
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Definir Avaliadores Submissão
+                                            </Link>
+                                        </Col>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
+                                        >
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/gerenciar_avaliadores_atracoes?evento_id=${eventoId}`
+                                                        : '#'
+                                                }
+                                            >
+                                                <BsPersonFillCheck
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Definir Avaliadores Atração
+                                            </Link>
+                                        </Col>
+                                        <Col
+                                            className="p-0"
+                                            style={{
+                                                flex: '1 1 calc(50% - 1rem)',
+                                            }}
+                                        >
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
+                                                to={'/listar_modalidades'}
+                                            >
+                                                <AiOutlineUnorderedList
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="white"
+                                                />
+                                                Gerenciar Modalidades
+                                            </Link>
+                                        </Col>
+                                    </Row>
                                 </Col>
-                                <Col xs={12} md={4}>
-                                    <Card
-                                        corBorda="#FF0000"
-                                        largura="100%"
-                                        altura={180}
-                                    >
-                                        <Container className="p-3">
-                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">
-                                                SEM AVALIADOR (CRÍTICO)
+                            </Col>
+                        </Row>
+                        <Row className="mt-3">
+                            <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
+                                >
+                                    <Row className="p-2 ">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <TbMail
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Comunicação e certificados
                                             </span>
-                                            <span className="fw-bold fs-1 text-danger d-block mb-2">
-                                                {semAvaliador}
-                                            </span>
-                                            <span className="fw-bold small text-muted">
-                                                Requer ação imediata
-                                            </span>
-                                        </Container>
-                                    </Card>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row className="p-3 d-flex flex-column flex-md-row gap-md-0 gap-3 flex-wrap">
+                                        <Col sm={6}>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/dashboard/${eventoId}/enviaremails`
+                                                        : '#'
+                                                }
+                                            >
+                                                <BiPaperPlane
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Enviar e-mails
+                                            </Link>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
+                                                <TbFileCertificate
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Emitir Certificados
+                                            </Link>
+                                        </Col>
+                                    </Row>
                                 </Col>
-                                <Col xs={12} md={4}>
-                                    <Card
-                                        corBorda="#727272"
-                                        largura="100%"
-                                        altura={180}
-                                    >
-                                        <Container className="p-3">
-                                            <span className="fs-6 fw-semibold text-secondary d-block mb-3">
-                                                DESISTÊNCIAS
-                                            </span>
-                                            <span className="fw-bold fs-1 text-secondary d-block mb-2">
-                                                {desistencias}
-                                            </span>
-                                            <span className="fw-bold small text-secondary">
-                                                Taxa de evasão {taxaEvasao}%
-                                            </span>
-                                        </Container>
-                                    </Card>
-                                </Col>
-                            </Row>
+                            </Col>
+                        </Row>
+                    </Container>
+                </main>
 
-                            <Row className="g-4">
-                                <Col lg={7} xs={12}>
-                                    <BarrasStatus
-                                        titulo="Status das Avaliações por Área"
-                                        dados={dados}
-                                    />
-                                </Col>
-                                <Col lg={5} xs={12}>
-                                    <MenuColuna titulo="Ações" itens={links} />
-                                </Col>
-                            </Row>
-                        </>
-                    )}
-                </Container>
-            </main>
-
-            <Footer
-                telefone="(51) 3333-1234"
-                endereco="Rua Alberto Hoffmann, 285"
-                ano={2026}
-                campus="Campus Restinga"
-            />
-        </div>
+                <Footer
+                    telefone="(51) 3333-1234"
+                    endereco="Rua Alberto Hoffmann, 285"
+                    ano={2026}
+                    campus="Campus Restinga"
+                />
+            </div>
+        </>
     );
 }

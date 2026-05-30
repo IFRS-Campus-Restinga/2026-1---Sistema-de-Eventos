@@ -7,15 +7,23 @@ const MAP = {
     LIVRE: 'Livre',
 };
 
+function humanizeToken(token) {
+    if (!token) return '';
+    const s = String(token).replace(/_/g, ' ').toLowerCase();
+    return s
+        .split(' ')
+        .map((w) => (w.length ? w[0].toUpperCase() + w.slice(1) : ''))
+        .join(' ');
+}
+
 export default function formatNivelEnsino(value) {
     if (!value && value !== 0) return null;
-    if (
-        typeof value === 'string' &&
-        value.indexOf('_') === -1 &&
-        value.length > 0 &&
-        (value === value.toLowerCase()) === false
-    ) {
-        return value;
+    if (typeof value === 'string' && value.indexOf('_') === -1) {
+        const hasLowercase = /[a-z]/.test(value);
+        if (hasLowercase) return value;
     }
-    return MAP[String(value)] || String(value || '');
+    const key = String(value || '');
+    if (MAP[key]) return MAP[key];
+    if (key.indexOf('_') >= 0) return humanizeToken(key);
+    return key;
 }

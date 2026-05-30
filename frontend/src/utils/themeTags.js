@@ -17,6 +17,18 @@ export const CORES_TAGS = {
     palestra: '#5ce9ba', // Verde
     poster: '#ff8b2d', // Laranja
     apresentacao: '#3B82F6', // Azul
+    'apresentacao oral': '#1D4ED8', // Azul escuro
+    'comunicacao oral': '#1E40AF', // Azul
+    minicurso: '#10B981', // Verde
+    workshop: '#0EA5E9', // Azul claro
+    seminario: '#8B5CF6', // Roxo
+    painel: '#F97316', // Laranja
+    'mesa redonda': '#A855F7', // Violeta
+    'roda de conversa': '#7C3AED', // Roxo
+    mostra: '#F59E0B', // Ambar
+    exposicao: '#F472B6', // Rosa
+    visita: '#14B8A6', // Verde-azulado
+    'visita tecnica': '#0F766E', // Verde escuro
     exatas: '#212529', // Escuro/Preto
     performance: '#DB2777', // Rosa
     artes: '#8B5CF6', // Roxo
