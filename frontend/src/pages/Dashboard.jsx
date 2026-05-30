@@ -78,7 +78,7 @@ export default function DashboardEvento() {
 
     // Fallbacks seguros para evitar que o código quebre caso a API traga objetos vazios
     const metricas = dashboard?.metricas || {};
-    const totalSubmissoes = metricas.totalSubmissoes || 0;
+    const totalAtracoes = metricas.total_atracoes || 0;
     const semAvaliador = metricas.semAvaliador || 0;
     const desistencias = metricas.desistencias || 0;
     const taxaEvasao = metricas.taxaEvasao || 0;
@@ -100,8 +100,8 @@ export default function DashboardEvento() {
                 texto: 'Homologar e Definir Avaliadores de Trabalhos',
                 icone: <PiChecks color="#14AE5C" size={20} />,
                 to: eventoId
-                    ? `/gerenciar_atracoes?evento_id=${eventoId}`
-                    : '/gerenciar_atracoes',
+                    ? `/gerenciar_avaliadores_atracoes?evento_id=${eventoId}`
+                    : '#',
             },
             {
                 texto: 'Editar Informações do Evento',
@@ -270,7 +270,7 @@ export default function DashboardEvento() {
                                                 TOTAL DE SUBMISSÕES
                                             </span>
                                             <span className="fw-bold fs-1 d-block mb-2">
-                                                {totalSubmissoes}
+                                                {totalAtracoes}
                                             </span>
                                             <span className="fw-bold small text-success">
                                                 ⬆ 12% vs ano passado

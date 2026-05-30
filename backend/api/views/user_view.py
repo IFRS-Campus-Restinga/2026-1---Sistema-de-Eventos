@@ -36,11 +36,10 @@ class ServidorListView(generics.ListAPIView):
         if q:
             from django.db.models import Q
 
-            # buscar por username, email, perfil.nome ou perfil.area_conhecimento
+            # buscar por username, email ou perfil.area_conhecimento
             usuarios = usuarios.filter(
                 Q(username__icontains=q)
                 | Q(email__icontains=q)
-                | Q(perfil__nome__icontains=q)
                 | Q(perfil__area_conhecimento__icontains=q)
             ).distinct()
         resultados = []

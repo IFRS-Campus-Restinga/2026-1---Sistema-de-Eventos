@@ -21,6 +21,17 @@ class AvaliacaoAtracaoListView(APIView):
 
     def get(self, request, *args, **kwargs):
         criterios = AvaliacaoAtracao.objects.all()
+        atracao_id = request.query_params.get("atracao")
+        mine = request.query_params.get("mine")
+
+        if atracao_id:
+            criterios = criterios.filter(atracao_id=atracao_id)
+
+        if mine in ("1", "true", "True", "sim", "yes"):
+            if not request.user or not request.user.is_authenticated:
+                return Response({"erro": "Autenticação requerida"}, status=401)
+            criterios = criterios.filter(avaliador=request.user)
+
         serializer = AvaliacaoAtracaoSerializer(criterios, many=True)
         return Response(serializer.data)
 

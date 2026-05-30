@@ -21,6 +21,9 @@ class ItemAvaliaçãoAtracaoListView(APIView):
 
     def get(self, request, *args, **kwargs):
         items = ItemAvaliaçãoAtracao.objects.all()
+        avaliacao_id = request.query_params.get("avaliacao_atracao")
+        if avaliacao_id:
+            items = items.filter(avaliacao_atracao_id=avaliacao_id)
         serializer = ItemAvaliaçãoAtracaoSerializer(items, many=True)
         return Response(serializer.data)
 

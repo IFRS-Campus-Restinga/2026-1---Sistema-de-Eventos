@@ -13,26 +13,49 @@ import {
 } from '../services/atracaoService';
 import { pegarModalidades } from '../services/modalidadeService';
 import { listarAvaliadoresPorAtracao } from '../services/atracaoAvaliadorService';
+import {
+    listarAvaliacoesAtracao,
+    listarItensAvaliacaoAtracao,
+} from '../services/avaliacaoAtracaoService';
+import { pegarCriterioAvaliacaoAtracao } from '../services/criterioAvaliacaoAtracaoService';
 import useAtracaoAvaliador from '../hooks/useAtracaoAvaliador';
 import Tag from '../components/common/Tag';
 import formatAreaConhecimento from '../utils/formatAreaConhecimento';
 import Filtro from '../components/common/Filtro';
 import ModalPopup from '../components/common/ModalPopup';
+import Alerta from '../components/common/Alerta';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 
-function AvaliadorChip({ nome, onRemove }) {
+function AvaliadorChip({ nome, onRemove, onView, canRemove = true }) {
     return (
         <div
             className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border shadow-sm"
             style={{ background: '#E9ECEF' }}
         >
             <span className="small fw-semibold ">{nome}</span>
+            {onView && (
+                <button
+                    type="button"
+                    className="btn p-0 border-0 text-primary fw-semibold lh-1"
+                    aria-label={`Ver avaliação de ${nome}`}
+                    onClick={onView}
+                >
+                    ver
+                </button>
+            )}
+            {!onView && <span className="small text-muted">Não avaliado</span>}
             <button
                 type="button"
                 className="btn p-0 border-0 text-danger fw-bold lh-1"
                 aria-label={`Remover ${nome}`}
-                onClick={onRemove}
+                title={
+                    canRemove
+                        ? 'Remover avaliador'
+                        : 'Não é possível remover: avaliação já enviada'
+                }
+                disabled={!canRemove}
+                onClick={canRemove ? onRemove : undefined}
             >
                 x
             </button>
@@ -48,6 +71,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
     const [allAtracoes, setAllAtracoes] = useState([]);
     const [filtroArea, setFiltroArea] = useState('');
     const [filtroBusca, setFiltroBusca] = useState('');
+    const [filtroOrdenacao, setFiltroOrdenacao] = useState('desc');
     const [carregando, setCarregando] = useState(false);
     const [isMobile, setIsMobile] = useState(
         typeof window !== 'undefined' ? window.innerWidth < 768 : false,
@@ -58,8 +82,21 @@ export default function GerenciarAvaliacoesAtracoes({}) {
     const [manualBusca, setManualBusca] = useState('');
     const [usuarios, setUsuarios] = useState([]);
     const [selecionadasSugestoes, setSelecionadasSugestoes] = useState([]);
+    const [avaliadoresAtuais, setAvaliadoresAtuais] = useState([]);
     const [eventosMap, setEventosMap] = useState({});
     const [modalidadesMap, setModalidadesMap] = useState({});
+    const [criteriosMap, setCriteriosMap] = useState({});
+    const [avaliacoesMap, setAvaliacoesMap] = useState({});
+    const [avaliadoresContagemMap, setAvaliadoresContagemMap] = useState({});
+    const [avaliacaoModal, setAvaliacaoModal] = useState({
+        show: false,
+        loading: false,
+        avaliador: null,
+        atracao: null,
+        avaliacao: null,
+        itens: [],
+    });
+    const [alerta, setAlerta] = useState(null);
 
     const {
         avaliadores,
@@ -68,6 +105,65 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         retirarAvaliador,
         loading: loadingAvaliadores,
     } = useAtracaoAvaliador();
+
+    const ordenarPorMedia = (lista, ordem = 'desc') => {
+        return [...lista].sort((a, b) => {
+            const mediaA = Number.isFinite(a.nota_media) ? a.nota_media : null;
+            const mediaB = Number.isFinite(b.nota_media) ? b.nota_media : null;
+
+            if (mediaA === null && mediaB === null) return 0;
+            if (mediaA === null) return 1;
+            if (mediaB === null) return -1;
+            return ordem === 'asc' ? mediaA - mediaB : mediaB - mediaA;
+        });
+    };
+
+    const abrirAvaliacao = async (atracao, avaliador) => {
+        setAvaliacaoModal({
+            show: true,
+            loading: true,
+            avaliador,
+            atracao,
+            avaliacao: null,
+            itens: [],
+        });
+
+        try {
+            const avaliacoes = await listarAvaliacoesAtracao({
+                atracao: atracao.id,
+            });
+            const lista = Array.isArray(avaliacoes) ? avaliacoes : [];
+            const found = lista.find(
+                (av) => String(av.avaliador) === String(avaliador.id),
+            );
+            if (!found) {
+                setAvaliacaoModal((prev) => ({
+                    ...prev,
+                    loading: false,
+                    avaliacao: null,
+                    itens: [],
+                }));
+                return;
+            }
+
+            const itensResp = await listarItensAvaliacaoAtracao(found.id);
+            const itens = Array.isArray(itensResp) ? itensResp : [];
+
+            setAvaliacaoModal((prev) => ({
+                ...prev,
+                loading: false,
+                avaliacao: found,
+                itens,
+            }));
+        } catch (e) {
+            setAvaliacaoModal((prev) => ({
+                ...prev,
+                loading: false,
+                avaliacao: null,
+                itens: [],
+            }));
+        }
+    };
 
     const carregarLista = useCallback(async () => {
         setCarregando(true);
@@ -117,8 +213,64 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 }),
             );
 
-            setAllAtracoes(listaComAvaliadores);
-            setAtracoes(listaComAvaliadores);
+            const contagemMap = {};
+            listaComAvaliadores.forEach((item) => {
+                (item.avaliadores || []).forEach((av) => {
+                    const pid = av.perfil_id || av.id;
+                    if (!pid) return;
+                    contagemMap[pid] = (contagemMap[pid] || 0) + 1;
+                });
+            });
+            setAvaliadoresContagemMap(contagemMap);
+
+            let mediasMap = {};
+            try {
+                const avaliacoesResp = await listarAvaliacoesAtracao();
+                const avaliacoes = Array.isArray(avaliacoesResp)
+                    ? avaliacoesResp
+                    : [];
+                const soma = {};
+                const qtd = {};
+                const ids = new Set(listaFiltrada.map((item) => item.id));
+                const mapAvaliacao = {};
+
+                avaliacoes.forEach((av) => {
+                    if (!ids.has(av.atracao)) return;
+                    const nota = Number(av.nota_final);
+                    if (!Number.isFinite(nota)) return;
+                    soma[av.atracao] = (soma[av.atracao] || 0) + nota;
+                    qtd[av.atracao] = (qtd[av.atracao] || 0) + 1;
+                    if (av.avaliador) {
+                        mapAvaliacao[`${av.atracao}-${av.avaliador}`] = av.id;
+                    }
+                });
+
+                Object.keys(soma).forEach((id) => {
+                    mediasMap[id] = soma[id] / qtd[id];
+                });
+
+                setAvaliacoesMap(mapAvaliacao);
+            } catch (e) {
+                mediasMap = {};
+                setAvaliacoesMap({});
+            }
+
+            const listaComNotas = listaComAvaliadores.map((item) => {
+                const media = Object.prototype.hasOwnProperty.call(
+                    mediasMap,
+                    item.id,
+                )
+                    ? mediasMap[item.id]
+                    : null;
+                return { ...item, nota_media: media };
+            });
+
+            const listaOrdenada = ordenarPorMedia(
+                listaComNotas,
+                filtroOrdenacao,
+            );
+            setAllAtracoes(listaOrdenada);
+            setAtracoes(listaOrdenada);
             // carregar eventos para verificar se a etapa de avaliação/realização está aberta
             try {
                 const evts = await buscarEventos();
@@ -142,6 +294,17 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 setEventosMap(map);
             } catch (e) {
                 setEventosMap({});
+            }
+
+            try {
+                const criterios = await pegarCriterioAvaliacaoAtracao();
+                const map = {};
+                (Array.isArray(criterios) ? criterios : []).forEach((c) => {
+                    map[c.id] = c;
+                });
+                setCriteriosMap(map);
+            } catch (e) {
+                setCriteriosMap({});
             }
             // (modalidadesMap já populado acima)
         } catch (e) {
@@ -177,7 +340,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 : true;
             return matchArea && matchBusca;
         });
-        setAtracoes(filtrado);
+        setAtracoes(ordenarPorMedia(filtrado, filtroOrdenacao));
     };
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -202,6 +365,16 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                             <Filtro
                                 filtros={[
                                     {
+                                        nome: 'busca',
+                                        tipo: 'text',
+                                        placeholder:
+                                            'Buscar por título ou autor...',
+                                        lg: 4,
+                                        valor: filtroBusca,
+                                        aoMudar: (e) =>
+                                            setFiltroBusca(e.target.value),
+                                    },
+                                    {
                                         nome: 'area',
                                         tipo: 'select',
                                         placeholder: 'Todas as áreas',
@@ -219,15 +392,27 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                         aoMudar: (e) =>
                                             setFiltroArea(e.target.value),
                                     },
+
                                     {
-                                        nome: 'busca',
-                                        tipo: 'text',
-                                        placeholder:
-                                            'Buscar por título ou autor...',
-                                        lg: 4,
-                                        valor: filtroBusca,
-                                        aoMudar: (e) =>
-                                            setFiltroBusca(e.target.value),
+                                        nome: 'ordenacao',
+                                        tipo: 'select',
+                                        placeholder: 'Ordenar por nota',
+                                        opcoes: [
+                                            'Nota (decrescente)',
+                                            'Nota (crescente)',
+                                        ],
+                                        valor:
+                                            filtroOrdenacao === 'asc'
+                                                ? 'Nota (crescente)'
+                                                : 'Nota (decrescente)',
+                                        aoMudar: (e) => {
+                                            const valor = e.target.value;
+                                            setFiltroOrdenacao(
+                                                valor === 'Nota (crescente)'
+                                                    ? 'asc'
+                                                    : 'desc',
+                                            );
+                                        },
                                     },
                                 ]}
                                 aoFiltrar={aoFiltrar}
@@ -248,53 +433,60 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                     overflow: 'hidden',
                                 }}
                                 cabecarios={[
-                                    'Status',
+                                    'Qtd. avaliadores',
                                     'Trabalho/Autores',
                                     'Área',
                                     'Avaliadores',
+                                    'Média',
                                     'Ações',
                                 ]}
                                 dados={atracoes.map((a) => [
                                     {
-                                        value: (
-                                            <div
-                                                className="rounded-circle"
-                                                style={{
-                                                    width: '10px',
-                                                    height: '10px',
-                                                    backgroundColor: (() => {
-                                                        const num =
-                                                            (
-                                                                a.avaliadores ||
-                                                                []
-                                                            ).length || 0;
-                                                        const modalidadeObj =
-                                                            typeof a.modalidade ===
-                                                                'object' &&
-                                                            a.modalidade
-                                                                ? a.modalidade
-                                                                : modalidadesMap[
-                                                                      a
-                                                                          .modalidade
-                                                                  ];
-                                                        const limite = Number(
-                                                            modalidadeObj?.limite_avaliadores ??
-                                                                a.limite_avaliadores ??
-                                                                a.modalidade_limite ??
-                                                                0,
-                                                        );
-                                                        if (num === 0)
-                                                            return 'red';
-                                                        if (
-                                                            limite > 0 &&
-                                                            num >= limite
-                                                        )
-                                                            return 'green';
-                                                        return '#FFC107';
-                                                    })(),
-                                                }}
-                                            ></div>
-                                        ),
+                                        value: (() => {
+                                            const num =
+                                                (a.avaliadores || []).length ||
+                                                0;
+                                            const modalidadeObj =
+                                                typeof a.modalidade ===
+                                                    'object' && a.modalidade
+                                                    ? a.modalidade
+                                                    : modalidadesMap[
+                                                          a.modalidade
+                                                      ];
+                                            const limite = Number(
+                                                modalidadeObj?.limite_avaliadores ??
+                                                    a.limite_avaliadores ??
+                                                    a.modalidade_limite ??
+                                                    0,
+                                            );
+                                            const cor = (() => {
+                                                if (num === 0) return 'red';
+                                                if (limite > 0 && num >= limite)
+                                                    return 'green';
+                                                return '#FFC107';
+                                            })();
+                                            const texto =
+                                                limite > 0
+                                                    ? `${num}/${limite} avaliadores`
+                                                    : `${num}/— avaliadores`;
+
+                                            return (
+                                                <div className="d-inline-flex align-items-center gap-2">
+                                                    <div
+                                                        className="rounded-circle"
+                                                        style={{
+                                                            width: '10px',
+                                                            height: '10px',
+                                                            backgroundColor:
+                                                                cor,
+                                                        }}
+                                                    ></div>
+                                                    <span className="">
+                                                        {texto}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })(),
                                         style: { verticalAlign: 'middle' },
                                     },
                                     {
@@ -319,6 +511,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                         ),
                                         style: { verticalAlign: 'middle' },
                                     },
+
                                     {
                                         value: (
                                             <div className="d-flex flex-wrap gap-2 justify-content-start">
@@ -331,6 +524,22 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                                                 av.name ||
                                                                 av.username
                                                             }
+                                                            canRemove={
+                                                                !avaliacoesMap[
+                                                                    `${a.id}-${av.id}`
+                                                                ]
+                                                            }
+                                                            onView={
+                                                                avaliacoesMap[
+                                                                    `${a.id}-${av.id}`
+                                                                ]
+                                                                    ? () =>
+                                                                          abrirAvaliacao(
+                                                                              a,
+                                                                              av,
+                                                                          )
+                                                                    : null
+                                                            }
                                                             onRemove={async () => {
                                                                 try {
                                                                     await retirarAvaliador(
@@ -342,13 +551,41 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                                                     await carregarAvaliadores(
                                                                         a.id,
                                                                     );
-                                                                } catch (e) {}
+                                                                    setAlerta({
+                                                                        mensagem:
+                                                                            'Avaliador removido com sucesso.',
+                                                                        variacao:
+                                                                            'success',
+                                                                        reacao: Date.now(),
+                                                                    });
+                                                                } catch (e) {
+                                                                    const msg =
+                                                                        e
+                                                                            ?.response
+                                                                            ?.data
+                                                                            ?.erro ||
+                                                                        'Não foi possível remover o avaliador.';
+                                                                    setAlerta({
+                                                                        mensagem:
+                                                                            msg,
+                                                                        variacao:
+                                                                            'danger',
+                                                                        reacao: Date.now(),
+                                                                    });
+                                                                }
                                                             }}
                                                         />
                                                     ),
                                                 )}
                                             </div>
                                         ),
+                                        style: { verticalAlign: 'middle' },
+                                    },
+                                    {
+                                        value: Number.isFinite(a.nota_media)
+                                            ? a.nota_media.toFixed(1)
+                                            : '-',
+                                        className: 'text-end',
                                         style: { verticalAlign: 'middle' },
                                     },
                                     {
@@ -395,6 +632,9 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                                                 .filter(
                                                                     Boolean,
                                                                 );
+                                                            setAvaliadoresAtuais(
+                                                                pids,
+                                                            );
                                                             setSelecionadasSugestoes(
                                                                 pids,
                                                             );
@@ -447,6 +687,8 @@ export default function GerenciarAvaliacoesAtracoes({}) {
             <ModalPopup
                 titulo="Atribuir avaliadores"
                 show={exibirModal}
+                size="xl"
+                scrollable
                 children={
                     <>
                         <Container>
@@ -469,141 +711,6 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                             </Row>
                             <hr />
                             <Row>
-                                <Col>
-                                    <span className="fw-bold text-success">
-                                        Sugestões da mesma Área
-                                    </span>
-                                </Col>
-                            </Row>
-                            <Row className="px-2 mt-2 d-flex flex-column gap-2">
-                                {(sugestoes || []).map((s) => {
-                                    const perfilId = s.perfil_id || s.id;
-                                    const checked =
-                                        selecionadasSugestoes.includes(
-                                            perfilId,
-                                        );
-                                    return (
-                                        <Col
-                                            key={perfilId}
-                                            className="card py-2 px-3 "
-                                        >
-                                            <Form.Check
-                                                className="fw-bold "
-                                                label={
-                                                    s.nome ||
-                                                    s.full_name ||
-                                                    s.user_nome
-                                                }
-                                                checked={checked}
-                                                onChange={() => {
-                                                    setSelecionadasSugestoes(
-                                                        (prev) => {
-                                                            if (
-                                                                prev.includes(
-                                                                    perfilId,
-                                                                )
-                                                            ) {
-                                                                return prev.filter(
-                                                                    (p) =>
-                                                                        p !==
-                                                                        perfilId,
-                                                                );
-                                                            }
-                                                            return [
-                                                                ...prev,
-                                                                perfilId,
-                                                            ];
-                                                        },
-                                                    );
-                                                }}
-                                            />
-                                            <small className="ms-3">
-                                                Áreas:{' '}
-                                                {formatAreaConhecimento(
-                                                    s.areas ||
-                                                        s.area_conhecimento,
-                                                )}
-                                            </small>
-                                        </Col>
-                                    );
-                                })}
-                            </Row>
-                            <hr />
-                            <Row>
-                                <Col>
-                                    <div className="d-flex flex-column gap-2">
-                                        {(usuarios || [])
-                                            .filter((u) => {
-                                                if (!manualBusca) return true;
-                                                return (
-                                                    u.nome ||
-                                                    u.full_name ||
-                                                    u.user_nome ||
-                                                    ''
-                                                )
-                                                    .toLowerCase()
-                                                    .includes(
-                                                        manualBusca.toLowerCase(),
-                                                    );
-                                            })
-                                            .slice(0, 8)
-                                            .map((u) => {
-                                                const pid = u.perfil_id || u.id;
-                                                const checked =
-                                                    selecionadasSugestoes.includes(
-                                                        pid,
-                                                    );
-                                                return (
-                                                    <Col
-                                                        key={pid}
-                                                        className="card py-2 px-3 "
-                                                    >
-                                                        <Form.Check
-                                                            className="fw-bold"
-                                                            label={
-                                                                u.nome ||
-                                                                u.full_name ||
-                                                                u.user_nome
-                                                            }
-                                                            checked={checked}
-                                                            onChange={() => {
-                                                                setSelecionadasSugestoes(
-                                                                    (prev) => {
-                                                                        if (
-                                                                            prev.includes(
-                                                                                pid,
-                                                                            )
-                                                                        ) {
-                                                                            return prev.filter(
-                                                                                (
-                                                                                    p,
-                                                                                ) =>
-                                                                                    p !==
-                                                                                    pid,
-                                                                            );
-                                                                        }
-                                                                        return [
-                                                                            ...prev,
-                                                                            pid,
-                                                                        ];
-                                                                    },
-                                                                );
-                                                            }}
-                                                        />
-                                                        <small className="ms-">
-                                                            Áreas:{' '}
-                                                            {formatAreaConhecimento(
-                                                                u.areas ||
-                                                                    u.area_conhecimento,
-                                                            )}
-                                                        </small>
-                                                    </Col>
-                                                );
-                                            })}
-                                    </div>
-                                </Col>
-                            </Row>
-                            <Row className="mt-3">
                                 <Col>
                                     <span className="fw-bold">
                                         Busca Manual
@@ -685,22 +792,213 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                     </InputGroup>{' '}
                                 </Col>
                             </Row>
+                            <hr />
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold text-success">
+                                        Sugestões da mesma Área
+                                    </span>
+                                </Col>
+                            </Row>
+                            <Row className="px-2 mt-2 d-flex flex-column gap-2">
+                                {(sugestoes || []).map((s) => {
+                                    const perfilId = s.perfil_id || s.id;
+                                    const checked =
+                                        selecionadasSugestoes.includes(
+                                            perfilId,
+                                        );
+                                    const totalDesignado =
+                                        avaliadoresContagemMap[perfilId] || 0;
+                                    return (
+                                        <Col
+                                            key={perfilId}
+                                            className="card py-2 px-3 "
+                                        >
+                                            <Form.Check
+                                                className="fw-bold "
+                                                label={
+                                                    s.nome ||
+                                                    s.full_name ||
+                                                    s.user_nome
+                                                }
+                                                checked={checked}
+                                                onChange={() => {
+                                                    setSelecionadasSugestoes(
+                                                        (prev) => {
+                                                            if (
+                                                                prev.includes(
+                                                                    perfilId,
+                                                                )
+                                                            ) {
+                                                                return prev.filter(
+                                                                    (p) =>
+                                                                        p !==
+                                                                        perfilId,
+                                                                );
+                                                            }
+                                                            return [
+                                                                ...prev,
+                                                                perfilId,
+                                                            ];
+                                                        },
+                                                    );
+                                                }}
+                                            />
+                                            <small className="ms-3">
+                                                Áreas:{' '}
+                                                {formatAreaConhecimento(
+                                                    s.areas ||
+                                                        s.area_conhecimento,
+                                                )}
+                                            </small>
+                                            <small className="ms-3 text-muted">
+                                                Designado para: {totalDesignado}{' '}
+                                                trabalho(s)
+                                            </small>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+                            <hr />
+                            <Row>
+                                <Col>
+                                    <div className="d-flex flex-column gap-2">
+                                        {(() => {
+                                            const base = Array.isArray(usuarios)
+                                                ? usuarios
+                                                : [];
+                                            const falta = Math.max(
+                                                0,
+                                                50 - base.length,
+                                            );
+                                            const mocks = Array.from(
+                                                { length: falta },
+                                                (_, idx) => ({
+                                                    id: `mock-${idx + 1}`,
+                                                    nome: `Pessoa ${idx + 1}`,
+                                                    areas: [],
+                                                }),
+                                            );
+                                            return [...base, ...mocks];
+                                        })()
+                                            .filter((u) => {
+                                                if (!manualBusca) return true;
+                                                return (
+                                                    u.nome ||
+                                                    u.full_name ||
+                                                    u.user_nome ||
+                                                    ''
+                                                )
+                                                    .toLowerCase()
+                                                    .includes(
+                                                        manualBusca.toLowerCase(),
+                                                    );
+                                            })
+                                            .slice(0, 50)
+                                            .map((u) => {
+                                                const pid = u.perfil_id || u.id;
+                                                const checked =
+                                                    selecionadasSugestoes.includes(
+                                                        pid,
+                                                    );
+                                                const totalDesignado =
+                                                    avaliadoresContagemMap[
+                                                        pid
+                                                    ] || 0;
+                                                return (
+                                                    <Col
+                                                        key={pid}
+                                                        className="card py-2 px-3 "
+                                                    >
+                                                        <Form.Check
+                                                            className="fw-bold"
+                                                            label={
+                                                                u.nome ||
+                                                                u.full_name ||
+                                                                u.user_nome
+                                                            }
+                                                            checked={checked}
+                                                            onChange={() => {
+                                                                setSelecionadasSugestoes(
+                                                                    (prev) => {
+                                                                        if (
+                                                                            prev.includes(
+                                                                                pid,
+                                                                            )
+                                                                        ) {
+                                                                            return prev.filter(
+                                                                                (
+                                                                                    p,
+                                                                                ) =>
+                                                                                    p !==
+                                                                                    pid,
+                                                                            );
+                                                                        }
+                                                                        return [
+                                                                            ...prev,
+                                                                            pid,
+                                                                        ];
+                                                                    },
+                                                                );
+                                                            }}
+                                                        />
+                                                        <small className="ms-">
+                                                            Áreas:{' '}
+                                                            {formatAreaConhecimento(
+                                                                u.areas ||
+                                                                    u.area_conhecimento,
+                                                            )}
+                                                        </small>
+                                                        <small className="ms- text-muted">
+                                                            Designado para:{' '}
+                                                            {totalDesignado}{' '}
+                                                            trabalho(s)
+                                                        </small>
+                                                    </Col>
+                                                );
+                                            })}
+                                    </div>
+                                </Col>
+                            </Row>
                         </Container>
                     </>
                 }
                 onAcao={async () => {
                     if (!selecionada) return;
                     try {
+                        const atuaisSet = new Set(avaliadoresAtuais);
+                        const selecionadasSet = new Set(selecionadasSugestoes);
+                        const paraRemover = avaliadoresAtuais.filter(
+                            (pid) => !selecionadasSet.has(pid),
+                        );
                         for (const pid of selecionadasSugestoes) {
-                            await adicionarAvaliador(selecionada.id, pid);
+                            if (!atuaisSet.has(pid)) {
+                                await adicionarAvaliador(selecionada.id, pid);
+                            }
+                        }
+                        for (const pid of paraRemover) {
+                            await retirarAvaliador(selecionada.id, pid);
                         }
                         // atualizar lista inteira e avaliadores da atração
                         await carregarLista();
                         await carregarAvaliadores(selecionada.id);
+                        setAvaliadoresAtuais([]);
                         setSelecionadasSugestoes([]);
                         setExibirModal(false);
+                        setAlerta({
+                            mensagem: 'Atribuições atualizadas com sucesso.',
+                            variacao: 'success',
+                            reacao: Date.now(),
+                        });
                     } catch (e) {
-                        // falha ao salvar: manter modal aberto
+                        const msg =
+                            e?.response?.data?.erro ||
+                            'Não foi possível salvar as alterações.';
+                        setAlerta({
+                            mensagem: msg,
+                            variacao: 'danger',
+                            reacao: Date.now(),
+                        });
                     }
                 }}
                 textoAcao="Salvar atribuições"
@@ -710,9 +1008,151 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                     setSelecionada(null);
                     setSugestoes([]);
                     setManualBusca('');
+                    setAvaliadoresAtuais([]);
                     setSelecionadasSugestoes([]);
                 }}
             />
+            <ModalPopup
+                titulo="Detalhes da avaliação"
+                show={avaliacaoModal.show}
+                onFechar={() =>
+                    setAvaliacaoModal((prev) => ({
+                        ...prev,
+                        show: false,
+                    }))
+                }
+                textoAcao=""
+            >
+                <Container>
+                    <Row>
+                        <Col>
+                            <span className="fw-bold">Avaliador:</span>{' '}
+                            <span>
+                                {avaliacaoModal.avaliador?.nome ||
+                                    avaliacaoModal.avaliador?.name ||
+                                    avaliacaoModal.avaliador?.username ||
+                                    '-'}
+                            </span>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <span className="fw-bold">Trabalho:</span>{' '}
+                            <span>{avaliacaoModal.atracao?.titulo || '-'}</span>
+                        </Col>
+                    </Row>
+                    <hr />
+                    {avaliacaoModal.loading ? (
+                        <Row>
+                            <Col>Carregando avaliacao...</Col>
+                        </Row>
+                    ) : !avaliacaoModal.avaliacao ? (
+                        <Row>
+                            <Col>Nenhuma avaliacao encontrada.</Col>
+                        </Row>
+                    ) : (
+                        <>
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">Nota final:</span>{' '}
+                                    <span>
+                                        {(() => {
+                                            const notas = (
+                                                avaliacaoModal.itens || []
+                                            )
+                                                .map((i) => Number(i.nota))
+                                                .filter((n) =>
+                                                    Number.isFinite(n),
+                                                );
+                                            if (notas.length === 0) return '--';
+                                            const media =
+                                                notas.reduce(
+                                                    (acc, n) => acc + n,
+                                                    0,
+                                                ) / notas.length;
+                                            return media.toFixed(1);
+                                        })()}
+                                    </span>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">Destaque:</span>{' '}
+                                    <span>
+                                        {avaliacaoModal.avaliacao
+                                            ?.destaque_do_dia
+                                            ? 'Sim'
+                                            : 'Não'}
+                                    </span>
+                                </Col>
+                                <Col>
+                                    <span className="fw-bold">Compareceu:</span>{' '}
+                                    <span>
+                                        {avaliacaoModal.avaliacao?.compareceu
+                                            ? 'Sim'
+                                            : 'Não'}
+                                    </span>
+                                </Col>
+                            </Row>
+                            <Row className="mt-3">
+                                <Col>
+                                    <span className="fw-bold">Parecer:</span>
+                                    <div className="mt-1">
+                                        {avaliacaoModal.avaliacao?.parecer ||
+                                            '-'}
+                                    </div>
+                                </Col>
+                            </Row>
+                            <hr />
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">Critérios</span>
+                                </Col>
+                            </Row>
+                            <Row className="mt-2">
+                                <Col className="d-flex flex-column gap-2">
+                                    {(avaliacaoModal.itens || []).map((it) => {
+                                        const criterio =
+                                            criteriosMap[it.criterio_avaliacao];
+                                        return (
+                                            <div
+                                                key={it.id}
+                                                className="d-flex justify-content-between border rounded-3 px-3 py-2"
+                                            >
+                                                <div>
+                                                    <div className="fw-semibold">
+                                                        {criterio?.nome ||
+                                                            `Criterio ${it.criterio_avaliacao}`}
+                                                    </div>
+                                                    {criterio?.descricao && (
+                                                        <div className="text-muted small">
+                                                            {criterio.descricao}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="fw-bold">
+                                                    {Number.isFinite(it.nota)
+                                                        ? it.nota.toFixed(1)
+                                                        : it.nota}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </Col>
+                            </Row>
+                        </>
+                    )}
+                </Container>
+            </ModalPopup>
+
+            {alerta && (
+                <Alerta
+                    key={alerta.reacao}
+                    mensagem={alerta.mensagem}
+                    variacao={alerta.variacao}
+                    reacao={alerta.reacao}
+                />
+            )}
 
             <Footer
                 telefone="(51) 3333-1234"

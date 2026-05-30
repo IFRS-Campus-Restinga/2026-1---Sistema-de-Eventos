@@ -78,8 +78,8 @@ function App() {
 
                 {/* Eventos (criacao/edicao) */}
                 {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
-                <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
-                <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard" element={protegido(<Teste />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id" element={protegido(<Teste />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
                 <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
                 <Route path="/listar_eventos" element={<ListarEvento />} />
@@ -109,7 +109,7 @@ function App() {
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 
                 {/* Submissões e Avaliações */}
-                <Route path="/gerenciar_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
                 <Route path="/minhas_avaliacoes" element={protegido(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
                 <Route path="/avaliar_atracao" element={protegido(<AvaliarAtracao />, ADMIN_GROUPS)} />

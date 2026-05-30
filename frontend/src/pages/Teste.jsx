@@ -28,8 +28,95 @@ import { LuStar } from 'react-icons/lu';
 import { BsPersonFillCheck } from 'react-icons/bs';
 import { AiOutlineUnorderedList } from 'react-icons/ai';
 import { BiPaperPlane } from 'react-icons/bi';
+import {
+    clearSelectedEventoId,
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
+import { getDashboardEvento } from '../services/dashboardService';
 
 export default function Dashboard() {
+    const { id: eventoId } = useParams();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
+    const [erro, setErro] = useState('');
+    const [dashboard, setDashboard] = useState(null);
+
+    const formatarData = (valor) => {
+        if (!valor) {
+            return '';
+        }
+
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) {
+            return '';
+        }
+
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(data);
+    };
+
+    useEffect(() => {
+        async function carregarDashboard() {
+            // Se não veio ID na URL, resolve o redirecionamento e interrompe a execução
+            if (!eventoId) {
+                const eventoSalvo = getSelectedEventoId();
+                if (eventoSalvo) {
+                    navigate(`/dashboard/${eventoSalvo}`, { replace: true });
+                } else {
+                    navigate('/listar_eventos', { replace: true });
+                }
+                return;
+            }
+
+            // Define o ID ativo apenas se ele veio na URL
+            setSelectedEventoId(eventoId);
+            setLoading(true);
+            setErro('');
+
+            try {
+                const data = await getDashboardEvento(eventoId);
+                setDashboard(data);
+            } catch (error) {
+                console.error('Erro ao buscar dashboard:', error);
+                const status = error?.response?.status;
+
+                if (status === 404) {
+                    clearSelectedEventoId();
+                    navigate('/listar_eventos', { replace: true });
+                    return;
+                }
+
+                setDashboard(null);
+                setErro(
+                    error?.response?.data?.detail ||
+                        error?.message ||
+                        'Erro ao carregar os dados do painel do evento no servidor.',
+                );
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        carregarDashboard();
+    }, [eventoId, navigate]);
+
+    console.log(dashboard);
+
+    const dados = useMemo(
+        () =>
+            (dashboard?.areas || []).map((area) => ({
+                titulo: area.nome,
+                valorAtual: area.avaliados || 0,
+                total: area.total || 0,
+                textoFim: 'Avaliados',
+            })),
+        [dashboard],
+    );
+
     return (
         <>
             <div className="d-flex flex-column min-vh-100 bg-light">
@@ -39,7 +126,7 @@ export default function Dashboard() {
                     className="flex-fill py-4 mx-auto w-100"
                     style={{ maxWidth: '1400px' }}
                 >
-                    <Container fluid>
+                    <Container>
                         <Row>
                             <Col>
                                 <Row className="rounded-4 bg-success p-3">
@@ -56,16 +143,22 @@ export default function Dashboard() {
                                     </Col>
                                     <Col className="text-white d-flex flex-column justify-content-start">
                                         <p className="m-0 fw-bold fs-4">
-                                            Semana Acadêmica IFRS 2026
+                                            {dashboard?.evento?.nome}
                                         </p>
                                         <div className="d-flex flex-row gap-3">
                                             <span className="d-flex align-items-center">
                                                 <FaCalendarDay className="me-2" />{' '}
-                                                10–14 jun. 2026
+                                                {formatarData(
+                                                    dashboard?.evento?.inicio,
+                                                )}
+                                                {' – '}
+                                                {formatarData(
+                                                    dashboard?.evento?.fim,
+                                                )}
                                             </span>
                                             <span className="d-flex align-items-center">
                                                 <TbMapPinFilled className="me-2" />{' '}
-                                                Campus Restinga
+                                                {dashboard?.evento?.local}
                                             </span>
                                         </div>
                                     </Col>
@@ -81,10 +174,14 @@ export default function Dashboard() {
                                                     border: '1px solid rgba(255,255,255,0.25)',
                                                 }}
                                             >
-                                                Em andamento
+                                                {
+                                                    dashboard?.evento
+                                                        ?.status_evento
+                                                }
                                             </span>
-                                            <Button
-                                                className="rounded-4"
+                                            <Link
+                                                to="/listar_eventos"
+                                                className="rounded-4 btn btn-light text-white"
                                                 style={{
                                                     background: '#ffffff26',
                                                     border: '1px solid rgba(255,255,255,0.25)',
@@ -92,7 +189,7 @@ export default function Dashboard() {
                                             >
                                                 <HiOutlineSwitchHorizontal className="me-1" />
                                                 Trocar de evento
-                                            </Button>
+                                            </Link>
                                         </div>
                                     </Col>
                                 </Row>
@@ -113,29 +210,11 @@ export default function Dashboard() {
                                             inscrições
                                         </span>
                                         <span className="fw-bold fs-3 text-black">
-                                            320
+                                            {dashboard?.metricas
+                                                ?.total_inscricoes ||
+                                                'sem inscrições'}
                                         </span>
                                         <span>No evento</span>
-                                    </Col>
-                                </Row>
-                            </Col>
-                            <Col
-                                className="bg-white rounded-4 py-3 px-2"
-                                style={{
-                                    border: '1px solid rgba(0,0,0,0.09)',
-                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
-                                }}
-                            >
-                                <Row>
-                                    <Col className="d-flex flex-column ms-3 text-secondary">
-                                        <span className="d-flex align-items-center">
-                                            <HiOutlineTicket className="me-2" />
-                                            atrações
-                                        </span>
-                                        <span className="fw-bold fs-3 text-black">
-                                            32
-                                        </span>
-                                        <span>Homologadas</span>
                                     </Col>
                                 </Row>
                             </Col>
@@ -153,9 +232,31 @@ export default function Dashboard() {
                                             Submissões
                                         </span>
                                         <span className="fw-bold fs-3 text-black">
-                                            32
+                                            mock
                                         </span>
                                         <span>Submetidas</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <HiOutlineTicket className="me-2" />
+                                            atrações
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            {dashboard?.metricas
+                                                ?.total_atracoes ||
+                                                'sem atrações'}
+                                        </span>
+                                        <span>Homologadas</span>
                                     </Col>
                                 </Row>
                             </Col>
@@ -186,9 +287,13 @@ export default function Dashboard() {
                                     <Col className="bg-white rounded-4 py-3 px-2">
                                         <Row>
                                             <Col className="d-flex flex-column ms-3 text-secondary">
-                                                <Button
-                                                    className="d-flex align-items-center p-3"
-                                                    variant="light"
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/editar_evento/${eventoId}`
+                                                            : '#'
+                                                    }
                                                 >
                                                     <BiSolidEdit
                                                         size={20}
@@ -196,26 +301,31 @@ export default function Dashboard() {
                                                         color="green"
                                                     />
                                                     Editar informações
-                                                </Button>
+                                                </Link>
                                             </Col>
                                             <Col className="d-flex flex-column ms-3 text-secondary">
-                                                <Button
-                                                    className="d-flex align-items-center p-3"
-                                                    variant="light"
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/dashboard/${eventoId}/sessao_atribuir_data`
+                                                            : '#'
+                                                    }
                                                 >
                                                     <IoCalendarOutline
                                                         size={20}
                                                         className="me-2"
                                                         color="green"
                                                     />
-                                                    Definir sessões da
-                                                    programação
-                                                </Button>
+                                                    Configurar programação
+                                                </Link>
                                             </Col>
                                             <Col className="d-flex flex-column ms-3 text-secondary">
-                                                <Button
-                                                    className="d-flex align-items-center p-3"
-                                                    variant="light"
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        '/listar_locais_espacos'
+                                                    }
                                                 >
                                                     <TbMapPinFilled
                                                         size={20}
@@ -223,12 +333,16 @@ export default function Dashboard() {
                                                         color="green"
                                                     />
                                                     Definir locais de trabalho
-                                                </Button>
+                                                </Link>
                                             </Col>
                                             <Col className="d-flex flex-column ms-3 text-secondary">
-                                                <Button
-                                                    className="d-flex align-items-center p-3"
-                                                    variant="light"
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/atribuir_organizador?eventoId=${eventoId}`
+                                                            : '#'
+                                                    }
                                                 >
                                                     <RiTeamFill
                                                         size={20}
@@ -236,7 +350,7 @@ export default function Dashboard() {
                                                         color="green"
                                                     />
                                                     Gerenciar organizadores
-                                                </Button>
+                                                </Link>
                                             </Col>
                                         </Row>
                                     </Col>
@@ -272,9 +386,9 @@ export default function Dashboard() {
                                     <hr />
                                     <Row className="p-3 d-flex flex-wrap">
                                         <Col sm={6}>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="light"
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'/listar_atracoes'}
                                             >
                                                 <GoTasklist
                                                     size={25}
@@ -282,15 +396,15 @@ export default function Dashboard() {
                                                     color="green"
                                                 />
                                                 Gerenciar Submissões
-                                            </Button>
+                                            </Link>
                                         </Col>
                                         <Col sm={6}>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="success"
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
+                                                to={'/adicionar_atracao'}
                                             >
                                                 + Adicionar Submissão
-                                            </Button>
+                                            </Link>
                                         </Col>
                                     </Row>
                                 </Col>
@@ -321,9 +435,13 @@ export default function Dashboard() {
                                     <hr />
                                     <Row className="p-3 ">
                                         <Col>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="light"
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/gerenciar_avaliadores_atracoes?evento_id=${eventoId}`
+                                                        : '#'
+                                                }
                                             >
                                                 <BsPersonFillCheck
                                                     size={25}
@@ -331,12 +449,12 @@ export default function Dashboard() {
                                                     color="green"
                                                 />
                                                 Definir Avaliadores
-                                            </Button>
+                                            </Link>
                                         </Col>
                                         <Col>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="light"
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'/listar_modalidades'}
                                             >
                                                 <AiOutlineUnorderedList
                                                     size={25}
@@ -344,7 +462,7 @@ export default function Dashboard() {
                                                     color="green"
                                                 />
                                                 Gerenciar Modalidades
-                                            </Button>
+                                            </Link>
                                         </Col>
                                     </Row>
                                 </Col>
@@ -379,9 +497,13 @@ export default function Dashboard() {
                                     <hr />
                                     <Row className="p-3 d-flex flex-wrap">
                                         <Col sm={6}>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="light"
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/dashboard/${eventoId}/enviaremails`
+                                                        : '#'
+                                                }
                                             >
                                                 <BiPaperPlane
                                                     size={25}
@@ -389,20 +511,17 @@ export default function Dashboard() {
                                                     color="green"
                                                 />
                                                 Enviar e-mails
-                                            </Button>
+                                            </Link>
                                         </Col>
                                         <Col sm={6}>
-                                            <Button
-                                                className="d-flex align-items-center p-3 justify-content-center w-100"
-                                                variant="light"
-                                            >
+                                            <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
                                                 <TbFileCertificate
                                                     size={25}
                                                     className="me-2"
                                                     color="green"
                                                 />
                                                 Emitir Certificados
-                                            </Button>
+                                            </Link>
                                         </Col>
                                     </Row>
                                 </Col>

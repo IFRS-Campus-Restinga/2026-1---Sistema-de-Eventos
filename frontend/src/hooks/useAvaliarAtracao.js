@@ -75,7 +75,7 @@ export default function useAvaliarAtracao({
                     console.error('erro ao verificar etapas', err);
                 }
 
-                // carregar avaliacao existente se houver
+                // carregar avaliacao existente se houver (apenas do usuário logado)
                 if (avaliacaoIdParam) {
                     try {
                         const respAv = await axios.get(
@@ -112,79 +112,28 @@ export default function useAvaliarAtracao({
                             }
                         });
                     } catch (err) {
-                        if (err?.response && err.response.status === 404) {
-                            try {
-                                const respAll = await axios.get(
-                                    `${API_URL}/api/avaliacao_atracao/`,
-                                    { withCredentials: true },
-                                );
-                                const all = respAll.data || [];
-                                const found = all.find(
-                                    (av) =>
-                                        String(av.atracao) ===
-                                        String(resp.data.id),
-                                );
-                                if (found) {
-                                    const dadosAv = found;
-                                    setParecer(dadosAv.parecer || '');
-                                    setDestaque(!!dadosAv.destaque_do_dia);
-                                    setCompareceu(!!dadosAv.compareceu);
-                                    setAvaliacaoId(dadosAv.id);
-                                    const respItens2 = await axios.get(
-                                        `${API_URL}/api/item_avaliacao_atracao/`,
-                                        {
-                                            params: {
-                                                avaliacao_atracao: found.id,
-                                            },
-                                            withCredentials: true,
-                                        },
-                                    );
-                                    const itensData2 = respItens2.data || [];
-                                    const itensFiltrados2 = itensData2.filter(
-                                        (it) =>
-                                            String(it.avaliacao_atracao) ===
-                                            String(found.id),
-                                    );
-                                    itensFiltrados2.forEach((it) => {
-                                        const idx = inicial.findIndex(
-                                            (x) =>
-                                                String(x.criterio_avaliacao) ===
-                                                String(it.criterio_avaliacao),
-                                        );
-                                        if (idx >= 0) {
-                                            inicial[idx].nota = parseNota(
-                                                it.nota,
-                                            );
-                                            inicial[idx].item_id = it.id;
-                                        }
-                                    });
-                                }
-                            } catch (err2) {
-                                console.error(
-                                    'erro ao localizar avaliacao alternativa',
-                                    err2,
-                                );
-                            }
-                        } else {
-                            console.error(
-                                'erro ao carregar avaliacao existente',
-                                err,
-                            );
-                        }
+                        console.error(
+                            'erro ao carregar avaliacao existente',
+                            err,
+                        );
                     }
                 }
 
-                // se não veio avaliacao_id na query, tentar localizar avaliação existente para edição
+                // se não veio avaliacao_id na query, buscar avaliação do usuário logado
                 if (!avaliacaoIdParam) {
                     try {
                         const respAll = await axios.get(
                             `${API_URL}/api/avaliacao_atracao/`,
-                            { withCredentials: true },
+                            {
+                                params: {
+                                    atracao: resp.data.id,
+                                    mine: 1,
+                                },
+                                withCredentials: true,
+                            },
                         );
                         const all = respAll.data || [];
-                        const found = all.find(
-                            (av) => String(av.atracao) === String(resp.data.id),
-                        );
+                        const found = all[0];
                         if (found) {
                             setParecer(found.parecer || '');
                             setDestaque(!!found.destaque_do_dia);
@@ -217,7 +166,7 @@ export default function useAvaliarAtracao({
                         }
                     } catch (err) {
                         console.error(
-                            'erro ao buscar avaliacao existente sem id na query',
+                            'erro ao buscar avaliacao do usuario',
                             err,
                         );
                     }
