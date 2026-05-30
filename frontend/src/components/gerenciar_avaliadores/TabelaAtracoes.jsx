@@ -129,18 +129,29 @@ export default function TabelaAtracoes({
                 {
                     value: (
                         <div className="d-flex gap-3">
-                            <button
-                                className="btn btn-outline-primary"
-                                onClick={() => onAtribuir(a)}
-                                disabled={!eventosMap?.[a.evento]}
-                                title={
-                                    !eventosMap?.[a.evento]
-                                        ? 'Etapa de realização/avaliação não está aberta para este evento'
-                                        : 'Atribuir avaliadores'
-                                }
-                            >
-                                Atribuir
-                            </button>
+                            {eventosMap?.[a.evento] ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={() => onAtribuir(a)}
+                                >
+                                    Atribuir
+                                </button>
+                            ) : (
+                                <span
+                                    className="d-inline-block"
+                                    title="Não é possível atribuir avaliadores porque a etapa de realização deste evento já encerrou."
+                                >
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-primary"
+                                        onClick={() => onAtribuir(a)}
+                                        disabled
+                                    >
+                                        Atribuir
+                                    </button>
+                                </span>
+                            )}
                         </div>
                     ),
                     style: { verticalAlign: 'middle' },
