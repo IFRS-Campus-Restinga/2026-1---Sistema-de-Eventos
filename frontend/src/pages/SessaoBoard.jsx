@@ -69,6 +69,9 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     // modal de inserção / edição de sessão - para quando clicar no card da sessão, ou no botão de adicionar sessão dentro do espaço
     const [mostrarModalSessao, setMostrarModalSessao] = useState(false);
     const [sessaoEditando, setSessaoEditando] = useState(null);
+    // modal de inserção / edição do atributo publicado_em das sessões
+    const [mostrarModalPublicacao, setMostrarModalPublicacao] = useState(false);
+    const [publicadoEditando, setPublicadoEditando] = useState(null);
     // dados do form de sessao
     const [formSessao, setFormSessao] = useState({
         nome: '',
@@ -77,12 +80,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         espaco: null,
         ordem_apresentacoes: [],
     });
+    // dados do form de publicação
+    const [formPublicacao, setFormPublicacao] = useState({
+        publicado_em: '',
+    });
     // armazenamento de espaços do board e espaços disponíveis para alocação
     const [boardPorDia, setBoardPorDia] = useState({}); // de todos os dias do evento: estrutura: { '2024-10-01': [espacos], '2024-10-02': [espacos], ... }
     const [boardAtual, setBoardAtual] = useState([]); // de acordo com a data selecionada: estrutura: [espacos]
 
     const [espacoSelecionado, setEspacoSelecionado] = useState(null); // para saber em qual espaço estou adicionando a sessão no modal
-    const [espacosDisponiveis, setEspacosDisponiveis] = useState([]);
     const [espacosExistentes, setEspacosExistentes] = useState([]); // teste, busca todos os espaços do local
     const [alterado, setAlterado] = useState(false); // estdo do board, botão
     // pesquisa no modalEspacos
@@ -127,18 +133,23 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             try {
                 const dados = await listarAtracoes(eventoId);
 
-                console.log('Atrações:', dados);
+                const atracoesAlocadas = sessoes.flatMap(
+                    (sessao) => sessao.atracoes || [],
+                );
 
-                setAtracoesNaoAlocadas(dados);
+                const atracoesLivres = dados.filter(
+                    (atracao) => !atracoesAlocadas.includes(atracao.id),
+                );
+                setAtracoesNaoAlocadas(atracoesLivres);
             } catch (erro) {
                 console.error('Erro ao carregar atrações:', erro);
             }
         }
 
-        if (eventoId) {
+        if (eventoId && sessoes.length > 0) {
             carregarAtracoes();
         }
-    }, [eventoId]);
+    }, [eventoId, sessoes]);
 
     // carreagr o board se já existir dados salvos
     useEffect(() => {
@@ -182,136 +193,46 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         setBoardPorDia(agrupado);
     }, [sessoes]);
 
-    {
-        /*
-    const [espacos, setEspacos] = useState([
-        {
-            id: 1,
-            nome: 'Sala 101',
-            capacidade: 50,
-            sessoes: [
-                {
-                    id: 10,
-                    data_horario_inicio: '08:00',
-                    data_horario_fim: '10:30',
-                    ordem_apresentacoes: [
-                        {
-                            id: 10,
-                            horario_inicio: '08:00',
-                            horario_fim: '08:30',
-                            ordem: 1,
-                            atracao: {
-                                id: 1,
-                                titulo: 'Abertura da Sessão',
-                                autor: 'Diretoria',
-                            },
-                        },
-                        {
-                            id: 11,
-                            horario_inicio: '08:30',
-                            horario_fim: '09:00',
-                            ordem: 2,
-                            atracao: {
-                                id: 10,
-                                titulo: 'Vida marinha: uma narrativa',
-                                autor: 'João da Silva',
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            id: 2,
-            nome: 'Sala 102 (Lab. Info)',
-            capacidade: 30,
-            sessoes: [
-                {
-                    id: 20,
-                    data_horario_inicio: '08:00',
-                    data_horario_fim: '10:30',
-                    ordem_apresentacoes: [
-                        {
-                            id: 20,
-                            horario_inicio: '08:00',
-                            horario_fim: '08:30',
-                            ordem: 1,
-                            atracao: {
-                                id: 22,
-                                titulo: 'Oficina de teatro',
-                                autor: 'NEABI',
-                            },
-                        },
-                        {
-                            id: 21,
-                            horario_inicio: '08:30',
-                            horario_fim: '09:00',
-                            ordem: 2,
-                            atracao: {
-                                id: 220,
-                                titulo: 'Tudo sobre Python',
-                                autor: 'Jean Oliveira',
-                            },
-                        },
-                    ],
-                },
-            ],
-        },
-        {
-            id: 3,
-            nome: 'Ginásio',
-            capacidade: 200,
-            sessoes: [
-                {
-                    id: 30,
-                    data_horario_inicio: '08:00',
-                    data_horario_fim: '10:30',
-                    ordem_apresentacoes: [],
-                },
-            ],
-        },
-    ]);
-    */
-    }
-
-    {
-        /* solução que o chatgpt trouxe */
-    }
-    async function salvarRascunho() {
+    async function salvarRascunho(publicadoEm = null) {
         try {
-            for (const espaco of boardAtual) {
-                for (const sessao of espaco.sessoes) {
-                    let sessaoSalva;
+            for (const espacosDoDia of Object.values(boardPorDia)) {
+                for (const espaco of espacosDoDia) {
+                    for (const sessao of espaco.sessoes) {
+                        let sessaoSalva;
 
-                    const dadosSessao = {
-                        evento: evento.id,
-                        nome: sessao.nome,
-                        espaco: espaco.id,
-                        data_horario_inicio: sessao.data_horario_inicio,
-                        data_horario_fim: sessao.data_horario_fim,
-                    };
+                        const dadosSessao = {
+                            evento: evento.id,
+                            nome: sessao.nome,
+                            espaco: espaco.id,
+                            data_horario_inicio: sessao.data_horario_inicio,
+                            data_horario_fim: sessao.data_horario_fim,
+                            publicado_em:
+                                publicadoEm ?? sessao.publicado_em ?? null,
+                        };
 
-                    if (!sessao.id) {
-                        // sessao nova
-                        sessaoSalva = await adicionaSessao(dadosSessao);
+                        if (!sessao.id) {
+                            // sessao nova
+                            sessaoSalva = await adicionaSessao(dadosSessao);
 
-                        // atualiza o ID no frontend (tirando o tempid de sessao)
-                        sessao.id = sessaoSalva.id;
-                        delete sessao.tempId;
-                    } else {
-                        // sessao editada
-                        sessaoSalva = await editarSessao(
-                            sessao.id,
-                            dadosSessao,
-                        );
+                            // atualiza o ID no frontend (tirando o tempid de sessao)
+                            sessao.id = sessaoSalva.id;
+                            delete sessao.tempId;
+                        } else {
+                            // sessao editada
+                            sessaoSalva = await editarSessao(
+                                sessao.id,
+                                dadosSessao,
+                            );
+                        }
+
+                        console.log('Dados enviados', sessaoSalva);
+                        await salvarOrdemApresentacoes({
+                            ...sessao,
+                            id: sessaoSalva.id,
+                            ordem_apresentacoes:
+                                sessao.ordem_apresentacoes || [],
+                        });
                     }
-
-                    console.log('Dados enviados', sessaoSalva);
-                    await salvarOrdemApresentacoes({
-                        ...sessao,
-                        id: sessaoSalva.id,
-                        ordem_apresentacoes: sessao.ordem_apresentacoes || [],
-                    });
                 }
             }
 
@@ -328,6 +249,35 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         }));
 
         setAlterado(true);
+    }
+
+    function calcularAlturaSessao(inicio, fim) {
+        const duracaoMinutos = (new Date(fim) - new Date(inicio)) / 60000;
+
+        const pixelsPorMinuto = 2;
+
+        return Math.max(duracaoMinutos * pixelsPorMinuto, 80);
+    }
+
+    function validarPublicacao() {
+        const novosErros = {};
+
+        if (!formPublicacao.publicado_em) {
+            novosErros.publicado_em =
+                'Data e horário de publicação são obrigatórios';
+        } else {
+            const dataPublicacao = new Date(formPublicacao.publicado_em);
+            const agora = new Date();
+
+            if (dataPublicacao < agora) {
+                novosErros.publicado_em =
+                    'A data de publicação deve ser futura';
+            }
+        }
+
+        setErrors(novosErros);
+
+        return Object.keys(novosErros).length === 0;
     }
 
     const validarSessao = () => {
@@ -436,6 +386,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         atualizarBoardAtual(novoBoard);
         setMostrarModalSessao(false);
         setErrors({});
+    }
+
+    function salvarPublicacao() {
+        if (!validarPublicacao()) return;
+
+        salvarRascunho(formPublicacao.publicado_em);
+
+        setMostrarModalPublicacao(false);
+        setFormPublicacao({ publicado_em: '' });
     }
 
     // ao selecionar um espaço no modal, adiciona ao board do dia
@@ -583,9 +542,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             <div
                 className="mb-3 p-2 bg-white"
                 style={{
+                    height: `${calcularAlturaSessao(
+                        sessao.data_horario_inicio,
+                        sessao.data_horario_fim,
+                    )}px`,
                     borderRadius: '12px',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                     borderLeft: '6px solid #0d6efd',
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}
             >
                 {/* HEADER */}
@@ -603,9 +568,17 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     />
                 </div>
 
-                <SessaoDrop sessaoId={sessao.id || sessao.tempId}>
-                    {children}
-                </SessaoDrop>
+                <div
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        minHeight: 0,
+                    }}
+                >
+                    <SessaoDrop sessaoId={sessao.id || sessao.tempId}>
+                        {children}
+                    </SessaoDrop>
+                </div>
             </div>
         );
     }
@@ -683,6 +656,9 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     alignItems: vazio ? 'center' : 'initial',
                     justifyContent: vazio ? 'center' : 'initial',
                     textAlign: vazio ? 'center' : 'left',
+
+                    maxHeight: '100%',
+                    overflowY: 'auto',
                 }}
             >
                 {vazio && 'Arraste aqui'}
@@ -738,13 +714,36 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                 <Button
                                     variant="outline-secondary"
                                     className="fw-bold"
-                                    onClick={salvarRascunho}
+                                    onClick={() => salvarRascunho()}
                                 >
                                     <MdSave className="me-1" />
                                     Salvar rascunho
                                 </Button>
 
-                                <Button variant="primary" className="fw-bold">
+                                <Button
+                                    variant="primary"
+                                    className="fw-bold"
+                                    onClick={() => {
+                                        const publicadoEmExistente =
+                                            sessoes.find((s) => s.publicado_em)
+                                                ?.publicado_em || '';
+
+                                        setPublicadoEditando(
+                                            publicadoEmExistente,
+                                        );
+
+                                        setFormPublicacao({
+                                            publicado_em: publicadoEmExistente
+                                                ? publicadoEmExistente.slice(
+                                                      0,
+                                                      16,
+                                                  )
+                                                : '',
+                                        });
+
+                                        setMostrarModalPublicacao(true);
+                                    }}
+                                >
                                     <MdPublish className="me-1" />
                                     Publicar Agenda
                                 </Button>
@@ -1085,8 +1084,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                         )}
 
                         {espacosExistentes
-                            .filter((e) =>
-                                e.nome
+                            .filter(
+                                (espaco) =>
+                                    !boardAtual.some(
+                                        (espacoBoard) =>
+                                            espacoBoard.id === espaco.id,
+                                    ),
+                            )
+                            .filter((espaco) =>
+                                espaco.nome
                                     .toLowerCase()
                                     .includes(buscaEspaco.toLowerCase()),
                             )
@@ -1188,6 +1194,52 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     <small className="text-muted">
                         Data: {dataSelecionada}
                     </small>
+                </Form>
+            </ModalPopup>
+
+            {/* Modal de inserção/edição do atributo publicado_em das sessões */}
+            <ModalPopup
+                show={mostrarModalPublicacao}
+                titulo={
+                    publicadoEditando
+                        ? 'Editar data de publicação da programação do evento'
+                        : 'Definir data de publicação da programação do evento'
+                }
+                textoFechar="Cancelar"
+                textoAcao="Salvar"
+                variante="success"
+                onFechar={() => {
+                    setMostrarModalPublicacao(false);
+                    setFormPublicacao({ publicado_em: '' });
+                    setErrors({});
+                }}
+                onAcao={salvarPublicacao}
+            >
+                <Form>
+                    <Form.Group className="mb-2">
+                        <Form.Label>Dia e horário de publicação</Form.Label>
+                        <Form.Control
+                            type="datetime-local"
+                            value={formPublicacao.publicado_em || ''}
+                            isInvalid={!!errors.publicado_em}
+                            placeholder="Ex.: Sessão 1"
+                            onChange={(e) =>
+                                setFormPublicacao({
+                                    ...formPublicacao,
+                                    publicado_em: e.target.value,
+                                })
+                            }
+                        />
+                        <Form.Control.Feedback type="invalid">
+                            {errors.publicado_em}
+                        </Form.Control.Feedback>
+                    </Form.Group>
+
+                    {errors.conflito && (
+                        <div className="text-danger mt-2">
+                            {errors.conflito}
+                        </div>
+                    )}
                 </Form>
             </ModalPopup>
 

@@ -176,17 +176,19 @@ export default function useSessoes() {
 
             const dados = {
                 sessao: sessao.id,
-                ordens: (sessao.ordem_apresentacoes || []).map(
-                    (item, index) => ({
-                        atracao: item.atracao.id,
-                        ordem: index + 1,
-                    }),
-                ),
+                ordens: (
+                    sessao.ordem_apresentacoes ||
+                    sessao.ordem_apresentacoes_display ||
+                    []
+                ).map((item, index) => ({
+                    atracao: item.atracao.id,
+                    ordem: index + 1,
+                })),
             };
 
             await salvarOrdensSessao(dados);
 
-            setMessage('Ordem salva com sucesso');
+            setMessage('Programação salva com sucesso');
 
             return true;
         } catch (err) {

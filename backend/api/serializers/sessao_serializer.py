@@ -11,7 +11,7 @@ class SessaoSerializer(serializers.ModelSerializer):
     espaco_display = EspacoSerializer(source="espaco", read_only=True)
 
     ordem_apresentacoes_display = OrdemApresentacaoAtracaoSerializer(
-        source="ordemapresentacaoatracao_set",
+        source="ordem_apresentacoes",
         many=True,
         read_only=True,
     )
