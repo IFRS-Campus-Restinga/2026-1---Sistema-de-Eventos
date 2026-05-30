@@ -39,6 +39,8 @@ import AvaliarAtracao from './pages/AvaliarAtracao';
 import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
+
+
 function App() {
     const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (

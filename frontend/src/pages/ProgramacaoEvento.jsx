@@ -1,179 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap';
 import { MdSearch, MdCalendarToday, MdPlace, MdPeople } from 'react-icons/md';
 import { useParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import ModalPopup from '../components/common/ModalPopup';
 
-// ✅ Importando a função de padronização de cores das tags do grupo
+// Hooks e Utilitários do ecossistema do seu app
+import useSessoes from '../hooks/useSessoes';
 import { obterCorPorTag } from '../utils/themeTags';
 
 export default function ProgramacaoEvento() {
-    const { id } = useParams();
+    const { id: eventoId } = useParams();
     const verdeIFRS = "#00A44B";
+    
+    // Estados de controle local
     const [termoBusca, setTermoBusca] = useState('');
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [showModal, setShowModal] = useState(false);
     const [atracaoResumo, setAtracaoResumo] = useState(null);
-
-    const sessoesMockadas = [
-        {
-            blocoHorario: "08:30 - 10:00",
-            turno: "manhã",
-            atividades: [
-                {
-                    hora: "08:30",
-                    corCard: "#3B82F6",
-                    titulo: "Desenvolvimento de Concreto Sustentável com Resíduos",
-                    descricao: "Este trabalho apresenta o estudo de misturas de concreto utilizando resíduos de demolição civil como agregados substitutos, visando a redução do impacto ambiental na construção civil.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Engenharias" }],
-                    autores: ["Carlos Lima", "Ana Souza"],
-                    local: "Sala 304 - Bloco 3",
-                    inscrito: true
-                },
-                {
-                    hora: "09:00",
-                    corCard: "#EAB308",
-                    titulo: "Introdução ao Arduino: Construindo seu primeiro robô",
-                    descricao: "Oficina prática voltada para iniciantes. Serão abordados os conceitos fundamentais de eletrônica digital, portas lógicas e programação aplicada à robótica educacional.",
-                    tags: [{ texto: "Oficina" }, { texto: "Ciências Exatas" }],
-                    autores: ["Jaqueline Costa"],
-                    local: "Sala 302 - Bloco 3",
-                    inscrito: false
-                },
-                {
-                    hora: "09:30",
-                    corCard: "#06B6D4",
-                    titulo: "Segurança de Dados em Redes Locais",
-                    descricao: "Discussão técnica sobre as principais vulnerabilidades em infraestruturas de redes locais e roteamento, abordando táticas preventivas e ferramentas de monitoramento de tráfego com Wireshark.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Informatica" }],
-                    autores: ["Roberto Silveira"],
-                    local: "Sala 101 - Bloco 1",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "10:30 - 12:00",
-            turno: "manhã",
-            atividades: [
-                {
-                    hora: "10:30",
-                    corCard: "#DB2777",
-                    titulo: "Intervenção Teatral: O Homem e a Ciência",
-                    descricao: "Performance artística que reflete sobre o papel do cientista na sociedade moderna, os limites éticos do avanço computacional e a desmistificação da tecnologia na periferia.",
-                    tags: [{ texto: "Performance Artística" }, { texto: "Letras e Artes" }],
-                    autores: ["Jose Silva", "Ana Terra"],
-                    local: "Auditório Mirele",
-                    inscrito: false
-                },
-                {
-                    hora: "11:15",
-                    corCard: "#111827",
-                    titulo: "Aplicações de IA na Agricultura Familiar",
-                    descricao: "Apresentação de projeto que utiliza visão computacional simples para identificação de pragas comuns em hortaliças, otimizando o manejo agrícola sem o uso de defensivos pesados.",
-                    tags: [{ texto: "Tecnologia" }, { texto: "Engenharias" }],
-                    autores: ["Marcos Nunes", "Lucas Rocha"],
-                    local: "Laboratório 2 - Bloco 1",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "14:00 - 15:30",
-            turno: "tarde",
-            atividades: [
-                {
-                    hora: "14:00",
-                    corCard: "#EAB308",
-                    titulo: "Oficina Avançada de Django Rest Framework",
-                    descricao: "Construção passo a passo de uma API REST robusta, abordando autenticação baseada em JWT, customização de querysets com managers e boas práticas de arquitetura de software.",
-                    tags: [{ texto: "Oficina" }, { texto: "Tecnologia" }],
-                    autores: ["Pedro Henrique", "Maria Eduarda"],
-                    local: "Mini Auditório - Bloco 4",
-                    inscrito: true
-                },
-                {
-                    hora: "14:45",
-                    corCard: "#8B5CF6",
-                    titulo: "Mini-curso de Criação de Interfaces com Figma",
-                    descricao: "Abordagem prática de UI/UX design. Os participantes aprenderão a criar componentes dinâmicos, auto-layout responsivo e protótipos navegáveis prontos para validação de produto.",
-                    tags: [{ texto: "Oficina" }, { texto: "Letras e Artes" }],
-                    autores: ["Maria Eduarda"],
-                    local: "Sala 202 - Bloco 2",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "19:00 - 20:30",
-            turno: "noite",
-            atividades: [
-                {
-                    hora: "19:00",
-                    corCard: "#212529",
-                    titulo: "Mesa Redonda: O Futuro da Computação e do ADS na Região",
-                    descricao: "Profissionais do mercado e do setor público debatem as demandas atuais de TI, o mercado para desenvolvedores juniores e os rumos das tecnologias web e mobile na Zona Sul.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Tecnologia" }],
-                    autores: ["Professor IFRS", "Convidado MPRS"],
-                    local: "Auditório Principal",
-                    inscrito: false
-                }
-            ]
-        }
-    ];
-
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
+
+    // ✅ Consumindo o Hook de Sessões que o SessaoBoard usa para bater no Banco de Dados
+    const { sessoes, loading, error, carregarEvento, fetchSessoes } = useSessoes();
+
+    useEffect(() => {
+        if (eventoId) {
+            carregarEvento(eventoId);
+            fetchSessoes(eventoId);
+        }
+    }, [eventoId]);
 
     const selecionarAtracaoResumo = (atracao) => {
         setAtracaoResumo(atracao);
         setShowModal(true);
     };
 
+    // Processamento, Filtragem e Agrupamento dos dados reais vindos da API
     useEffect(() => {
-        const termo = termoBusca.toLowerCase().trim();
-        let blocosProcessados = [];
+        if (!sessoes || sessoes.length === 0) {
+            setSessoesFiltradas([]);
+            return;
+        }
 
-        sessoesMockadas.forEach(bloco => {
-            if (bloco.turno === turnoAtivo) {
-                const atividadesFiltradas = bloco.atividades.filter(ativ => {
-                    const titulo = ativ.titulo ? ativ.titulo.toLowerCase() : '';
-                    const autor = ativ.autores ? ativ.autores.join(' ').toLowerCase() : '';
-                    const bateuNaTag = ativ.tags ? ativ.tags.some(tag => 
-                        tag.texto ? tag.texto.toLowerCase().includes(termo) : false
-                    ) : false;
+        const termo = termoBusca.toLowerCase().trim();
+        const mapaAgrupamento = {};
+
+        sessoes.forEach(sessaoBanco => {
+            // 1. Extração e Normalização de Horários e Turnos da API (Padrão ISO)
+            const stringHorarioInicio = sessaoBanco.data_horario_inicio.split('T')[1] || '';
+            const stringHorarioFim = sessaoBanco.data_horario_fim.split('T')[1] || '';
+            
+            const horaInicioLimpa = stringHorarioInicio.slice(0, 5); // "08:30"
+            const horaFimLimpa = stringHorarioFim.slice(0, 5);     // "10:00"
+            const chaveBlocoHorario = `${horaInicioLimpa} - ${horaFimLimpa}`;
+
+            // Determina o turno dinamicamente baseado na hora inteira do banco
+            let turnoCalculado = 'manhã';
+            const horaInteira = parseInt(horaInicioLimpa.split(':')[0], 10);
+            if (horaInteira >= 12 && horaInteira < 18) {
+                turnoCalculado = 'tarde';
+            } else if (horaInteira >= 18) {
+                turnoCalculado = 'noite';
+            }
+
+            // Ignora o laço se a sessão não pertencer ao turno ativo clicado na aba
+            if (turnoCalculado !== turnoAtivo) return;
+
+            // 2. Mapeamento e filtragem das apresentações alocadas nesta sessão
+            const apresentacoesOriginais = sessaoBanco.ordem_apresentacoes_display || [];
+            
+            const atividadesFiltradas = apresentacoesOriginais
+                .map(itemOrdem => {
+                    const atracao = itemOrdem.atracao_display || itemOrdem.atracao || {};
+                    
+                    // Tratamento dos autores mapeando a estrutura da equipe_json ou autor do banco
+                    let listaAutores = [];
+                    if (atracao.equipe_json) {
+                        try {
+                            const equipe = typeof atracao.equipe_json === 'string' 
+                                ? JSON.parse(atracao.equipe_json) 
+                                : atracao.equipe_json;
+                            listaAutores = equipe.map(m => m.nome || m.autor);
+                        } catch (e) {
+                            listaAutores = [atracao.autor || 'Autor Não Informado'];
+                        }
+                    } else if (atracao.autor) {
+                        listaAutores = [atracao.autor];
+                    }
+
+                    // Conversão das modalidades ou áreas em formato de tags legíveis
+                    const listaTags = [];
+                    if (atracao.tipo) listaTags.push({ texto: atracao.tipo });
+                    if (atracao.area_conhecimento?.area_conhecimento_display) {
+                        listaTags.push({ texto: atracao.area_conhecimento.area_conhecimento_display });
+                    } else if (atracao.area_conhecimento) {
+                        listaTags.push({ texto: String(atracao.area_conhecimento) });
+                    }
+
+                    return {
+                        hora: horaInicioLimpa,
+                        titulo: atracao.titulo || 'Atração Sem Título',
+                        descricao: atracao.resumo || 'Nenhum resumo disponível para esta atração.',
+                        autores: listaAutores,
+                        local: sessaoBanco.espaco_display?.nome || `Espaço #${sessaoBanco.espaco}`,
+                        tags: listaTags.map(t => ({
+                            texto: t.texto,
+                            corFundo: obterCorPorTag(t.texto),
+                            corTexto: '#FFFFFF'
+                        })),
+                        inscrito: false // Pode ser acoplado à regra de inscrições posteriormente
+                    };
+                })
+                .filter(ativ => {
+                    // Executa o filtro de busca textual digitado no input superior
+                    const titulo = ativ.titulo.toLowerCase();
+                    const autor = ativ.autores.join(' ').toLowerCase();
+                    const bateuNaTag = ativ.tags.some(tag => tag.texto.toLowerCase().includes(termo));
 
                     return !termo || titulo.includes(termo) || autor.includes(termo) || bateuNaTag;
                 });
 
-                if (atividadesFiltradas.length > 0) {
-                    blocosProcessados.push({
-                        blocoHorario: bloco.blocoHorario,
-                        atividades: atividadesFiltradas.map(ativ => ({
-                            ...ativ,
-                            tags: ativ.tags.map(t => ({
-                                texto: t.texto,
-                                corFundo: obterCorPorTag(t.texto), 
-                                corTexto: '#FFFFFF'
-                            }))
-                        }))
-                    });
+            // 3. Agrupamento Unificado: Se houver mais de uma sessão no mesmo horário, elas viram uma só
+            if (atividadesFiltradas.length > 0) {
+                if (!mapaAgrupamento[chaveBlocoHorario]) {
+                    mapaAgrupamento[chaveBlocoHorario] = [];
                 }
+                mapaAgrupamento[chaveBlocoHorario].push(...atividadesFiltradas);
             }
         });
 
-        setSessoesFiltradas(blocosProcessados);
-    }, [termoBusca, turnoAtivo]);
+        // Transforma o objeto agrupador em uma estrutura de array para renderização do JSX
+        const resultadoFinal = Object.keys(mapaAgrupamento).map(bloco => ({
+            blocoHorario: bloco,
+            atividades: mapaAgrupamento[bloco]
+        })).sort((a, b) => a.blocoHorario.localeCompare(b.blocoHorario));
+
+        setSessoesFiltradas(resultadoFinal);
+    }, [sessoes, termoBusca, turnoAtivo]);
 
     return (
-        <div className="d-flex flex-column min-vh-100 bg-light">
+        <div className="d-flex flex-column min-vh-100 bg-white">
             <NavBar />
             <main className="flex-fill">
                 <section style={{ backgroundColor: verdeIFRS, color: 'white' }} className="py-5 text-center shadow-sm">
                     <Container>
                         <h1 className="display-5 fw-bold mb-2">Programação Oficial</h1>
-                        <p className="mb-4 opacity-90">Confira os horários e locais das atividades do evento</p>
+                        <p className="mb-4 opacity-90">Confira a distribuição em tempo real das sessões e apresentações</p>
                         <Row className="justify-content-center">
                             <Col md={8} lg={6}>
                                 <InputGroup className="shadow-sm rounded-pill overflow-hidden bg-white p-1">
@@ -194,6 +167,7 @@ export default function ProgramacaoEvento() {
                 </section>
 
                 <Container className="py-4 mt-2">
+                    {/* Filtros de Turnos */}
                     <div className="d-flex justify-content-center gap-3 mb-5">
                         {['manhã', 'tarde', 'noite'].map((turno) => (
                             <Button 
@@ -203,15 +177,25 @@ export default function ProgramacaoEvento() {
                                 onClick={() => setTurnoAtivo(turno)}
                                 style={turnoAtivo === turno ? { backgroundColor: `${verdeIFRS}`, borderColor: '#111827' } : {}}
                             >
-                                25/OUT ({turno})
+                                {turno}
                             </Button>
                         ))}
                     </div>
 
                     <Row className="justify-content-center">
                         <Col lg={10}>
-                            {sessoesFiltradas.length > 0 ? (
+                            {loading ? (
+                                <div className="text-center py-5">
+                                    <Spinner animation="border" variant="success" />
+                                    <p className="text-muted mt-2 small">Sincronizando cronograma com o servidor...</p>
+                                </div>
+                            ) : error ? (
+                                <Alert variant="danger">
+                                    Não foi possível carregar a programação. Erro: {error}
+                                </Alert>
+                            ) : sessoesFiltradas.length > 0 ? (
                                 sessoesFiltradas.map((sessaoGlobal, idx) => (
+                                    /* ✅ CARD ÚNICO: Todas as sessões que estão no mesmo horário são acopladas aqui */
                                     <div key={idx} className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: '16px' }}>
                                         <div className="card-header bg-white text-dark py-3 px-4 d-flex align-items-center justify-content-between">
                                             <div className="d-flex align-items-center gap-2 m-0 fw-bold">
@@ -223,12 +207,13 @@ export default function ProgramacaoEvento() {
                                             </span>
                                         </div>
                                         
+                                        {/* ✅ LISTAGEM CORRIDA E COMPLETA: Sem quebras por paginação (1, 2, 3) */}
                                         <div className="card-body p-0">
                                             {sessaoGlobal.atividades.map((ativ, ativIdx) => (
                                                 <div 
                                                     key={ativIdx} 
                                                     className="p-4 border-bottom last-border-0 d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-3 bg-white"
-                                                    style={{ borderLeft: `6px solid ${ativ.corCard || '#6B7280'}` }}
+                                                    style={{ borderLeft: `6px solid ${obterCorPorTag(ativ.tags[0]?.texto || '')}` }}
                                                 >
                                                     <div className="flex-grow-1">
                                                         <div className="d-flex flex-wrap gap-2 mb-2">
@@ -259,7 +244,7 @@ export default function ProgramacaoEvento() {
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-5 bg-white rounded shadow-sm">
+                                <div className="text-center py-5 bg-white rounded shadow-sm border">
                                     <h5 className="text-muted m-0">Nenhuma atividade programada para este turno.</h5>
                                 </div>
                             )}
