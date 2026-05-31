@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from ..models.criterio_avaliacao_atracao import CriterioAvaliacaoAtracao
@@ -18,7 +19,10 @@ class CriterioAvaliacaoAtracaoSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         instance = CriterioAvaliacaoAtracao(**validated_data)
-        instance.full_clean()
+        try:
+            instance.full_clean()
+        except ValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
         instance.save()
         return instance
 
@@ -26,6 +30,9 @@ class CriterioAvaliacaoAtracaoSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        instance.full_clean()
+        try:
+            instance.full_clean()
+        except ValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
         instance.save()
         return instance

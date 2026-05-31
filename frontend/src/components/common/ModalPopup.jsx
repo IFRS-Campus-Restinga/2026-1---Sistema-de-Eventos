@@ -11,6 +11,8 @@ export default function ModalPopup({
     textoAcao = '',
     onAcao,
     variante = 'danger',
+    size = 'lg',
+    scrollable = false,
     children,
 }) {
     const variantes = { danger: 'danger', success: 'success' };
@@ -23,9 +25,10 @@ export default function ModalPopup({
     return (
         <Modal
             show={show}
-            size="lg"
+            size={size}
             aria-labelledby="contained-modal-title-vcenter"
             centered
+            scrollable={scrollable}
         >
             <Modal.Header closeButton onClick={onFechar}>
                 <Modal.Title id="contained-modal-title-vcenter">

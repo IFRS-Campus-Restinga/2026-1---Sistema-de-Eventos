@@ -11,7 +11,9 @@ export function useAtracoesMock() {
             try {
                 setLoading(true);
                 const response = await listarAtracoes();
-                setAtracoes(Array.isArray(response) ? response : response.results || []);
+                setAtracoes(
+                    Array.isArray(response) ? response : response.results || [],
+                );
                 setError(null);
             } catch (erro) {
                 console.error('Erro ao carregar atrações:', erro);

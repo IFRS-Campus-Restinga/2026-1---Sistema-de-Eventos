@@ -1,10 +1,12 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from ..enumerations.status_atracao import StatusAtracao
-from ..models.evento import Evento
 from ..models.atracao import Atracao
+from ..models.evento import Evento
+from ..models.inscricao_evento import InscricaoEvento
+from ..serializers.etapa_evento_serializer import EtapaEventoSerializer
 
 
 class DashboardView(APIView):
@@ -24,6 +26,8 @@ class DashboardView(APIView):
         desistencias = atracoes.filter(status=StatusAtracao.CANCELADA).count()
         sem_avaliador = atracoes.filter(status=StatusAtracao.PREVISTA).count()
 
+        total_inscricoes = InscricaoEvento.objects.filter(evento=evento).count()
+
         areas = []
         for area in atracoes.values_list("area_conhecimento", flat=True).distinct():
             total_area = atracoes.filter(area_conhecimento=area).count()
@@ -41,6 +45,10 @@ class DashboardView(APIView):
                 }
             )
 
+        etapas = evento.etapas.all().order_by("data_inicio")
+        etapa_inicio = etapas.first()
+        etapa_fim = etapas.order_by("data_fim").last()
+
         data = {
             "usuario": {
                 "nome": request.user.username
@@ -50,12 +58,18 @@ class DashboardView(APIView):
             "evento": {
                 "id": evento.id,
                 "nome": evento.nome,
+                "local": evento.local.nome,
+                "status_evento": evento.status_evento,
+                "inicio": etapa_inicio.data_inicio if etapa_inicio else None,
+                "fim": etapa_fim.data_fim if etapa_fim else None,
+                "etapas": EtapaEventoSerializer(etapas, many=True).data,
             },
             "metricas": {
-                "totalSubmissoes": total,
-                "semAvaliador": sem_avaliador,
+                "total_atracoes": total,
+                "total_inscricoes": total_inscricoes,
+                "sem_avaliador": sem_avaliador,
                 "desistencias": desistencias,
-                "taxaEvasao": int((desistencias / total) * 100) if total > 0 else 0,
+                "taxa_evasao": int((desistencias / total) * 100) if total > 0 else 0,
             },
             "areas": areas,
         }

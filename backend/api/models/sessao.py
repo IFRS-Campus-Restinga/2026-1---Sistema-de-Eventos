@@ -26,6 +26,8 @@ class Sessao(Base):
         max_length=100,
         validators=[MinLengthValidator(3)],
         verbose_name=_("Nome da sessão"),
+        null=True,
+        blank=True,
     )
     data_horario_inicio = models.DateTimeField(
         auto_now=False,
@@ -39,7 +41,7 @@ class Sessao(Base):
     )
     publicado_em = models.DateTimeField(
         auto_now=False,
-        auto_now_add=True,
+        auto_now_add=False,
         blank=True,
         null=True,
         verbose_name=_("Data de publicação da programação"),

@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react';
 import eArray from '../utils/eArray';
 import { buscarEventoPorId } from '../services/eventoService';
-
-//pegar service quando existir
+import {
+    criarSessao,
+    atualizarSessao,
+    pegarSessao,
+    pegarSessoes,
+    salvarOrdensSessao,
+} from '../services/sessoesService';
 
 export default function useSessoes() {
     const [evento, setEvento] = useState(null);
     const [espaco, setEspaco] = useState([null]);
     const [dias, setDias] = useState([]);
     const [dia, setDia] = useState(null);
+
+    const [sessoes, setSessoes] = useState([]);
+    const [sessaoSelecionada, setSessaoSelecionada] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -38,6 +46,7 @@ export default function useSessoes() {
             } catch (erro) {
                 setError('Erro: evento deve ter uma etapa de realização');
                 console.error('Erro ao processar evento:', erro);
+                setDias(false);
             }
         } catch (erro) {
             console.error('Erro ao buscar evento:', erro);
@@ -61,16 +70,130 @@ export default function useSessoes() {
         return dias;
     }
 
-    const criarSessao = async (sessao) => {
+    const fetchSessoes = async (eventoId = null) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const data = await pegarSessoes(eventoId);
+
+            const listaSessoes = eArray(data)
+                ? data
+                : eArray(data?.results)
+                  ? data.results
+                  : [];
+
+            setSessoes(listaSessoes);
+
+            return listaSessoes;
+        } catch (erro) {
+            console.error('Erro ao carregar sessões:', erro);
+
+            setError('Erro ao carregar sessões');
+
+            setSessoes([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const buscarSessao = async (id) => {
+        if (!id) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const data = await pegarSessao(id);
+
+            setSessaoSelecionada(data);
+
+            return data;
+        } catch (erro) {
+            console.error('Erro ao buscar sessão:', erro);
+
+            setError('Erro ao buscar sessão');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const adicionaSessao = async (dados) => {
+        setLoading(true);
+        setError(null);
+        setMessage('');
+
+        try {
+            const novaSessao = await criarSessao(dados);
+            setSessoes((prev) => [...prev, novaSessao]);
+
+            setMessage('Sessão criada com sucesso');
+            return novaSessao;
+        } catch (erro) {
+            console.error('Erro ao criar sessão:', erro);
+            setError(erro.response?.data || 'Erro ao criar sessão');
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const editarSessao = async (id, dados) => {
+        setLoading(true);
+        setError(null);
+        setMessage('');
+
+        try {
+            const sessaoAtualizada = await atualizarSessao(id, dados);
+
+            setSessoes((prev) =>
+                prev.map((sessao) =>
+                    sessao.id === id ? sessaoAtualizada : sessao,
+                ),
+            );
+
+            setMessage('Sessão atualizada com sucesso');
+
+            return sessaoAtualizada;
+        } catch (erro) {
+            console.error('Erro ao atualizar sessão:', erro);
+
+            setError(erro.response?.data || 'Erro ao atualizar sessão');
+
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const salvarOrdemApresentacoes = async (sessao) => {
+        setLoading(true);
+        setError(null);
+        setMessage('');
+
         try {
             setLoading(true);
 
-            // futuramente:
-            // await api.post('/sessoes', sessao);
+            const dados = {
+                sessao: sessao.id,
+                ordens: (
+                    sessao.ordem_apresentacoes ||
+                    sessao.ordem_apresentacoes_display ||
+                    []
+                ).map((item, index) => ({
+                    atracao: item.atracao.id,
+                    ordem: index + 1,
+                })),
+            };
 
-            setMessage('Sessão criada com sucesso');
+            await salvarOrdensSessao(dados);
+
+            setMessage('Programação salva com sucesso');
+
+            return true;
         } catch (err) {
-            setError('Erro ao criar sessão');
+            setError('Erro ao salvar ordem');
+            throw err;
         } finally {
             setLoading(false);
         }
@@ -80,10 +203,19 @@ export default function useSessoes() {
         evento,
         espaco,
         dias,
+
         loading,
         error,
         message,
+
+        sessoes,
+        sessaoSelecionada,
+
+        fetchSessoes,
+        buscarSessao,
+        editarSessao,
         carregarEvento,
-        criarSessao,
+        adicionaSessao,
+        salvarOrdemApresentacoes,
     };
 }

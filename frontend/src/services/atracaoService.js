@@ -9,15 +9,13 @@ const CAMPOS_ATRACAO = [
     'modalidade',
     'nivel_ensino',
     'area_conhecimento',
-    'orientador',
-    'sou_orientador',
     'anexo_pdf',
     'acessibilidade',
     'evento',
     'status',
+    'sugestao_vagas',
     'data_hora_inicio',
     'data_hora_fim',
-    'espaco',
     'local_atracao',
     'equipe',
     'respostas_campos',
@@ -55,7 +53,15 @@ const montarPayloadAtracao = (dados) => {
         }
 
         if (key === 'equipe') {
-            payload.append('equipe_json', JSON.stringify(dados[key]));
+            const equipeNormalizada = Array.isArray(dados[key])
+                ? dados[key].map((membro) => ({
+                      nome: membro?.nome || '',
+                      instituicao_curso: membro?.instituicao_curso || '',
+                      funcao: membro?.funcao || '',
+                  }))
+                : [];
+
+            payload.append('equipe_json', JSON.stringify(equipeNormalizada));
             return;
         }
 
@@ -72,6 +78,27 @@ const montarPayloadAtracao = (dados) => {
             if (arquivo instanceof File || arquivo instanceof Blob) {
                 payload.append(key, arquivo);
             }
+            return;
+        }
+
+        if (key === 'nivel_ensino') {
+            const niveis = Array.isArray(dados[key])
+                ? dados[key].filter((item) => String(item || '').trim() !== '')
+                : String(dados[key] || '')
+                      .split(',')
+                      .map((item) => item.trim())
+                      .filter((item) => item !== '');
+
+            payload.append(key, niveis.join(','));
+            return;
+        }
+
+        if (key === 'sugestao_vagas') {
+            const valor = dados[key];
+            if (valor === '' || valor === null || valor === undefined) {
+                return;
+            }
+            payload.append(key, Number(valor));
             return;
         }
 

@@ -1,0 +1,64 @@
+// src/utils/themeTags.js
+
+/**
+ * Dicionário centralizado de cores para as tags do sistema.
+ * Mapeia o termo chave encontrado na tag para sua respectiva cor em formato Hexadecimal.
+ */
+export const CORES_TAGS = {
+    'ciencias exatas e da terra': '#2563EB', // Azul
+    'ciencias biologicas': '#16A34A', // Verde
+    engenharias: '#F97316', // Laranja
+    'ciencias da saude': '#14B8A6', // Verde-azulado
+    'ciencias agrarias': '#84CC16', // Lima
+    'ciencias sociais aplicadas': '#6366F1', // Indigo
+    'ciencias humanas': '#F43F5E', // Rosa
+    'linguistica letras e artes': '#F59E0B', // Ambar
+    oficina: '#EAB308', // Amarelo
+    palestra: '#5ce9ba', // Verde
+    poster: '#ff8b2d', // Laranja
+    apresentacao: '#3B82F6', // Azul
+    'apresentacao oral': '#1D4ED8', // Azul escuro
+    'comunicacao oral': '#1E40AF', // Azul
+    minicurso: '#10B981', // Verde
+    workshop: '#0EA5E9', // Azul claro
+    seminario: '#8B5CF6', // Roxo
+    painel: '#F97316', // Laranja
+    'mesa redonda': '#A855F7', // Violeta
+    'roda de conversa': '#7C3AED', // Roxo
+    mostra: '#F59E0B', // Ambar
+    exposicao: '#F472B6', // Rosa
+    visita: '#14B8A6', // Verde-azulado
+    'visita tecnica': '#0F766E', // Verde escuro
+    exatas: '#212529', // Escuro/Preto
+    performance: '#DB2777', // Rosa
+    artes: '#8B5CF6', // Roxo
+    letras: '#8B5CF6', // Roxo (mesma categoria de artes)
+    informatica: '#06B6D4', // Ciano
+    tecnologia: '#111827', // Grafite Escuro
+    padrao: '#6B7280', // Cinza para tags genéricas
+};
+
+/**
+ * Função utilitária para descobrir a cor de uma tag com base no texto dela.
+ * Remove acentos e espaços para evitar quebras por digitação.
+ *
+ * @param {string} texto - O texto da tag (ex: "Apresentação Oral")
+ * @returns {string} Código da cor em Hexadecimal
+ */
+export const obterCorPorTag = (texto) => {
+    if (!texto) return CORES_TAGS.padrao;
+
+    // Trata a string: remove acentos, espaços nas pontas e deixa em minúsculo
+    const textoLimpo = texto
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    // Busca se alguma das chaves configuradas está contida no texto da tag
+    const chaveEncontrada = Object.keys(CORES_TAGS).find((chave) =>
+        textoLimpo.includes(chave),
+    );
+
+    return CORES_TAGS[chaveEncontrada] || CORES_TAGS.padrao;
+};

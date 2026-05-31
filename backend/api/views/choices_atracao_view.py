@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
 from ..enumerations.status_atracao import StatusAtracao
-from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..models.area_conhecimento import AreaConhecimento
 from ..models.coautor import FuncaoEquipe
 from ..models.modalidade import Modalidade
 
@@ -17,7 +17,10 @@ class AtracaoOpcoesView(APIView):
     def get(self, request):
         modalidades = [
             {"value": modalidade.id, "label": modalidade.nome}
-            for modalidade in Modalidade.objects.filter(ativo=True).order_by("nome")
+            for modalidade in Modalidade.objects.filter(
+                ativo=True,
+                requer_avaliacao_submissao=True,
+            ).order_by("nome")
         ]
 
         niveis = [
@@ -26,8 +29,11 @@ class AtracaoOpcoesView(APIView):
         ]
 
         areas = [
-            {"value": choice[0], "label": choice[1]}
-            for choice in AreaConhecimentoEscolha.choices
+            {
+                "value": area.area_conhecimento,
+                "label": area.get_area_conhecimento_display(),
+            }
+            for area in AreaConhecimento.objects.all().order_by("area_conhecimento")
         ]
 
         funcoes = [

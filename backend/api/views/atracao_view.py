@@ -11,7 +11,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
 from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.atracao import Atracao
 from ..models.avaliacao_atracao import AvaliacaoAtracao
@@ -229,6 +228,15 @@ class AtracaoAvaliadorView(APIView):
             usuario = perfil.usuario
         except Perfil.DoesNotExist:
             return Response({"erro": "Perfil não encontrado"}, status=404)
+
+        ja_avaliou = AvaliacaoAtracao.objects.filter(
+            avaliador=usuario, atracao=atracao
+        ).exists()
+        if ja_avaliou:
+            return Response(
+                {"erro": "Não é possível remover avaliador com avaliação registrada"},
+                status=400,
+            )
 
         remove_perm(self.avaliar_perm, usuario, atracao)
 

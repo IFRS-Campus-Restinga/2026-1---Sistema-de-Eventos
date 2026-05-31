@@ -33,11 +33,18 @@ class Modalidade(Base):
         help_text=_("Informe se a Modalidade emite certificado"),
     )
 
+    requer_controle_vagas = models.BooleanField(
+        verbose_name=_("Requer Controle de Vagas"),
+        help_text=_("Informe se a Modalidade requer controle de vagas"),
+        default=False,
+    )
+
     limite_vagas = models.IntegerField(
         verbose_name=_("Número de vagas"),
         help_text=_("Informe se há um limite de vagas"),
-        validators=[MinValueValidator(0)],
-        default=0,
+        null=True,
+        blank=True,
+        default=None,
     )
 
     limite_avaliadores = models.IntegerField(
@@ -62,6 +69,20 @@ class Modalidade(Base):
             errors["limite_avaliadores"] = _(
                 "Não pode haver limite de avaliadores se não há avaliação."
             )
+
+        # limite_vagas só é válido quando requer_controle_vagas é True
+        if (
+            (not self.requer_controle_vagas)
+            and (self.limite_vagas is not None)
+            and (self.limite_vagas > 0)
+        ):
+            errors["limite_vagas"] = _(
+                "Não pode haver limite de vagas se não há controle de vagas."
+            )
+
+        # validar valor não-negativo quando informado
+        if self.limite_vagas is not None and self.limite_vagas < 0:
+            errors["limite_vagas"] = _("O número de vagas deve ser maior ou igual a 0.")
 
         if len(self.nome.strip()) < 3:
             errors["nome"] = _("O nome deve ter pelo menos 3 caracteres.")

@@ -3,7 +3,9 @@ import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
 export const pegarCriterioAvaliacaoAtracao = async () => {
-    const response = await axios.get(`${API_URL}/api/criterio_avaliacao/`);
+    const response = await axios.get(`${API_URL}/api/criterio_avaliacao/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 

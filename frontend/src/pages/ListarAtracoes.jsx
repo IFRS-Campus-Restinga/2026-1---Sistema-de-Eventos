@@ -33,9 +33,10 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
-import { pegarEspacos } from '../services/espacoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
+import { pegarModalidade } from '../services/modalidadeService';
+import { getCurrentUser } from '../services/authService';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -54,7 +55,6 @@ export default function ListarAtracoes() {
         id: null,
         titulo: '',
         resumo: '',
-        espaco: '',
         status: 'PREVISTA',
     });
     const [alerta, setAlerta] = useState({
@@ -69,7 +69,9 @@ export default function ListarAtracoes() {
     const [eventosEdicao, setEventosEdicao] = useState([]);
     const [usuariosEdicao, setUsuariosEdicao] = useState([]);
     const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
-    const [espacosEdicao, setEspacosEdicao] = useState([]);
+    const [modalidadeEdicaoDetalhe, setModalidadeEdicaoDetalhe] = useState(null);
+    const [habilitarSugestaoVagasEdicao, setHabilitarSugestaoVagasEdicao] = useState(false);
+    const [usuarioLogadoEdicao, setUsuarioLogadoEdicao] = useState(null);
 
     const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
@@ -84,6 +86,21 @@ export default function ListarAtracoes() {
 
     const contarPalavras = (texto) =>
         texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
+
+    const normalizarNiveisEnsino = (valor) => {
+        if (Array.isArray(valor)) {
+            return valor.filter((item) => String(item || '').trim() !== '');
+        }
+
+        if (!valor) {
+            return [];
+        }
+
+        return String(valor)
+            .split(',')
+            .map((item) => item.trim())
+            .filter((item) => item !== '');
+    };
 
     const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
         setAlerta((prev) => ({
@@ -125,10 +142,11 @@ export default function ListarAtracoes() {
 
     useEffect(() => {
         const carregarOpcoesEdicao = async () => {
-            const [dadosOpcoes, dadosEventos, dadosUsuarios] = await Promise.allSettled([
+            const [dadosOpcoes, dadosEventos, dadosUsuarios, dadosUsuarioLogado] = await Promise.allSettled([
                 buscarOpcoesAtracao(),
                 buscarEventos(),
                 buscarUsuarios(),
+                getCurrentUser(),
             ]);
 
             if (dadosOpcoes.status === 'fulfilled') {
@@ -144,6 +162,10 @@ export default function ListarAtracoes() {
 
             if (dadosUsuarios.status === 'fulfilled') {
                 setUsuariosEdicao(dadosUsuarios.value || []);
+            }
+
+            if (dadosUsuarioLogado.status === 'fulfilled') {
+                setUsuarioLogadoEdicao(dadosUsuarioLogado.value || null);
             }
         };
 
@@ -179,37 +201,23 @@ export default function ListarAtracoes() {
     }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
 
     useEffect(() => {
-        const carregarEspacosEdicao = async () => {
-            const localId = eventoEdicaoDetalhe?.local?.id;
-
-            if (!mostrarModalEdicao || !formEdicao.evento || !localId) {
-                setEspacosEdicao([]);
+        const carregarDetalheModalidadeEdicao = async () => {
+            if (!mostrarModalEdicao || !formEdicao.modalidade) {
+                setModalidadeEdicaoDetalhe(null);
                 return;
             }
 
             try {
-                const espacos = await pegarEspacos(localId);
-                setEspacosEdicao(espacos || []);
-
-                setFormEdicao((prev) => {
-                    const espacoAtualValido = (espacos || []).some(
-                        (espaco) => String(espaco.id) === String(prev.espaco),
-                    );
-
-                    if (espacoAtualValido) {
-                        return prev;
-                    }
-
-                    return { ...prev, espaco: '' };
-                });
+                const detalhe = await pegarModalidade(formEdicao.modalidade);
+                setModalidadeEdicaoDetalhe(detalhe);
             } catch (error) {
-                console.error('Erro ao carregar espaços da edição:', error);
-                setEspacosEdicao([]);
+                console.error('Erro ao carregar detalhe da modalidade na edicao:', error);
+                setModalidadeEdicaoDetalhe(null);
             }
         };
 
-        carregarEspacosEdicao();
-    }, [mostrarModalEdicao, formEdicao.evento, eventoEdicaoDetalhe]);
+        carregarDetalheModalidadeEdicao();
+    }, [mostrarModalEdicao, formEdicao.modalidade]);
 
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
@@ -284,29 +292,54 @@ export default function ListarAtracoes() {
     }, [atracoes, termoBusca]);
 
     const abrirModalEdicao = (atracao) => {
+        const sugestaoAtual = atracao.sugestao_vagas ?? '';
         setFormEdicao({
             id: atracao.id,
             titulo: atracao.titulo || '',
             resumo: atracao.resumo || '',
-            espaco: atracao.espaco || atracao.espaco_detalhe?.id || '',
             status: atracao.status || 'PREVISTA',
             palavras_chave: atracao.palavras_chave || '',
             modalidade: atracao.modalidade || '',
-            nivel_ensino: atracao.nivel_ensino || '',
+            nivel_ensino: normalizarNiveisEnsino(atracao.nivel_ensino),
             area_conhecimento: atracao.area_conhecimento || '',
-            orientador: atracao.orientador,
-            sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
+            sugestao_vagas: sugestaoAtual,
             equipe: Array.isArray(atracao.equipe)
                 ? atracao.equipe.map((membro) => ({
+                      user_id:
+                          (usuariosEdicao || []).find(
+                              (usuario) =>
+                                  getNomeUsuario(usuario).trim().toLowerCase() ===
+                                  (membro.nome || '').trim().toLowerCase(),
+                          )?.id || '',
                       nome: membro.nome || '',
                       instituicao_curso: membro.instituicao_curso || '',
-                      funcao: membro.funcao || '',
+                      funcao:
+                          membro.funcao === 'COLABORADOR'
+                              ? 'COAUTOR'
+                              : (membro.funcao || ''),
                   }))
                 : [],
         });
+        setHabilitarSugestaoVagasEdicao(
+            sugestaoAtual !== '' && sugestaoAtual !== null && sugestaoAtual !== undefined,
+        );
         setMostrarModalEdicao(true);
+    };
+
+    const toggleNivelEnsinoEdicao = (nivelValue) => {
+        setFormEdicao((prev) => {
+            const atuais = normalizarNiveisEnsino(prev.nivel_ensino);
+            const atualizados = atuais.includes(nivelValue)
+                ? atuais.filter((item) => item !== nivelValue)
+                : [...atuais, nivelValue];
+
+            return {
+                ...prev,
+                nivel_ensino: atualizados,
+            };
+        });
     };
 
     const getNomeUsuario = (usuario) =>
@@ -315,12 +348,27 @@ export default function ListarAtracoes() {
         usuario?.username ||
         `Usuário ${usuario?.id}`;
 
+    const getNivelEnsinoUsuario = (nomeMembro) => {
+        const nomeNormalizado = (nomeMembro || '').trim().toLowerCase();
+        if (!nomeNormalizado) return '';
+
+        const usuarioEncontrado = (usuariosEdicao || []).find(
+            (usuario) => getNomeUsuario(usuario).trim().toLowerCase() === nomeNormalizado,
+        );
+
+        return (
+            usuarioEncontrado?.nivel_ensino_display ||
+            usuarioEncontrado?.nivel_ensino ||
+            ''
+        );
+    };
+
     const handleAdicionarMembroEdicao = () => {
         setFormEdicao((prev) => ({
             ...prev,
             equipe: [
                 ...(prev.equipe || []),
-                { nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
+                { user_id: '', nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
             ],
         }));
     };
@@ -335,14 +383,65 @@ export default function ListarAtracoes() {
     const handleMembroEdicaoChange = (index, campo, valor) => {
         setFormEdicao((prev) => {
             const equipeAtualizada = [...(prev.equipe || [])];
-            equipeAtualizada[index] = {
-                ...equipeAtualizada[index],
-                [campo]: valor,
-            };
+
+            if (campo === 'user_id') {
+                const usuarioSelecionado = (usuariosEdicao || []).find(
+                    (usuario) => String(usuario.id) === String(valor),
+                );
+
+                equipeAtualizada[index] = {
+                    ...equipeAtualizada[index],
+                    user_id: valor,
+                    nome: usuarioSelecionado ? getNomeUsuario(usuarioSelecionado) : '',
+                    instituicao_curso: usuarioSelecionado
+                        ? (usuarioSelecionado.nivel_ensino_display || usuarioSelecionado.nivel_ensino || '')
+                        : '',
+                };
+            } else {
+                equipeAtualizada[index] = {
+                    ...equipeAtualizada[index],
+                    [campo]: valor,
+                };
+            }
+
             return {
                 ...prev,
                 equipe: equipeAtualizada,
             };
+        });
+    };
+
+    const getNivelEnsinoMembroEdicao = (membro) => {
+        if (membro?.user_id) {
+            const usuarioPorId = (usuariosEdicao || []).find(
+                (usuario) => String(usuario.id) === String(membro.user_id),
+            );
+
+            return (
+                usuarioPorId?.nivel_ensino_display ||
+                usuarioPorId?.nivel_ensino ||
+                membro?.instituicao_curso ||
+                ''
+            );
+        }
+
+        return getNivelEnsinoUsuario(membro?.nome) || membro?.instituicao_curso || '';
+    };
+
+    const getUsuariosDisponiveisLinhaEdicao = (index) => {
+        const idsSelecionadosEmOutrasLinhas = new Set(
+            (formEdicao.equipe || [])
+                .filter((_, i) => i !== index)
+                .map((membro) => String(membro?.user_id || '').trim())
+                .filter((id) => id !== ''),
+        );
+
+        return (usuariosEdicao || []).filter((usuario) => {
+            const idUsuario = String(usuario.id);
+            if (String(usuarioLogadoEdicao?.id || '') === idUsuario) {
+                return false;
+            }
+            return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
         });
     };
 
@@ -351,7 +450,9 @@ export default function ListarAtracoes() {
 
         const tituloPalavras = contarPalavras(formEdicao.titulo || '');
 
-        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || !formEdicao.nivel_ensino || !formEdicao.area_conhecimento) {
+        const nivelEnsinoVazio = normalizarNiveisEnsino(formEdicao.nivel_ensino).length === 0;
+
+        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || nivelEnsinoVazio || !formEdicao.area_conhecimento) {
             mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
             return;
         }
@@ -377,21 +478,26 @@ export default function ListarAtracoes() {
             return;
         }
 
-        if (!formEdicao.sou_orientador && !formEdicao.orientador) {
-            mostrarAlerta('Selecione um orientador ou marque a opcao Sou o orientador.');
-            return;
-        }
-
-        if (!formEdicao.espaco) {
-            mostrarAlerta('Selecione um espaço para a submissão.');
-            return;
-        }
-
-        const equipeComNome = (formEdicao.equipe || []).filter(
-            (membro) => (membro?.nome || '').trim().length > 0,
+        const equipeComUsuario = (formEdicao.equipe || []).filter(
+            (membro) =>
+                String(membro?.user_id || '').trim() !== '' ||
+                (membro?.nome || '').trim().length > 0,
         );
-        if (equipeComNome.length === 0) {
+        if (equipeComUsuario.length === 0) {
             mostrarAlerta('Adicione pelo menos um membro com nome na equipe.');
+            return;
+        }
+
+        if (equipeComUsuario.some((membro) => !membro?.funcao)) {
+            mostrarAlerta('Defina um papel para todos os membros da equipe.');
+            return;
+        }
+
+        const totalAutores = equipeComUsuario.filter(
+            (membro) => membro?.funcao === 'AUTOR',
+        ).length;
+        if (totalAutores !== 1) {
+            mostrarAlerta('A equipe deve possuir exatamente 1 Autor.');
             return;
         }
 
@@ -653,6 +759,62 @@ export default function ListarAtracoes() {
                                                 </option>
                                             ))}
                                         </Form.Select>
+
+                                        {modalidadeEdicaoDetalhe && (
+                                            <div className="mt-2">
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    id="edicao-habilitar-sugestao-vagas"
+                                                    label="Habilitar sugestão para número de vagas"
+                                                    className="mb-2"
+                                                    checked={habilitarSugestaoVagasEdicao}
+                                                    onChange={(e) => {
+                                                        const habilitado = e.target.checked;
+                                                        setHabilitarSugestaoVagasEdicao(habilitado);
+                                                        if (!habilitado) {
+                                                            setFormEdicao((prev) => ({
+                                                                ...prev,
+                                                                sugestao_vagas: '',
+                                                            }));
+                                                        }
+                                                    }}
+                                                />
+
+                                                {habilitarSugestaoVagasEdicao && (
+                                                    <>
+                                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                                            Sugestão para Número de Vagas
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            type="number"
+                                                            min={1}
+                                                            max={
+                                                                modalidadeEdicaoDetalhe.limite_vagas > 0
+                                                                    ? modalidadeEdicaoDetalhe.limite_vagas
+                                                                    : undefined
+                                                            }
+                                                            value={formEdicao.sugestao_vagas ?? ''}
+                                                            onChange={(e) =>
+                                                                setFormEdicao((prev) => ({
+                                                                    ...prev,
+                                                                    sugestao_vagas:
+                                                                        e.target.value === ''
+                                                                            ? ''
+                                                                            : Number(e.target.value),
+                                                                }))
+                                                            }
+                                                            placeholder="Ex: 30"
+                                                        />
+                                                    </>
+                                                )}
+
+                                                <Form.Text className="text-muted">
+                                                    {modalidadeEdicaoDetalhe.limite_vagas > 0
+                                                        ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_vagas} vagas.`
+                                                        : 'Esta modalidade não possui limite de vagas definido.'}
+                                                </Form.Text>
+                                            </div>
+                                        )}
                                     </Form.Group>
                                 </Col>
                             </Row>
@@ -663,22 +825,26 @@ export default function ListarAtracoes() {
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                             Nivel de Ensino
                                         </Form.Label>
-                                        <Form.Select
-                                            value={formEdicao.nivel_ensino || ''}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    nivel_ensino: e.target.value,
-                                                }))
-                                            }
+                                        <div
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                borderRadius: '0.375rem',
+                                                padding: '0.75rem',
+                                                border: '1px solid #ced4da',
+                                            }}
                                         >
-                                            <option value="">Selecione o nivel</option>
                                             {opcoesEdicao.niveis_ensino.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
+                                                <Form.Check
+                                                    key={opt.value}
+                                                    type="checkbox"
+                                                    id={`edicao-nivel-${opt.value}`}
+                                                    label={opt.label}
+                                                    checked={normalizarNiveisEnsino(formEdicao.nivel_ensino).includes(opt.value)}
+                                                    onChange={() => toggleNivelEnsinoEdicao(opt.value)}
+                                                    className="mb-1"
+                                                />
                                             ))}
-                                        </Form.Select>
+                                        </div>
                                     </Form.Group>
                                 </Col>
                                 <Col md={6}>
@@ -737,49 +903,7 @@ export default function ListarAtracoes() {
                             </Form.Group>
 
                             <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Orientador(a)
-                                        </Form.Label>
-                                        <Form.Check
-                                            type="checkbox"
-                                            id="edicao-sou-orientador"
-                                            label="Sou o orientador"
-                                            className="mb-2"
-                                            checked={!!formEdicao.sou_orientador}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    sou_orientador: e.target.checked,
-                                                    orientador: e.target.checked
-                                                        ? null
-                                                        : prev.orientador,
-                                                }))
-                                            }
-                                        />
-                                        <Form.Select
-                                            value={formEdicao.orientador || ''}
-                                            disabled={!!formEdicao.sou_orientador}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    orientador: e.target.value
-                                                        ? Number(e.target.value)
-                                                        : null,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Selecione o orientador</option>
-                                            {usuariosEdicao.map((usuario) => (
-                                                <option key={usuario.id} value={usuario.id}>
-                                                    {getNomeUsuario(usuario)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
+                                <Col md={12}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                             Recursos
@@ -801,37 +925,7 @@ export default function ListarAtracoes() {
                             </Row>
 
                             <Row>
-                                <Col md={7}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Espaço
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={formEdicao.espaco || ''}
-                                            disabled={!formEdicao.evento || espacosEdicao.length === 0}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    espaco: e.target.value,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">
-                                                {formEdicao.evento
-                                                    ? (espacosEdicao.length > 0
-                                                        ? 'Selecione um espaço'
-                                                        : 'Evento sem espaços configurados')
-                                                    : 'Selecione primeiro um evento'}
-                                            </option>
-                                            {espacosEdicao.map((espaco) => (
-                                                <option key={espaco.id} value={espaco.id}>
-                                                    {espaco.nome} - {espaco.predio_bloco}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={5}>
+                                <Col md={12}>
                                     <Form.Group className="mb-3">
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                             Status de Avaliação
@@ -875,7 +969,7 @@ export default function ListarAtracoes() {
                                     <thead>
                                         <tr>
                                             <th>Nome</th>
-                                            <th>Curso/Instituição</th>
+                                            <th>Nível de Ensino</th>
                                             <th>Papel</th>
                                             <th style={{ width: '90px' }}>Ação</th>
                                         </tr>
@@ -891,34 +985,41 @@ export default function ListarAtracoes() {
                                             (formEdicao.equipe || []).map((membro, index) => (
                                                 <tr key={index}>
                                                     <td>
-                                                        <Form.Control
-                                                            value={membro.nome || ''}
-                                                            onChange={(e) =>
-                                                                handleMembroEdicaoChange(
-                                                                    index,
-                                                                    'nome',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                            placeholder="Nome completo"
-                                                        />
+                                                        {(() => {
+                                                            const usuariosDisponiveis =
+                                                                getUsuariosDisponiveisLinhaEdicao(index);
+                                                            return (
+                                                                <Form.Select
+                                                                    value={membro.user_id || ''}
+                                                                    onChange={(e) =>
+                                                                        handleMembroEdicaoChange(
+                                                                            index,
+                                                                            'user_id',
+                                                                            e.target.value,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <option value="">Selecione o usuário</option>
+                                                                    {usuariosDisponiveis.map((usuario) => (
+                                                                        <option key={usuario.id} value={usuario.id}>
+                                                                            {getNomeUsuario(usuario)}
+                                                                        </option>
+                                                                    ))}
+                                                                </Form.Select>
+                                                            );
+                                                        })()}
                                                     </td>
                                                     <td>
                                                         <Form.Control
-                                                            value={membro.instituicao_curso || ''}
-                                                            onChange={(e) =>
-                                                                handleMembroEdicaoChange(
-                                                                    index,
-                                                                    'instituicao_curso',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                            placeholder="Curso ou instituição"
+                                                            value={getNivelEnsinoMembroEdicao(membro)}
+                                                            placeholder="Nível de ensino (auto-preenchido)"
+                                                            disabled
                                                         />
                                                     </td>
                                                     <td>
                                                         <Form.Select
                                                             value={membro.funcao || ''}
+                                                            disabled={!membro.user_id && !membro.nome}
                                                             onChange={(e) =>
                                                                 handleMembroEdicaoChange(
                                                                     index,
@@ -928,9 +1029,19 @@ export default function ListarAtracoes() {
                                                             }
                                                         >
                                                             <option value="">Selecione</option>
+                                                            <option
+                                                                value="AUTOR"
+                                                                disabled={
+                                                                    (formEdicao.equipe || []).some(
+                                                                        (item, i) =>
+                                                                            i !== index && item?.funcao === 'AUTOR',
+                                                                    )
+                                                                }
+                                                            >
+                                                                Autor
+                                                            </option>
                                                             <option value="COAUTOR">Co-autor</option>
-                                                            <option value="APRESENTADOR">Apresentador</option>
-                                                            <option value="REVISOR">Revisor</option>
+                                                            <option value="ORIENTADOR">Orientador</option>
                                                         </Form.Select>
                                                     </td>
                                                     <td>

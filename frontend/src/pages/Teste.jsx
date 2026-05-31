@@ -1,438 +1,521 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Button } from 'react-bootstrap';
-import { useNavigate, useParams } from 'react-router-dom';
-import Container from 'react-bootstrap/esm/Container';
-import Row from 'react-bootstrap/esm/Row';
-import Col from 'react-bootstrap/esm/Col';
+import React, { useEffect, useState } from 'react';
+import { Container, Row, Col } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import FormularioCustomizado from '../components/custom-form-card/FormularioCustomizado';
-import Alerta from '../components/common/Alerta';
-import ModalPopup from '../components/common/ModalPopup';
-import { LuPencil } from 'react-icons/lu';
-import { MdCheckCircle } from 'react-icons/md';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BiSolidEdit } from 'react-icons/bi';
+import { TbMapPinFilled } from 'react-icons/tb';
+import { TbMail } from 'react-icons/tb';
+import { TbFileCertificate } from 'react-icons/tb';
+import { RiTeamFill } from 'react-icons/ri';
+import { IoCalendarOutline } from 'react-icons/io5';
+import { FaCalendarDay } from 'react-icons/fa';
+import { HiOutlineTicket } from 'react-icons/hi';
+import { HiOutlineSwitchHorizontal } from 'react-icons/hi';
+import { FaRegFileAlt } from 'react-icons/fa';
+import { IoMdSettings } from 'react-icons/io';
+import { LuFileCheck2 } from 'react-icons/lu';
+import { GoTasklist } from 'react-icons/go';
+import { LuStar } from 'react-icons/lu';
+import { BsPersonFillCheck } from 'react-icons/bs';
+import { AiOutlineUnorderedList } from 'react-icons/ai';
+import { BiPaperPlane } from 'react-icons/bi';
 import {
-    MdEdit,
-    MdArrowBack,
-    MdAccessTime,
-    MdSchool,
-    MdAssignment,
-    MdAttachFile,
-    MdDelete,
-} from 'react-icons/md';
-import { useModalidades } from '../hooks/useModalidades';
-import { useSetores } from '../hooks/useSetores';
-import useLocais from '../hooks/useLocais';
-import { useTipoEtapa } from '../hooks/useTipoEtapa';
-import { useEventos } from '../hooks/useEventos';
-import { buscarEventoPorId, deletarEvento } from '../services/eventoService';
-import { criarEtapa, atualizarEtapa } from '../services/etapaEventoService';
-import eArray from '../utils/eArray';
+    clearSelectedEventoId,
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
+import { getDashboardEvento } from '../services/dashboardService';
 
-export default function CriarEvento({ campus = 'Campus Restinga' }) {
-    const navegate = useNavigate();
-    const { id } = useParams();
-    const modoEdicao = Boolean(id);
+export default function Dashboard() {
+    const { id: eventoId } = useParams();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
+    const [erro, setErro] = useState('');
+    const [dashboard, setDashboard] = useState(null);
 
-    const { modalidades } = useModalidades();
-    const { setores } = useSetores();
-    const { locais } = useLocais();
-    const { tipoEtapas } = useTipoEtapa();
-    const { criarEventos, atualizarEventos, loading } = useEventos();
+    const formatarData = (valor) => {
+        if (!valor) {
+            return '';
+        }
 
-    const [mostrarModal, setMostrarModal] = useState(false);
-    const [carregandoEdicao, setCarregandoEdicao] = useState(false);
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) {
+            return '';
+        }
 
-    const [nome, setNome] = useState('');
-    const [tema, setTema] = useState('');
-    const [setor, setSetor] = useState(null);
-    const [cargaHoraria, setCargaHoraria] = useState(0);
-    const [descricao, setDescricao] = useState('');
-    const [local, setLocal] = useState(null);
-    const [fases, setFases] = useState([]);
-    const [modalidadesSelecionadas, setModalidadesSelecionadas] = useState([]);
-    const [alerta, setAlerta] = useState({
-        mensagem: '',
-        variacao: 'danger',
-        reacao: 0,
-    });
-
-    const paraArray = (data) =>
-        eArray(data) ? data : eArray(data?.results) ? data.results : [];
-
-    const basePayloadMemo = useMemo(
-        () => ({
-            nome,
-            tema,
-            setor: setor?.value ?? setor,
-            carga_horaria: Number(cargaHoraria),
-            descricao,
-            local_id: local?.value ?? local,
-        }),
-        [nome, tema, setor, cargaHoraria, descricao, local],
-    );
-
-    const mostrarAlerta = (mensagem, variacao = 'danger') =>
-        setAlerta((prev) => ({
-            ...prev,
-            mensagem,
-            variacao,
-            reacao: (prev.reacao || 0) + 1,
-        }));
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(data);
+    };
 
     useEffect(() => {
-        async function carregarDadosEdicao() {
-            if (!modoEdicao) return;
+        async function carregarDashboard() {
+            // Se não veio ID na URL, resolve o redirecionamento e interrompe a execução
+            if (!eventoId) {
+                const eventoSalvo = getSelectedEventoId();
+                if (eventoSalvo) {
+                    navigate(`/dashboard/${eventoSalvo}`, { replace: true });
+                } else {
+                    navigate('/listar_eventos', { replace: true });
+                }
+                return;
+            }
 
-            setCarregandoEdicao(true);
+            // Define o ID ativo apenas se ele veio na URL
+            setSelectedEventoId(eventoId);
+            setLoading(true);
+            setErro('');
+
             try {
-                const dadosEvento = await buscarEventoPorId(id);
+                const data = await getDashboardEvento(eventoId);
+                setDashboard(data);
+            } catch (error) {
+                console.error('Erro ao buscar dashboard:', error);
+                const status = error?.response?.status;
 
-                setNome(dadosEvento?.nome || '');
-                setTema(dadosEvento?.tema || '');
-                setCargaHoraria(Number(dadosEvento?.carga_horaria || 0));
-                setDescricao(dadosEvento?.descricao || '');
-
-                const setoresData = dadosEvento?.setor;
-                if (setoresData) {
-                    setSetor(setoresData?.id || setoresData);
+                if (status === 404) {
+                    clearSelectedEventoId();
+                    navigate('/listar_eventos', { replace: true });
+                    return;
                 }
 
-                const localData = dadosEvento?.local;
-                if (localData) {
-                    setLocal(localData?.id || localData);
-                }
-
-                const etapasData = dadosEvento?.etapas;
-                if (etapasData) {
-                    setFases(
-                        paraArray(etapasData).map((etapa) => ({
-                            tipo: etapa?.tipo_etapa,
-                            inicio: etapa?.data_inicio,
-                            fim: etapa?.data_fim,
-                            id: etapa?.id,
-                        })),
-                    );
-                }
-
-                const modalidadesData = dadosEvento?.modalidades;
-                if (modalidadesData) {
-                    setModalidadesSelecionadas(paraArray(modalidadesData));
-                }
-            } catch {
-                mostrarAlerta('Não foi possível carregar o evento.');
+                setDashboard(null);
+                setErro(
+                    error?.response?.data?.detail ||
+                        error?.message ||
+                        'Erro ao carregar os dados do painel do evento no servidor.',
+                );
             } finally {
-                setCarregandoEdicao(false);
+                setLoading(false);
             }
         }
 
-        carregarDadosEdicao();
-    }, [id, modoEdicao]);
-
-    const handleFasesChange = useCallback((mapaFases) => {
-        setFases(mapaFases?.fase || []);
-    }, []);
-
-    const handleCriarEvento = useCallback(async () => {
-        if (carregandoEdicao) return;
-
-        const dadosEvento = basePayloadMemo;
-        console.log(dadosEvento, fases);
-
-        let resultado;
-
-        try {
-            if (modoEdicao) {
-                const idsModalidades = modalidadesSelecionadas.map(
-                    (m) => m.value || m.id,
-                );
-                resultado = await atualizarEventos(id, {
-                    ...dadosEvento,
-                    modalidade_ids: idsModalidades,
-                });
-
-                if (resultado) {
-                    for (const fase of fases) {
-                        if (fase.id) {
-                            await atualizarEtapa(fase.id, {
-                                tipo_etapa: fase.tipo,
-                                data_inicio: fase.inicio,
-                                data_fim: fase.fim,
-                            });
-                        } else {
-                            await criarEtapa({
-                                tipo_etapa: fase.tipo,
-                                data_inicio: fase.inicio,
-                                data_fim: fase.fim,
-                                evento_id: id,
-                            });
-                        }
-                    }
-                }
-            } else {
-                resultado = await criarEventos(
-                    dadosEvento,
-                    fases,
-                    modalidadesSelecionadas,
-                );
-            }
-        } catch {
-            mostrarAlerta('Não foi possível salvar o evento.');
-            return;
-        }
-
-        if (!resultado && !modoEdicao) {
-            mostrarAlerta('Erros de validação. Verifique os campos.');
-            return;
-        }
-
-        mostrarAlerta(
-            modoEdicao
-                ? 'Evento atualizado com sucesso.'
-                : 'Evento criado com sucesso.',
-            'success',
-        );
-        setTimeout(() => {
-            navegate('/listar_eventos');
-        }, 3000);
-    }, [
-        carregandoEdicao,
-        basePayloadMemo,
-        modoEdicao,
-        fases,
-        modalidadesSelecionadas,
-        atualizarEventos,
-        id,
-        criarEventos,
-        navegate,
-    ]);
-
-    async function handleExcluirEvento() {
-        if (!modoEdicao) return;
-
-        try {
-            await deletarEvento(id);
-            mostrarAlerta('Evento excluído com sucesso.', 'success');
-            setTimeout(() => {
-                navegate('/listar_eventos');
-            }, 3000);
-        } catch {
-            mostrarAlerta('Não foi possível excluir o evento.');
-        }
-    }
+        carregarDashboard();
+    }, [eventoId, navigate]);
 
     return (
         <>
-            <NavBar />
-            <main className="flex-fill mb-5">
-                <Container className="mx-auto">
-                    <Row className="mx-auto my-5 d-flex justify-content-center">
-                        <Col className="d-flex flex-column gap-3">
-                            <FormularioCustomizado
-                                titulo="Dados Básicos do Evento"
-                                Icone={<MdEdit size={30} />}
-                                corTexto="#00A44B"
-                                campos={[
-                                    {
-                                        name: 'nome',
-                                        titulo: 'Nome do Evento *',
-                                        tipo: 'text',
-                                        preValue: nome,
-                                        onChange: (n) => setNome(n),
-                                    },
-                                    {
-                                        name: 'tema',
-                                        titulo: 'Tema Principal *',
-                                        tipo: 'text',
-                                        preValue: tema,
-                                        onChange: (n) => setTema(n),
-                                    },
-                                    {
-                                        name: 'setor',
-                                        titulo: 'Setor Responsável *',
-                                        tipo: 'select',
-                                        preValue: setor || '#',
-                                        opcoes: [
-                                            {
-                                                value: '#',
-                                                text: 'Selecione...',
-                                                disabled: true,
-                                            },
-                                            ...setores,
-                                        ],
-                                        onChange: (s) => setSetor(s),
-                                    },
-                                    {
-                                        name: 'carga',
-                                        titulo: 'Carga Horária (horas) *',
-                                        tipo: 'number',
-                                        preValue: cargaHoraria,
-                                        onChange: (d) => setCargaHoraria(d),
-                                    },
-                                    {
-                                        name: 'descricao',
-                                        titulo: 'Descrição *',
-                                        tipo: 'textarea',
-                                        preValue: descricao,
-                                        onChange: (d) => setDescricao(d),
-                                    },
-                                    {
-                                        name: 'local',
-                                        titulo: 'Local *',
-                                        tipo: 'select',
-                                        preValue: local || '#',
-                                        opcoes: [
-                                            {
-                                                value: '#',
-                                                text: 'Selecione...',
-                                                disabled: true,
-                                            },
-                                            ...locais.map((l) => ({
-                                                value: l.id,
-                                                text: l.nome,
-                                            })),
-                                        ],
-                                        onChange: (l) => setLocal(l),
-                                    },
-                                ]}
-                            />
-                            <FormularioCustomizado
-                                titulo="Controle de Prazos (Fases)"
-                                Icone={<MdAccessTime size={30} />}
-                                corTexto="#00A44B"
-                                onFasesChange={handleFasesChange}
-                                campos={[
-                                    {
-                                        name: 'fase',
-                                        tipo: 'fase',
-                                        opcoes: tipoEtapas.map((tipo) => ({
-                                            value:
-                                                tipo?.value ?? tipo?.id ?? tipo,
-                                            text:
-                                                tipo?.label ??
-                                                tipo?.text ??
-                                                tipo?.descricao ??
-                                                String(tipo),
-                                            descricao: tipo?.descricao ?? '',
-                                        })),
-                                    },
-                                ]}
-                            />
-                            <FormularioCustomizado
-                                titulo="Áreas de Conhecimento"
-                                Icone={<MdSchool size={30} />}
-                                corTexto="#00A44B"
-                                campos={[
-                                    {
-                                        name: 'area',
-                                        list: 'lista_areas',
-                                        tipo: 'datalist',
-                                        placeholder: 'Nome da área',
-                                    },
-                                ]}
-                            />
-                            <FormularioCustomizado
-                                titulo="Trabalhos"
-                                Icone={<MdAssignment size={30} />}
-                                corTexto="#00A44B"
-                                campos={[
-                                    {
-                                        name: 'modalidades',
-                                        list: 'lista_modalidades',
-                                        placeholder: 'Nome da Modalidade',
-                                        tipo: 'datalist',
-                                        opcoes: modalidades.map((m) => ({
-                                            value: m.id,
-                                            text: m.nome,
-                                        })),
-                                        onChange: (m) =>
-                                            setModalidadesSelecionadas(
-                                                Array.isArray(m)
-                                                    ? m
-                                                    : m
-                                                      ? [m]
-                                                      : [],
-                                            ),
-                                    },
-                                ]}
-                            />
-                            <FormularioCustomizado
-                                titulo="Anexos e Finalização"
-                                Icone={<MdAttachFile size={30} />}
-                                corTexto="#00A44B"
-                                campos={[
-                                    {
-                                        titulo: 'Adicionar arquivo',
-                                        tipo: 'file',
-                                    },
-                                ]}
-                            />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col className="d-flex justify-content-end gap-3">
-                            <Button
-                                variant="secondary"
-                                className="border-0 p-2"
-                                onClick={() => navegate(-1)}
-                                disabled={loading || carregandoEdicao}
+            <div className="d-flex flex-column min-vh-100 bg-light">
+                <NavBar />
+
+                <main
+                    className="flex-fill py-4 mx-auto w-100"
+                    style={{ maxWidth: '1400px' }}
+                >
+                    <Container>
+                        <Row>
+                            <Col>
+                                <Row className="rounded-4 bg-success p-3">
+                                    <Col sm={1} className="d-flex ">
+                                        <div
+                                            className="px-3  d-flex justify-content-center align-items-center rounded-3"
+                                            style={{ background: '#ffffff26' }}
+                                        >
+                                            <IoCalendarOutline
+                                                size={30}
+                                                color="white"
+                                            />
+                                        </div>
+                                    </Col>
+                                    <Col className="text-white d-flex flex-column justify-content-start">
+                                        <p className="m-0 fw-bold fs-4">
+                                            {dashboard?.evento?.nome}
+                                        </p>
+                                        <div className="d-flex flex-row gap-3">
+                                            <span className="d-flex align-items-center">
+                                                <FaCalendarDay className="me-2" />{' '}
+                                                {formatarData(
+                                                    dashboard?.evento?.inicio,
+                                                )}
+                                                {' – '}
+                                                {formatarData(
+                                                    dashboard?.evento?.fim,
+                                                )}
+                                            </span>
+                                            <span className="d-flex align-items-center">
+                                                <TbMapPinFilled className="me-2" />{' '}
+                                                {dashboard?.evento?.local}
+                                            </span>
+                                        </div>
+                                    </Col>
+                                    <Col
+                                        sm={2}
+                                        className="d-flex  align-items-center"
+                                    >
+                                        <div className="d-flex flex-column align-items-center">
+                                            <span
+                                                className="px-3 py-1 text-white rounded-5 text-center mb-2"
+                                                style={{
+                                                    background: '#ffffff26',
+                                                    border: '1px solid rgba(255,255,255,0.25)',
+                                                }}
+                                            >
+                                                {
+                                                    dashboard?.evento
+                                                        ?.status_evento
+                                                }
+                                            </span>
+                                            <Link
+                                                to="/listar_eventos"
+                                                className="rounded-4 btn btn-light text-white"
+                                                style={{
+                                                    background: '#ffffff26',
+                                                    border: '1px solid rgba(255,255,255,0.25)',
+                                                }}
+                                            >
+                                                <HiOutlineSwitchHorizontal className="me-1" />
+                                                Trocar de evento
+                                            </Link>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Row className="d-flex gap-3 mt-3">
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
                             >
-                                <MdArrowBack size={20} className="me-2" />
-                                Voltar
-                            </Button>
-                            {modoEdicao && (
-                                <Button
-                                    variant="danger"
-                                    className="p-2"
-                                    onClick={() => setMostrarModal(true)}
-                                    disabled={carregandoEdicao}
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <HiOutlineTicket className="me-2" />
+                                            inscrições
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            {dashboard?.metricas
+                                                ?.total_inscricoes ||
+                                                'sem inscrições'}
+                                        </span>
+                                        <span>No evento</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <FaRegFileAlt className="me-2" />
+                                            Submissões
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            mock
+                                        </span>
+                                        <span>Submetidas</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                            <Col
+                                className="bg-white rounded-4 py-3 px-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.09)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                                }}
+                            >
+                                <Row>
+                                    <Col className="d-flex flex-column ms-3 text-secondary">
+                                        <span className="d-flex align-items-center">
+                                            <HiOutlineTicket className="me-2" />
+                                            atrações
+                                        </span>
+                                        <span className="fw-bold fs-3 text-black">
+                                            {dashboard?.metricas
+                                                ?.total_atracoes ||
+                                                'sem atrações'}
+                                        </span>
+                                        <span>Homologadas</span>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Row className="mt-3">
+                            <Col
+                                className="bg-white rounded-4"
+                                style={{ border: '1px solid rgba(0,0,0,0.09)' }}
+                            >
+                                <Row className="p-2">
+                                    <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                        <div
+                                            className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                            style={{ background: '#e8f5ed' }}
+                                        >
+                                            <IoMdSettings
+                                                size={20}
+                                                color="green"
+                                            />
+                                        </div>
+                                        <span className="fw-semibold">
+                                            Configurações do Evento
+                                        </span>
+                                    </Col>
+                                </Row>
+                                <hr />
+                                <Row>
+                                    <Col className="bg-white rounded-4 py-3 px-2">
+                                        <Row>
+                                            <Col className="d-flex flex-column ms-3 text-secondary">
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/editar_evento/${eventoId}`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <BiSolidEdit
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Editar informações
+                                                </Link>
+                                            </Col>
+                                            <Col className="d-flex flex-column ms-3 text-secondary">
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/dashboard/${eventoId}/sessao_atribuir_data`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <IoCalendarOutline
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Configurar programação
+                                                </Link>
+                                            </Col>
+                                            <Col className="d-flex flex-column ms-3 text-secondary">
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        '/listar_locais_espacos'
+                                                    }
+                                                >
+                                                    <TbMapPinFilled
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Definir locais de trabalho
+                                                </Link>
+                                            </Col>
+                                            <Col className="d-flex flex-column ms-3 text-secondary">
+                                                <Link
+                                                    className="d-flex align-items-center p-3 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/atribuir_organizador?eventoId=${eventoId}`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <RiTeamFill
+                                                        size={20}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Gerenciar organizadores
+                                                </Link>
+                                            </Col>
+                                        </Row>
+                                    </Col>
+                                </Row>
+                            </Col>
+                        </Row>
+                        <Row className="mt-3">
+                            <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
                                 >
-                                    <MdDelete size={20} className="me-2" />
-                                    Excluir Evento
-                                </Button>
-                            )}
-                            <Button
-                                variant="success"
-                                style={{ background: '#00A44B' }}
-                                className="p-2"
-                                onClick={handleCriarEvento}
-                                disabled={loading || carregandoEdicao}
-                            >
-                                <MdCheckCircle size={20} className="me-2" />
-                                {carregandoEdicao
-                                    ? 'Carregando...'
-                                    : modoEdicao
-                                      ? 'Atualizar Evento'
-                                      : 'Criar Evento'}
-                            </Button>
-                        </Col>
-                    </Row>
-                </Container>
-            </main>
-            <ModalPopup
-                show={mostrarModal}
-                titulo="Aviso!"
-                tituloSecundario="Excluir Evento"
-                onAcao={() => {
-                    handleExcluirEvento();
-                    setMostrarModal(false);
-                }}
-                onFechar={() => setMostrarModal(false)}
-                textoAcao="Excluir"
-            />
-            {alerta.mensagem && (
-                <Alerta
-                    mensagem={alerta.mensagem}
-                    variacao={alerta.variacao}
-                    reacao={alerta.reacao}
+                                    <Row className="p-2 ">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <LuFileCheck2
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Submissões
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row className="p-3 d-flex flex-wrap">
+                                        <Col sm={6}>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'/listar_atracoes'}
+                                            >
+                                                <GoTasklist
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Gerenciar Submissões
+                                            </Link>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
+                                                to={'/adicionar_atracao'}
+                                            >
+                                                + Adicionar Submissão
+                                            </Link>
+                                        </Col>
+                                    </Row>
+                                </Col>
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
+                                >
+                                    <Row className="p-2">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <LuStar
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Atrações
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row className="p-3 ">
+                                        <Col>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/gerenciar_avaliadores_atracoes?evento_id=${eventoId}`
+                                                        : '#'
+                                                }
+                                            >
+                                                <BsPersonFillCheck
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Definir Avaliadores
+                                            </Link>
+                                        </Col>
+                                        <Col>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={'/listar_modalidades'}
+                                            >
+                                                <AiOutlineUnorderedList
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Gerenciar Modalidades
+                                            </Link>
+                                        </Col>
+                                    </Row>
+                                </Col>
+                            </Col>
+                        </Row>
+                        <Row className="mt-3">
+                            <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
+                                <Col
+                                    className="bg-white rounded-4 "
+                                    style={{
+                                        border: '1px solid rgba(0,0,0,0.09)',
+                                    }}
+                                >
+                                    <Row className="p-2 ">
+                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                            <div
+                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                style={{
+                                                    background: '#e8f5ed',
+                                                }}
+                                            >
+                                                <TbMail
+                                                    size={20}
+                                                    color="green"
+                                                />
+                                            </div>
+                                            <span className="fw-semibold">
+                                                Comunicação e certificados
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <hr />
+                                    <Row className="p-3 d-flex flex-wrap">
+                                        <Col sm={6}>
+                                            <Link
+                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                to={
+                                                    eventoId
+                                                        ? `/dashboard/${eventoId}/enviaremails`
+                                                        : '#'
+                                                }
+                                            >
+                                                <BiPaperPlane
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Enviar e-mails
+                                            </Link>
+                                        </Col>
+                                        <Col sm={6}>
+                                            <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
+                                                <TbFileCertificate
+                                                    size={25}
+                                                    className="me-2"
+                                                    color="green"
+                                                />
+                                                Emitir Certificados
+                                            </Link>
+                                        </Col>
+                                    </Row>
+                                </Col>
+                            </Col>
+                        </Row>
+                    </Container>
+                </main>
+
+                <Footer
+                    telefone="(51) 3333-1234"
+                    endereco="Rua Alberto Hoffmann, 285"
+                    ano={2026}
+                    campus="Campus Restinga"
                 />
-            )}
-            <Footer
-                telefone={'(51) 3333-1234'}
-                endereco={'Rua Alberto Hoffmann, 285'}
-                ano={2026}
-                campus={campus}
-            />
+            </div>
         </>
     );
 }
