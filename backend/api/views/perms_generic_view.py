@@ -95,3 +95,27 @@ class PodeCriarEspaco(IsGroupAndObjectPerm):
 class PodeAvaliarAtracao(IsGroupAndObjectPerm):
     required_groups = ["Servidor"]
     required_object_perms = ["api.avaliar_atracao"]
+
+
+# Permissão para visualizar avaliações de atração
+class PodeVerAvaliacaoAtracao(BasePermission):
+    def _is_admin_or_coordenador(self, user):
+        return (
+            user.is_superuser
+            or user.groups.filter(name__in=["Administrador", "Coordenador"]).exists()
+        )
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        if self._is_admin_or_coordenador(user):
+            return True
+
+        # avaliador só pode ver sua própria avaliação
+        return getattr(obj, "avaliador", None) == user
