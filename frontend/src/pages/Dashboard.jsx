@@ -27,6 +27,7 @@ import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
+    adicionarEventoRecenteAdminId,
 } from '../utils/selectedEvento';
 import { getDashboardEvento } from '../services/dashboardService';
 
@@ -91,6 +92,7 @@ export default function Dashboard() {
 
             // Define o ID ativo apenas se ele veio na URL
             setSelectedEventoId(eventoId);
+            adicionarEventoRecenteAdminId(eventoId);
             setLoading(true);
             setErro('');
 
@@ -566,7 +568,7 @@ export default function Dashboard() {
                                         >
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={'/gerenciar_avaliadores_submissoes'}
+                                                to={'#'}
                                             >
                                                 <BsPersonFillCheck
                                                     size={25}

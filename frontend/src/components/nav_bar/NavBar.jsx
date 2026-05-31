@@ -5,24 +5,176 @@ import AuthButton from '../common/AuthButton';
 import IFLogo from '../common/IFLogo';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { BsBell } from 'react-icons/bs';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getSelectedEventoId } from '../../utils/selectedEvento';
+import {
+    getSelectedEventoId,
+    obterEventosRecentesAdmin,
+} from '../../utils/selectedEvento';
+import NavDropdown from 'react-bootstrap/NavDropdown';
+import { buscarEventoPorId } from '../../services/eventoService';
+
+function ItensGestaoRecentes({ navigate }) {
+    const [itens, setItens] = useState([]);
+
+    useEffect(() => {
+        async function carregar() {
+            const ids = obterEventosRecentesAdmin() || [];
+            if (!ids.length) {
+                setItens([]);
+                return;
+            }
+
+            const promessas = ids.map(async (id) => {
+                try {
+                    const data = await buscarEventoPorId(id);
+                    return {
+                        id: String(id),
+                        nome: data?.nome || `Evento ${id}`,
+                    };
+                } catch (e) {
+                    return { id: String(id), nome: `Evento ${id}` };
+                }
+            });
+
+            const resultados = await Promise.all(promessas);
+            setItens(resultados);
+        }
+
+        carregar();
+    }, []);
+
+    return (
+        <>
+            {itens.length && (
+                <>
+                    <li>
+                        <h6 className="dropdown-header">Eventos recentes</h6>
+                    </li>
+                    {itens.map((evento) => (
+                        <li key={evento.id} className="dropdown-submenu">
+                            <a
+                                className="dropdown-item dropdown-toggle"
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(`/dashboard/${evento.id}`);
+                                }}
+                            >
+                                {evento.nome}
+                            </a>
+
+                            <ul className="dropdown-menu">
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(`/dashboard/${evento.id}`);
+                                        }}
+                                    >
+                                        Abrir painel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/editar_evento/${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Editar evento
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/dashboard/${evento.id}/sessao_atribuir_data`,
+                                            );
+                                        }}
+                                    >
+                                        Programação
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/atribuir_coordenador?eventoId=${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Coordenadores
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/atribuir_organizador?eventoId=${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Organizadores
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/dashboard/${evento.id}/enviaremails`,
+                                            );
+                                        }}
+                                    >
+                                        Enviar emails
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    ))}
+                    <li>
+                        <hr className="dropdown-divider" />
+                    </li>
+                </>
+            )}
+            <li>
+                <a
+                    className="dropdown-item"
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        navigate('/listar_eventos');
+                    }}
+                >
+                    Todos os eventos
+                </a>
+            </li>
+        </>
+    );
+}
 
 export default function NavBar() {
     const expand = 'xl';
     const navigate = useNavigate();
 
-    const handleGestaoClick = (event) => {
-        event.preventDefault();
-        const eventoId = getSelectedEventoId();
-
-        if (eventoId) {
-            navigate(`/dashboard/${eventoId}`);
-            return;
-        }
-
-        navigate('/listar_eventos');
-    };
     return (
         <Navbar
             key={expand}
@@ -85,15 +237,19 @@ export default function NavBar() {
                             >
                                 Avaliações
                             </Nav.Link>
-                            <Nav.Link
-                                as={Link}
-                                to="/dashboard"
-                                className="text-white fw-bold"
-                                onClick={handleGestaoClick}
+                            <NavDropdown
+                                title={
+                                    <span className="text-white fw-bold">
+                                        Gestão
+                                    </span>
+                                }
+                                id="nav-dropdown-gestao"
+                                align="end"
+                                className="nav-gestao-dropdown"
                             >
-                                Gestão
-                            </Nav.Link>
-                            
+                                <ItensGestaoRecentes navigate={navigate} />
+                            </NavDropdown>
+
                             <div className="d-flex d-xl-none">
                                 <div className="pe-3 d-flex fw-bold">
                                     <AuthButton />
