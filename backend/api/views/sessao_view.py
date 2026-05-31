@@ -1,19 +1,27 @@
+from django.db.models import RestrictedError
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.sessao import Sessao
 from ..serializers import SessaoSerializer
-from .perms_generic_view import IsAdmin  # Seguindo seu padrão de permissões
+from .perms_generic_view import IsAdmin
 
 
 class SessaoListView(APIView):
     queryset = Sessao.objects.all()
     serializer_class = SessaoSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+
+        return [IsAdmin()]
 
     def get(self, request, *args, **kwargs):
-        # Filtros opcionais via query params
+        # Filtros
         evento_id = request.query_params.get("evento")
         espaco_id = request.query_params.get("espaco")
 
@@ -38,7 +46,13 @@ class SessaoListView(APIView):
 
 
 class SessaoDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+
+        return [IsAdmin()]
 
     def get_object(self, pk):
         try:
@@ -72,13 +86,29 @@ class SessaoDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
+        # caso seja necessário futuramente. Hoje não é usada a deleção de sessão 22/05/2026
+        # deleção lógica
         sessao = self.get_object(pk)
         if not sessao:
             return Response({"erro": "Sessão não encontrada"}, status=404)
 
-        # Se o seu modelo de Sessão tiver deleção lógica (campo 'ativo'),
-        # siga o padrão do Espaço. Caso contrário, use o delete físico:
-        sessao.delete()
-        return Response(
-            {"message": "Sessão removida com sucesso"}, status=status.HTTP_200_OK
-        )
+        self.check_object_permissions(request, sessao)
+
+        try:
+            if sessao.atracoes.exists():
+                return Response(
+                    {
+                        "erro": "Não é possível excluir uma sessão com outras atrações vinculadas."
+                    },
+                    status=400,
+                )
+            sessao.ativo = False
+            sessao.save()
+            return Response({"message": "Removido com sucesso"}, status=200)
+        except RestrictedError:
+            return Response(
+                {
+                    "erro": "Não é possível excluir esta sessão pois existem registros vinculados."
+                },
+                status=400,
+            )

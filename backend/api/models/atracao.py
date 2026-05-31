@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.core.validators import MaxLengthValidator, MinLengthValidator, MinValueValidator
 from django.db import models
 
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
@@ -9,6 +9,7 @@ from .base import Base
 from .evento import Evento
 from .espaco import Espaco
 from .modalidade import Modalidade
+from django.utils.text import slugify
 
 
 class Atracao(Base):
@@ -86,6 +87,13 @@ class Atracao(Base):
         verbose_name="Status",
         default=StatusAtracao.PREVISTA,
     )
+    sugestao_vagas = models.IntegerField(
+        verbose_name="Sugestão para Número de Vagas",
+        help_text="Sugestão opcional de vagas para esta atração",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+    )
 
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
@@ -105,6 +113,13 @@ class Atracao(Base):
         help_text="Descrição legada do local da atração",
     )
 
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        blank=True,
+        null=True,
+    )
+
     def clean(self):
         from django.core.exceptions import ValidationError
 
@@ -114,7 +129,11 @@ class Atracao(Base):
             espaco_local_id = getattr(self.espaco, "local_id", None)
             evento_local_id = getattr(self.evento, "local_id", None)
 
-            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+            if (
+                espaco_local_id
+                and evento_local_id
+                and espaco_local_id != evento_local_id
+            ):
                 errors["espaco"] = (
                     "O espaço selecionado precisa pertencer ao mesmo local do evento."
                 )
@@ -127,6 +146,26 @@ class Atracao(Base):
         verbose_name_plural = "Atrações / Submissões"
         ordering = ["-id"]
         permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
+
+    def _gerar_slug_unico(self):
+        base_slug = slugify(self.titulo or "")[:100]
+        if not base_slug:
+            base_slug = "atracao"
+
+        slug = base_slug
+        contador = 1
+
+        while Atracao.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            sufixo = f"-{contador}"
+            slug = f"{base_slug[: 100 - len(sufixo)]}{sufixo}"
+            contador += 1
+
+        return slug
+
+    def save(self, *args, **kwargs):
+        if self.slug is None or self.slug == "":
+            self.slug = self._gerar_slug_unico()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.titulo} — {self.evento}"

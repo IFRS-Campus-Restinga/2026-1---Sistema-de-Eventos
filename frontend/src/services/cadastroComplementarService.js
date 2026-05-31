@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export const buscarOpcoesCadastro = async () => {
     const response = await axios.get(
-        `${API_URL}/api/usuarios/cadastro-complementar/`,
+        `${API_URL}/api/usuarios/cadastro_complementar/`,
         {
             withCredentials: true,
         },
@@ -14,7 +14,7 @@ export const buscarOpcoesCadastro = async () => {
 
 export const salvarInformacoesComplementares = async (dados, tokenCsrf) => {
     const response = await axios.post(
-        `${API_URL}/api/usuarios/cadastro-complementar/`,
+        `${API_URL}/api/usuarios/cadastro_complementar/`,
         dados,
         {
             withCredentials: true,

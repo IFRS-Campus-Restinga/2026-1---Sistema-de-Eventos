@@ -5,37 +5,321 @@ import AuthButton from '../common/AuthButton';
 import IFLogo from '../common/IFLogo';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { BsBell } from 'react-icons/bs';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getSelectedEventoId } from '../../utils/selectedEvento';
+import { obterEventosRecentesAdmin } from '../../utils/selectedEvento';
+import NavDropdown from 'react-bootstrap/NavDropdown';
+import { buscarEventoPorId } from '../../services/eventoService';
+import { checkSession } from '../../services/authService';
+import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
+
+const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
+
+function ItensGestaoRecentes({ navigate }) {
+    const [itens, setItens] = useState([]);
+
+    useEffect(() => {
+        async function carregar() {
+            const ids = obterEventosRecentesAdmin() || [];
+            if (!ids.length) {
+                setItens([]);
+                return;
+            }
+
+            const promessas = ids.map(async (id) => {
+                try {
+                    const data = await buscarEventoPorId(id);
+                    return {
+                        id: String(id),
+                        nome: data?.nome || `Evento ${id}`,
+                    };
+                } catch {
+                    return { id: String(id), nome: `Evento ${id}` };
+                }
+            });
+
+            const resultados = await Promise.all(promessas);
+            setItens(resultados);
+        }
+
+        carregar();
+    }, []);
+
+    return (
+        <>
+            {itens.length > 0 && (
+                <>
+                    <li>
+                        <h6 className="dropdown-header">Eventos recentes</h6>
+                    </li>
+                    {itens.map((evento) => (
+                        <li key={evento.id} className="dropdown-submenu">
+                            <a
+                                className="dropdown-item dropdown-toggle"
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(`/dashboard/${evento.id}`);
+                                }}
+                            >
+                                {evento.nome}
+                            </a>
+
+                            <ul className="dropdown-menu">
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(`/dashboard/${evento.id}`);
+                                        }}
+                                    >
+                                        Abrir painel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/editar_evento/${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Editar evento
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/dashboard/${evento.id}/sessao_atribuir_data`,
+                                            );
+                                        }}
+                                    >
+                                        Programação
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/atribuir_coordenador?eventoId=${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Coordenadores
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/atribuir_organizador?eventoId=${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Organizadores
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/dashboard/${evento.id}/enviar_emails`,
+                                            );
+                                        }}
+                                    >
+                                        Enviar emails
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    ))}
+                    <li>
+                        <hr className="dropdown-divider" />
+                    </li>
+                </>
+            )}
+            <li>
+                <a
+                    className="dropdown-item"
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        navigate('/listar_eventos');
+                    }}
+                >
+                    Todos os eventos
+                </a>
+            </li>
+        </>
+    );
+}
+
+function ItensAvaliacoesRecentes({ navigate, eventos }) {
+    const eventosRecentes = Array.isArray(eventos) ? eventos.slice(0, 3) : [];
+
+    return (
+        <>
+            {eventosRecentes.length > 0 && (
+                <>
+                    <li>
+                        <h6 className="dropdown-header">Eventos recentes</h6>
+                    </li>
+                    {eventosRecentes.map((evento) => (
+                        <li key={evento.id} className="dropdown-submenu">
+                            <a
+                                className="dropdown-item dropdown-toggle"
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(
+                                        `/minhas_avaliacoes?evento_id=${evento.id}`,
+                                    );
+                                }}
+                            >
+                                {evento.nome}
+                            </a>
+
+                            <ul className="dropdown-menu">
+                                <li>
+                                    <a
+                                        className="dropdown-item"
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            navigate(
+                                                `/minhas_avaliacoes?evento_id=${evento.id}`,
+                                            );
+                                        }}
+                                    >
+                                        Minhas Avaliações
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    ))}
+                    <li>
+                        <hr className="dropdown-divider" />
+                    </li>
+                </>
+            )}
+            <li>
+                <a
+                    className="dropdown-item"
+                    href="#"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        navigate('/meus_eventos_avaliador');
+                    }}
+                >
+                    Todos os eventos
+                </a>
+            </li>
+        </>
+    );
+}
 
 export default function NavBar() {
     const expand = 'xl';
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [eventosAvaliador, setEventosAvaliador] = useState([]);
 
-    const handleGestaoClick = (event) => {
-        event.preventDefault();
-        const eventoId = getSelectedEventoId();
+    useEffect(() => {
+        let ativo = true;
 
-        if (eventoId) {
-            navigate(`/dashboard/${eventoId}`);
-            return;
+        async function carregarSessao() {
+            try {
+                const result = await checkSession();
+
+                if (!ativo) return;
+
+                const autenticado = Boolean(result?.authenticated);
+                const grupos = Array.isArray(result?.user?.groups)
+                    ? result.user.groups
+                          .map((group) =>
+                              typeof group === 'string' ? group : group?.name,
+                          )
+                          .filter(Boolean)
+                    : [];
+
+                setIsAuthenticated(autenticado);
+                setIsAdmin(
+                    grupos.some((group) => ADMIN_GROUPS.includes(group)),
+                );
+
+                if (!autenticado) {
+                    setEventosAvaliador([]);
+                    return;
+                }
+
+                const eventosAvaliador = await listarMeusEventosAvaliador();
+
+                if (!ativo) return;
+
+                setEventosAvaliador(
+                    Array.isArray(eventosAvaliador) ? eventosAvaliador : [],
+                );
+            } catch {
+                if (ativo) {
+                    setIsAuthenticated(false);
+                    setIsAdmin(false);
+                    setEventosAvaliador([]);
+                }
+            } finally {
+                if (ativo) {
+                    setLoading(false);
+                }
+            }
         }
 
-        navigate('/listar_eventos');
-    };
+        carregarSessao();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
+
+    const temAvaliacoes = eventosAvaliador.length > 0;
+
     return (
         <Navbar
             key={expand}
             expand={expand}
             className="bg-body-tertiary p-0"
-            style={{ backgroundColor: '#00A44B' }}
+            style={{
+                backgroundImage:
+                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
+            }}
         >
             <Container
                 fluid
-                style={{ backgroundColor: '#00A44B' }}
+                style={{
+                    backgroundImage:
+                        'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                }}
                 className="py-2 position-relative"
             >
-                <Navbar.Brand href="#" className="ps-5">
+                <Navbar.Brand href="/" className="ps-5">
                     <IFLogo
                         escalaTitulo={12}
                         escalaTexto={10}
@@ -71,29 +355,47 @@ export default function NavBar() {
                             >
                                 Home
                             </Nav.Link>
-                            <Nav.Link
-                                as={Link}
-                                to="/meus_eventos"
-                                className="text-white fw-bold"
-                            >
-                                Meus Eventos
-                            </Nav.Link>
-                            <Nav.Link
-                                as={Link}
-                                to="/meus_eventos_avaliador"
-                                className="text-white fw-bold"
-                            >
-                                Avaliações
-                            </Nav.Link>
-                            <Nav.Link
-                                as={Link}
-                                to="/dashboard"
-                                className="text-white fw-bold"
-                                onClick={handleGestaoClick}
-                            >
-                                Gestão
-                            </Nav.Link>
-                            
+                            {!loading && isAuthenticated && (
+                                <Nav.Link
+                                    as={Link}
+                                    to="/meus_eventos"
+                                    className="text-white fw-bold"
+                                >
+                                    Meus Eventos
+                                </Nav.Link>
+                            )}
+                            {!loading && temAvaliacoes && (
+                                <NavDropdown
+                                    title={
+                                        <span className="text-white fw-bold">
+                                            Avaliações
+                                        </span>
+                                    }
+                                    id="nav-dropdown-avaliacoes"
+                                    align="end"
+                                    className="nav-gestao-dropdown"
+                                >
+                                    <ItensAvaliacoesRecentes
+                                        navigate={navigate}
+                                        eventos={eventosAvaliador}
+                                    />
+                                </NavDropdown>
+                            )}
+                            {!loading && isAdmin && (
+                                <NavDropdown
+                                    title={
+                                        <span className="text-white fw-bold">
+                                            Gestão
+                                        </span>
+                                    }
+                                    id="nav-dropdown-gestao"
+                                    align="end"
+                                    className="nav-gestao-dropdown"
+                                >
+                                    <ItensGestaoRecentes navigate={navigate} />
+                                </NavDropdown>
+                            )}
+
                             <div className="d-flex d-xl-none">
                                 <div className="pe-3 d-flex fw-bold">
                                     <AuthButton />

@@ -26,22 +26,32 @@ import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
 import ListarInscritos from './pages/ListarInscritos';
 import MeusEventos from './pages/MeusEventos';
+import MinhasParticipacoes from './pages/MinhasParticipacoes';
 import MeusEventosAvaliador from './pages/MeusEventosAvaliador';
 import SemResultado from './pages/SemResultado';
 import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
 import EnviarEmails from './pages/EnviarEmails';
+import ConfigurarTemplates from './pages/ConfigurarTemplates';
 import SessaoBoard from './pages/SessaoBoard';
 import ListarInscritosEvento from './pages/ListarInscritosEvento';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
 import AvaliarAtracao from './pages/AvaliarAtracao';
 import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
+import InscricaoAtracoes from './pages/InscricaoAtracoes';
+
+const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
 
 function App() {
-    const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
         <ProtectedRoute gruposPermitidos={gruposPermitidos}>
+            {rota}
+        </ProtectedRoute>
+    );
+
+    const protegidoComAvaliador = (rota, gruposPermitidos) => (
+        <ProtectedRoute gruposPermitidos={gruposPermitidos} permitirAvaliador>
             {rota}
         </ProtectedRoute>
     );
@@ -66,7 +76,7 @@ function App() {
             <Routes>
                 {/* Publico / Abertas        */}
                 <Route path="/" element={<Home />} />
-                <Route path="/cadastrocomplementar" element={<CadastroComplementar />} />
+                <Route path="/cadastro_complementar" element={<CadastroComplementar />} />
 
                 {/* Sessao / Autenticacao    */}
                 {/* callback para session/token e auth (SSO) */}
@@ -80,13 +90,14 @@ function App() {
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
-                <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
-                <Route path="/listar_eventos" element={<ListarEvento />} />
+                <Route path="/editar_evento/:id" element={protegido(<AdicionarEvento />,ADMIN_GROUPS)} />
+                <Route path="/listar_eventos" element={protegido(<ListarEvento />, ADMIN_GROUPS)} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
-                <Route path="/programacao_evento/:id" element={protegido(<ProgramacaoEvento />)} />
+                <Route path="/programacao_evento/:id" element={<ProgramacaoEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
-                <Route path="/dashboard/:id/enviaremails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id/enviar_emails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+                <Route path="/configurar_templates" element={protegido(<ConfigurarTemplates />, ADMIN_GROUPS)} />
 
                 {/* Locais & Espacos */}
                 <Route path="/adicionar_local" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
@@ -98,18 +109,20 @@ function App() {
 
                 {/* Atracoes & Inscritos */}
                 <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
-                <Route path="/meus_eventos_avaliador" element={protegido(<MeusEventosAvaliador />)} />
+                <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 
                 {/* Submissões e Avaliações */}
-                <Route path="/gerenciar_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
-                <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
-                <Route path="/minhas_avaliacoes" element={protegido(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
-                <Route path="/avaliar_atracao" element={protegido(<AvaliarAtracao />, ADMIN_GROUPS)} />
+                <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/meus_eventos_avaliador"  element={protegidoComAvaliador(<MeusEventosAvaliador />, ADMIN_GROUPS)}/>
+                <Route path="/avaliar_submissao" element={protegidoComAvaliador(<AvaliarSubmissao />, ADMIN_GROUPS)} />
+                <Route path="/minhas_avaliacoes" element={protegidoComAvaliador(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
+                <Route path="/avaliar_atracao" element={protegidoComAvaliador(<AvaliarAtracao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />
@@ -132,7 +145,7 @@ function App() {
 
                 {/* Programação / Sessão de Eventos */}
                 <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
-                
+
 
 
 

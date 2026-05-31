@@ -16,7 +16,7 @@ export default function Footer({
             <Container
                 fluid
                 className="px-5 pt-5 pb-1 mt-auto"
-                style={{ backgroundColor: '#00A44B' }}
+                style={{ backgroundColor: '#00510f' }}
             >
                 <Row>
                     <Col className="d-flex flex-colum justify-content-md-start justify-content-center align-items-center pb-md-0 pb-5">

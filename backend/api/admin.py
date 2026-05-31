@@ -15,9 +15,11 @@ from .models import (
     InscricaoEvento,
     Local,
     Modalidade,
+    OrdemApresentacaoAtracao,
     Perfil,
     Resposta,
     Sessao,
+    InscricaoAtracao,
 )
 from .models.area_conhecimento import AreaConhecimentoAdmin
 from .models.arquivo import ArquivoAdmin
@@ -38,6 +40,8 @@ admin.site.register(InscricaoEvento)
 admin.site.register(EtapaEvento)
 admin.site.register(AvaliacaoSubmissao)
 admin.site.register(AvaliacaoAtracao)
+admin.site.register(OrdemApresentacaoAtracao)
+admin.site.register(InscricaoAtracao)
 
 # registros com ModelAdmin customizado
 admin.site.register(Arquivo, ArquivoAdmin)

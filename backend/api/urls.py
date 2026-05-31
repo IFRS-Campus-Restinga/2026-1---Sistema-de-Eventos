@@ -1,5 +1,7 @@
 from django.urls import path
 
+from emails.views.enviar_emails_view import EnviarEmailsView
+
 from .enumerations import Setor
 from .views import EnumChoicesAPIView
 from .views import csrf_token_view as views
@@ -7,9 +9,9 @@ from .views.area_conhecimento_view import AreaConhecimentoViewSet
 from .views.arquivo_view import ArquivoListView
 from .views.atracao_view import (
     AtracaoAvaliadorView,
-    MinhasAtracoesAvaliadorView,
     AtracaoDetailView,
     AtracaoListView,
+    MinhasAtracoesAvaliadorView,
 )
 from .views.avaliacao_atracao_view import (
     AvaliacaoAtracaoDetailView,
@@ -67,12 +69,16 @@ from .views.item_avaliacao_atracao_view import (
 )
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
+from .views.ordem_apresentacao_atracao_view import (
+    OrdemApresentacaoAtracaoDetailView,
+    OrdemApresentacaoAtracaoListView,
+)
 from .views.perms_view import PermissaoListView
+from .views.sessao_view import SessaoDetailView, SessaoListView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
-from .views.user_view import UserListView, UserPermissoesView, ServidorListView
+from .views.user_view import ServidorListView, UserListView, UserPermissoesView
 from .views.visao_geral_view import DashboardView
-from emails.views.enviar_emails_view import EnviarEmailsView
 
 app_name = "api"
 
@@ -135,7 +141,7 @@ urlpatterns = [
     path("users/", UserListView.as_view()),
     path("users/servidores/", ServidorListView.as_view()),
     path("users/<int:pk>/", UserPermissoesView.as_view()),
-    path("usuarios/cadastro-complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
+    path("usuarios/cadastro_complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
     path("permissoes/", PermissaoListView.as_view()),
     path("grupos/", GrupoListView.as_view()),
     path("grupos/<int:pk>/", GrupoPermissoesView.as_view()),
@@ -161,6 +167,12 @@ urlpatterns = [
     path("item_avaliacao_atracao/<int:pk>", ItemAvaliaçãoAtracaoDetailView.as_view()),
     path("eventos/minhas_avaliacoes/", MeusEventosAvaliadorView.as_view()),
     path("eventos/<int:evento_id>/minhas_avaliacoes/atracoes/", MinhasAtracoesAvaliadorView.as_view()),
+
+    # programação do evento
+    path("sessoes/", SessaoListView.as_view()),
+    path("sessoes/<int:pk>/", SessaoDetailView.as_view()),
+    path("ordem_apresentacao_atracao/", OrdemApresentacaoAtracaoListView.as_view()),
+    path("ordem_apresentacao_atracao/<int:pk>/", OrdemApresentacaoAtracaoDetailView.as_view()),
 
 ]
 # fmt: on

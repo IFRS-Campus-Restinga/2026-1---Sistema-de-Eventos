@@ -11,6 +11,7 @@ from api.serializers.cadastro_complementar_serializer import (
     CadastroComplementarSerializer,
 )
 from eventos_session.permissions import HasValidSessionToken
+from emails.services import enviar_email_boas_vindas
 
 
 class CadastroComplementarView(APIView):
@@ -38,7 +39,16 @@ class CadastroComplementarView(APIView):
         )
 
         if serializer.is_valid():  # Executa o "save" se o serializer for válido.
-            serializer.save()
+            user = serializer.save()
+
+            # Funções após tudo confirmado
+
+            # Disparo Email Boas-Vindas
+            enviar_email_boas_vindas(
+                nome_usuario=user.usuario.first_name,
+                sobrenome_usuario=user.usuario.last_name,
+                email_usuario=user.usuario.email,
+            )
 
             return Response(
                 {"mensagem": "Dados atualizados!"}, status=status.HTTP_200_OK

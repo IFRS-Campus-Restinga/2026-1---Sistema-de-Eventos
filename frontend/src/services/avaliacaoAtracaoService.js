@@ -50,4 +50,25 @@ export const criarAvaliacaoAtracaoComItens = async (avaliacaoDados, itens) => {
     return { avaliacao, itens: itensCriados };
 };
 
-export default { pegarCriteriosPorModalidade, criarAvaliacaoAtracaoComItens };
+export const listarAvaliacoesAtracao = async (params = {}) => {
+    const response = await axios.get(`${API_URL}/api/avaliacao_atracao/`, {
+        params,
+        withCredentials: true,
+    });
+    return response.data;
+};
+
+export const listarItensAvaliacaoAtracao = async (avaliacaoId) => {
+    const response = await axios.get(`${API_URL}/api/item_avaliacao_atracao/`, {
+        params: { avaliacao_atracao: avaliacaoId },
+        withCredentials: true,
+    });
+    return response.data;
+};
+
+export default {
+    pegarCriteriosPorModalidade,
+    criarAvaliacaoAtracaoComItens,
+    listarAvaliacoesAtracao,
+    listarItensAvaliacaoAtracao,
+};

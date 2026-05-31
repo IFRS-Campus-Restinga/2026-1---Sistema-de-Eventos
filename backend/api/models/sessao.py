@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -16,18 +17,41 @@ class Sessao(Base):
         related_name="sessoes",
         verbose_name=_("Espaço"),
     )
+    atracoes = models.ManyToManyField(
+        "Atracao",
+        through="OrdemApresentacaoAtracao",
+        related_name="sessoes",
+    )
+    nome = models.CharField(
+        max_length=100,
+        validators=[MinLengthValidator(3)],
+        verbose_name=_("Nome da sessão"),
+        null=True,
+        blank=True,
+    )
     data_horario_inicio = models.DateTimeField(
-        verbose_name=_("Data e hora de início da sessão")
+        auto_now=False,
+        auto_now_add=False,
+        verbose_name=_("Data e hora de início da sessão"),
     )
     data_horario_fim = models.DateTimeField(
-        verbose_name=_("Data e hora de término da sessão")
+        auto_now=False,
+        auto_now_add=False,
+        verbose_name=_("Data e hora de término da sessão"),
+    )
+    publicado_em = models.DateTimeField(
+        auto_now=False,
+        auto_now_add=False,
+        blank=True,
+        null=True,
+        verbose_name=_("Data de publicação da programação"),
     )
     ativo = models.BooleanField(verbose_name=_("Ativo"), default=True)
 
     """Não sei se é assim que funciona
 
     sim, é assim a primeira parte das permissões, vou deixar assim pra mais tarde. -Breno
-    
+
     class Meta:
         permissions = [
             ("ver_sessao", "Pode visualizar as sessões"),
@@ -53,6 +77,9 @@ class Sessao(Base):
                 "A data de início não pode ser no passado."
             )
 
+        if self.publicado_em and self.publicado_em < timezone.now():
+            errors["publicado_em"] = _("A data de publicação não pode ser no passado.")
+
         # o mesmo espaço seja usado em sessões diferentes ao mesmo tempo
         conflitos = Sessao.objects.filter(
             espaco=self.espaco,
@@ -69,4 +96,4 @@ class Sessao(Base):
             raise ValidationError(errors)
 
     def __str__(self):
-        return f"{self.evento.nome}: {self.data_horario_inicio}"
+        return f"{self.evento.nome} / {self.nome}: {self.data_horario_inicio}"

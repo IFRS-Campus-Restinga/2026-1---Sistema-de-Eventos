@@ -28,7 +28,7 @@ export default function SessionTokenCallback() {
 
                 if (foiCadastro) {
                     // Primeiro login: redirecionar para cadastro complementar
-                    navigate('/cadastrocomplementar', { replace: true });
+                    navigate('/cadastro_complementar', { replace: true });
                 } else {
                     // Login subsequentes
                     navigate('/', {

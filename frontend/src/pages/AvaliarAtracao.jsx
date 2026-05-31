@@ -2,7 +2,9 @@ import { Container, Row, Col, Button, Form } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Tag from '../components/common/Tag';
+import { obterCorPorTag } from '../utils/themeTags';
 import formatNivelEnsino from '../utils/formatNivelEnsino';
+import formatAreaConhecimento from '../utils/formatAreaConhecimento';
 import Alerta from '../components/common/Alerta';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -86,7 +88,7 @@ export default function AvaliarAtracao() {
                         </Col>
                     </Row>
                     <Row>
-                        <Col className="px-0">
+                        <Col className="px-0 d-flex flex-wrap gap-2">
                             <Tag
                                 corTexto="#fff"
                                 corFundo="#000"
@@ -94,6 +96,24 @@ export default function AvaliarAtracao() {
                                     formatNivelEnsino(atracao?.nivel_ensino) ||
                                     'Nível'
                                 }
+                            />
+                            <Tag
+                                corTexto="#fff"
+                                corFundo={obterCorPorTag(
+                                    formatAreaConhecimento(
+                                        atracao?.area_conhecimento,
+                                    ),
+                                )}
+                                texto={
+                                    formatAreaConhecimento(
+                                        atracao?.area_conhecimento,
+                                    ) || 'Área'
+                                }
+                            />
+                            <Tag
+                                corTexto="#fff"
+                                corFundo={obterCorPorTag(atracao?.tipo)}
+                                texto={atracao?.tipo || 'Modalidade'}
                             />
                         </Col>
                     </Row>

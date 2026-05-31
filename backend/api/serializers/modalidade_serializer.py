@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from ..models.modalidade import Modalidade
@@ -33,11 +34,62 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    limite_vagas = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0
+    )
+
     def create(self, validated_data):
         instance = Modalidade(**validated_data)
         instance.full_clean()
         instance.save()
         return instance
+
+    def validate(self, attrs):
+        # avaliação de submissão só é possível se submissão for permitida
+        permite_submissao = attrs.get(
+            "permite_submissao",
+            getattr(self.instance, "permite_submissao", False),
+        )
+        requer_avaliacao_submissao = attrs.get(
+            "requer_avaliacao_submissao",
+            getattr(self.instance, "requer_avaliacao_submissao", False),
+        )
+
+        if requer_avaliacao_submissao and not permite_submissao:
+            raise serializers.ValidationError(
+                {
+                    "requer_avaliacao_submissao": _(
+                        "Não é possível requerer avaliação de submissão se a modalidade não permite submissão."
+                    )
+                }
+            )
+
+        # Se submissão não é permitida, forçar avaliação de submissão para False
+        if not permite_submissao and "requer_avaliacao_submissao" not in attrs:
+            attrs["requer_avaliacao_submissao"] = False
+
+        # determina se controle de vagas está ativo considerando dados do payload
+        requer_controle = attrs.get(
+            "requer_controle_vagas",
+            getattr(self.instance, "requer_controle_vagas", False),
+        )
+
+        if not requer_controle:
+            # se tentou informar limite_vagas explicitamente quando controle desativado -> erro
+            if "limite_vagas" in attrs and attrs.get("limite_vagas") is not None:
+                raise serializers.ValidationError(
+                    {
+                        "limite_vagas": _(
+                            "Só é possível definir limite de vagas se requer_controle_vagas for True."
+                        )
+                    }
+                )
+
+            # caso de atualização: garantimos que o valor existente seja removido
+            if self.instance and getattr(self.instance, "limite_vagas", None):
+                attrs["limite_vagas"] = None
+
+        return attrs
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -55,7 +107,9 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             "campos",
             "nome",
             "requer_avaliacao",
+            "requer_controle_vagas",
             "requer_avaliacao_submissao",
+            "permite_submissao",
             "limite_avaliadores",
             "emite_certificado",
             "campos",

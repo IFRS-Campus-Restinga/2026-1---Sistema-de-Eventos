@@ -3,6 +3,7 @@ import { enviarEmailsService } from '../services/enviarEmailsService';
 
 export function useEnviarEmails(eventoId) {
     // Estados
+    const [nomeEvento, setNomeEvento] = useState('');
     const [atracoes, setAtracoes] = useState([]);
     const [carregando, setCarregando] = useState(false);
     const [notificacao, setNotificacao] = useState({
@@ -13,7 +14,9 @@ export function useEnviarEmails(eventoId) {
     const [mensagem, setMensagem] = useState('');
     const [atracoesSelecionadas, setAtracoesSelecionadas] = useState([]);
     const [enviando, setEnviando] = useState(false);
-    const [nomeEvento, setNomeEvento] = useState('');
+    // Fazendo agora
+    const [templates, setTemplates] = useState([]);
+    const [templateSelecionado, setTemplateSelecionado] = useState('');
 
     // Calcula o turno da atração | Manhã, Tarde ou Noite
     const calcularTurno = (dataHoraInicio) => {
@@ -53,6 +56,62 @@ export function useEnviarEmails(eventoId) {
 
         buscarAtracoes();
     }, [eventoId]);
+
+    useEffect(() => {
+        const carregarTemplates = async () => {
+            // Busca do Sistema
+            try {
+                const resSistema =
+                    await enviarEmailsService.buscarTemplatesSistema();
+                const dados = resSistema.results || resSistema;
+                setTemplates((prev) => [
+                    ...prev.filter((t) => t.tipo !== 'sistema'),
+                    ...dados.map((t) => ({ ...t, tipo: 'sistema' })),
+                ]);
+            } catch (erro) {
+                console.error('Falha nos templates de sistema:', erro);
+            }
+
+            // Busca do Perfil
+            try {
+                const resPerfil =
+                    await enviarEmailsService.buscarTemplatesPerfil();
+                const dados = resPerfil.results || resPerfil;
+                setTemplates((prev) => [
+                    ...prev.filter((t) => t.tipo !== 'perfil'),
+                    ...dados.map((t) => ({ ...t, tipo: 'perfil' })),
+                ]);
+            } catch (erro) {
+                console.error('Falha nos templates de perfil:', erro);
+            }
+        };
+
+        carregarTemplates();
+    }, []);
+
+    // Manipulador para gerenciar a troca de template e preencher a composição
+    const handleTemplateChange = useCallback(
+        (valor) => {
+            setTemplateSelecionado(valor);
+
+            if (!valor) {
+                setAssunto('');
+                setMensagem('');
+                return;
+            }
+
+            const [tipo, idTarget] = valor.split('_');
+            const templateEncontrado = templates.find(
+                (t) => t.tipo === tipo && String(t.id) === String(idTarget),
+            );
+
+            if (templateEncontrado) {
+                setAssunto(templateEncontrado.assunto || '');
+                setMensagem(templateEncontrado.corpo_texto || '');
+            }
+        },
+        [templates],
+    );
 
     const handleCheckboxChange = useCallback((atracaoId) => {
         setAtracoesSelecionadas((prev) =>
@@ -130,5 +189,8 @@ export function useEnviarEmails(eventoId) {
         handleCheckboxChange,
         handleSelecionarTodos,
         handleSubmit,
+        handleTemplateChange,
+        templates,
+        templateSelecionado,
     };
 }

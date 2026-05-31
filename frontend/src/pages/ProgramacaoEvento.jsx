@@ -1,251 +1,256 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, InputGroup, Pagination } from 'react-bootstrap';
-import { MdSearch, MdCalendarToday } from 'react-icons/md';
+import {
+    Container,
+    Row,
+    Col,
+    Form,
+    Button,
+    InputGroup,
+    Spinner,
+    Alert,
+} from 'react-bootstrap';
+import {
+    MdSearch,
+    MdCalendarToday,
+    MdPlace,
+    MdPeople,
+    MdEvent,
+} from 'react-icons/md';
 import { useParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import AtracaoCard from '../components/common/AtracaoCard';
 import ModalPopup from '../components/common/ModalPopup';
 
+// Hooks e Utilitários do ecossistema do seu app
+import useSessoes from '../hooks/useSessoes';
+import { obterCorPorTag } from '../utils/themeTags';
+
+const extrairNomesAutores = (atracao) => {
+    const fonte = atracao || {};
+
+    if (Array.isArray(fonte.autorias) && fonte.autorias.length > 0) {
+        const nomesAutoria = fonte.autorias
+            .map((item) => item?.nome || item?.usuario_nome || item?.autor)
+            .filter((nome) => String(nome || '').trim() !== '');
+
+        if (nomesAutoria.length > 0) {
+            return nomesAutoria;
+        }
+    }
+
+    if (fonte.equipe_json) {
+        try {
+            const equipe =
+                typeof fonte.equipe_json === 'string'
+                    ? JSON.parse(fonte.equipe_json)
+                    : fonte.equipe_json;
+
+            const nomesEquipe = (Array.isArray(equipe) ? equipe : [])
+                .map((membro) => membro?.nome || membro?.autor)
+                .filter((nome) => String(nome || '').trim() !== '');
+
+            if (nomesEquipe.length > 0) {
+                return nomesEquipe;
+            }
+        } catch (e) {
+            // Ignora erro de parsing e tenta próximos fallbacks.
+        }
+    }
+
+    if (fonte.autor) {
+        return [fonte.autor];
+    }
+
+    return ['Autor Não Informado'];
+};
+
 export default function ProgramacaoEvento() {
-    const { id } = useParams();
-    const verdeIFRS = "#00A44B";
+    const { id: eventoId } = useParams();
+    const verdeIFRS = '#00A44B';
+
     const [termoBusca, setTermoBusca] = useState('');
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
-    const [paginaAtual, setPaginaAtual] = useState(1);
+    const [dataSelecionada, setDataSelecionada] = useState('');
     const [showModal, setShowModal] = useState(false);
-    const [atracaoResumo,setAtracaoResumo] = useState(null)
-    const itensPorPagina = 3;
+    const [atracaoResumo, setAtracaoResumo] = useState(null);
+    const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
 
-    const obterCorPorTag = (texto) => {
-        const t = texto.toLowerCase();
-        if (t.includes('oficina')) return '#EAB308';
-        if (t.includes('engenharia')) return '#EF4444';
-        if (t.includes('apresentação')) return '#3B82F6';
-        if (t.includes('exatas')) return '#212529';
-        if (t.includes('performance')) return '#DB2777';
-        if (t.includes('artes') || t.includes('letras')) return '#8B5CF6';
-        if (t.includes('informatica')) return '#06B6D4';
-        if (t.includes('tecnologia')) return '#111827';
-        return '#6B7280';
+    const { sessoes, dias, loading, error, carregarEvento, fetchSessoes } =
+        useSessoes();
+
+    useEffect(() => {
+        if (eventoId) {
+            carregarEvento(eventoId);
+            fetchSessoes(eventoId);
+        }
+    }, [eventoId]);
+
+    useEffect(() => {
+        if (dias && dias.length > 0) {
+            setDataSelecionada(formatarDataValue(dias[0]));
+        }
+    }, [dias]);
+
+    const selecionarAtracaoResumo = (atracao) => {
+        setAtracaoResumo(atracao);
+        setShowModal(true);
     };
 
-    const sessoesMockadas = [
-        {
-            blocoHorario: "08:30 - 10:00",
-            atividades: [
-                {
-                    hora: "08:30",
-                    sessao: "Sessão 1",
-                    turno: "manhã",
-                    corCard: "#3B82F6",
-                    titulo: "Desenvolvimento de Concreto Sustentável com Resíduos",
-                    descricao: "Este trabalho apresenta o estudo de misturas de concreto utilizando resíduos de demolição civil como agregados substitutos, visando a redução do impacto ambiental na construção civil.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Engenharias" }],
-                    autores: ["Carlos Lima", "Ana Souza"],
-                    local: "Sala 304 - Bloco 3",
-                    inscrito: true
-                },
-                {
-                    hora: "09:00",
-                    sessao: "Sessão 2",
-                    turno: "manhã",
-                    corCard: "#EAB308",
-                    titulo: "Introdução ao Arduino: Construindo seu primeiro robô",
-                    descricao: "Oficina prática voltada para iniciantes. Serão abordados os conceitos fundamentais de eletrônica digital, portas lógicas e programação aplicada à robótica educacional.",
-                    tags: [{ texto: "Oficina" }, { texto: "Ciências Exatas" }],
-                    autores: ["Jaqueline Costa"],
-                    local: "Sala 302 - Bloco 3",
-                    inscrito: false
-                },
-                {
-                    hora: "09:30",
-                    sessao: "Sessão 3",
-                    turno: "manhã",
-                    corCard: "#06B6D4",
-                    titulo: "Segurança de Dados em Redes Locais",
-                    descricao: "Discussão técnica sobre as principais vulnerabilidades em infraestruturas de redes locais e roteamento, abordando táticas preventivas e ferramentas de monitoramento de tráfego.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Informatica" }],
-                    autores: ["Roberto Silveira"],
-                    local: "Sala 101 - Bloco 1",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "10:30 - 12:00",
-            atividades: [
-                {
-                    hora: "10:30",
-                    sessao: "Sessão 1",
-                    turno: "manhã",
-                    corCard: "#DB2777",
-                    titulo: "Intervenção Teatral: O Homem e a Ciência",
-                    descricao: "Performance artística que reflete sobre o papel do cientista na sociedade moderna, os limites éticos do avanço computacional e a desmistificação da tecnologia na periferia.",
-                    tags: [{ texto: "Performance Artística" }, { texto: "Letras e Artes" }],
-                    autores: ["Jose Silva", "Ana Terra"],
-                    local: "Auditório Mirele",
-                    inscrito: false
-                },
-                {
-                    hora: "11:15",
-                    sessao: "Sessão 2",
-                    turno: "manhã",
-                    corCard: "#111827",
-                    titulo: "Aplicações de IA na Agricultura Familiar",
-                    descricao: "Apresentação de projeto que utiliza visão computacional simples para identificação de pragas comuns em hortaliças, otimizando o manejo agrícola sem o uso de defensivos pesados.",
-                    tags: [{ texto: "Tecnologia" }, { texto: "Engenharias" }],
-                    autores: ["Marcos Nunes", "Lucas Rocha"],
-                    local: "Laboratório 2 - Bloco 1",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "14:00 - 15:30",
-            atividades: [
-                {
-                    hora: "14:00",
-                    sessao: "Sessão 1",
-                    turno: "tarde",
-                    corCard: "#EAB308",
-                    titulo: "Oficina Avançada de Django Rest Framework",
-                    descricao: "Construção passo a passo de uma API REST robusta, abordando autenticação baseada em JWT, customização de querysets com managers e boas práticas de arquitetura de software.",
-                    tags: [{ texto: "Oficina" }, { texto: "Tecnologia" }],
-                    autores: ["Pedro Henrique", "Maria Eduarda"],
-                    local: "Mini Auditório - Bloco 4",
-                    inscrito: true
-                },
-                {
-                    hora: "14:45",
-                    sessao: "Sessão 2",
-                    turno: "tarde",
-                    corCard: "#8B5CF6",
-                    titulo: "Mini-curso de Criação de Interfaces com Figma",
-                    descricao: "Abordagem prática de UI/UX design. Os participantes aprenderão a criar componentes dinâmicos, auto-layout responsivo e protótipos navegáveis prontos para validação de produto.",
-                    tags: [{ texto: "Oficina" }, { texto: "Letras e Artes" }],
-                    autores: ["Maria Eduarda"],
-                    local: "Sala 202 - Bloco 2",
-                    inscrito: false
-                }
-            ]
-        },
-        {
-            blocoHorario: "19:00 - 20:30",
-            atividades: [
-                {
-                    hora: "19:00",
-                    sessao: "Sessão 1",
-                    turno: "noite",
-                    corCard: "#212529",
-                    titulo: "Mesa Redonda: O Futuro da Computação e do ADS na Região",
-                    descricao: "Profissionais do mercado e do setor público debatem as demandas atuais de TI, o mercado para desenvolvedores juniores e os rumos das tecnologias web e mobile na Zona Sul.",
-                    tags: [{ texto: "Apresentação Oral" }, { texto: "Tecnologia" }],
-                    autores: ["Professor IFRS", "Convidado MPRS"],
-                    local: "Auditório Principal",
-                    inscrito: false
-                }
-            ]
-        }
-    ];
+    function formatarDataValue(data) {
+        return data.toISOString().split('T')[0];
+    }
 
-    const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
-    const selecionarAtracaoResumo = (atracao) => {
-            setAtracaoResumo(atracao)
-            setShowModal(true)
-        }
+    function formatarDataLabel(data) {
+        return data.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+        });
+    }
 
     useEffect(() => {
-        setPaginaAtual(1);
-    }, [termoBusca, turnoAtivo]);
+        if (!sessoes || sessoes.length === 0) {
+            setSessoesFiltradas([]);
+            return;
+        }
 
-    useEffect(() => {
         const termo = termoBusca.toLowerCase().trim();
-        let listaTotal = [];
+        const mapaAgrupamento = {};
 
-        sessoesMockadas.forEach(bloco => {
-            bloco.atividades.forEach(ativ => {
-                const bateuTurno = ativ.turno === turnoAtivo;
+        sessoes.forEach((sessaoBanco) => {
+            const dataSessao = sessaoBanco.data_horario_inicio.split('T')[0];
+            if (dataSelecionada && dataSessao !== dataSelecionada) return;
+            const stringHorarioInicio =
+                sessaoBanco.data_horario_inicio.split('T')[1] || '';
+            const stringHorarioFim =
+                sessaoBanco.data_horario_fim.split('T')[1] || '';
 
-                const titulo = ativ.titulo ? ativ.titulo.toLowerCase() : '';
-                const autor = ativ.autores ? ativ.autores.join(' ').toLowerCase() : '';
-                const bateuNaTag = ativ.tags ? ativ.tags.some(tag => 
-                    tag.texto ? tag.texto.toLowerCase().includes(termo) : false
-                ) : false;
+            const horaInicioLimpa = stringHorarioInicio.slice(0, 5);
+            const horaFimLimpa = stringHorarioFim.slice(0, 5);
+            const chaveBlocoHorario = `${horaInicioLimpa} - ${horaFimLimpa}`;
+            let turnoCalculado = 'manhã';
+            const horaInteira = parseInt(horaInicioLimpa.split(':')[0], 10);
+            if (horaInteira >= 12 && horaInteira < 18) {
+                turnoCalculado = 'tarde';
+            } else if (horaInteira >= 18) {
+                turnoCalculado = 'noite';
+            }
 
-                const bateuBusca = !termo || titulo.includes(termo) || autor.includes(termo) || bateuNaTag;
+            if (turnoCalculado !== turnoAtivo) return;
 
-                if (bateuTurno && bateuBusca) {
-                    listaTotal.push({
-                        blocoHorario: bloco.blocoHorario,
-                        ...ativ,
-                        tags: ativ.tags.map(t => ({
+            const apresentacoesOriginais =
+                sessaoBanco.ordem_apresentacoes_display || [];
+            const atividadesFiltradas = apresentacoesOriginais
+                .map((itemOrdem) => {
+                    const atracao =
+                        itemOrdem.atracao_display || itemOrdem.atracao || {};
+
+                    const listaAutores = extrairNomesAutores(atracao);
+
+                    const listaTags = [];
+                    if (atracao.tipo) listaTags.push({ texto: atracao.tipo });
+                    if (atracao.area_conhecimento?.area_conhecimento_display) {
+                        listaTags.push({
+                            texto: atracao.area_conhecimento
+                                .area_conhecimento_display,
+                        });
+                    } else if (atracao.area_conhecimento) {
+                        listaTags.push({
+                            texto: String(atracao.area_conhecimento),
+                        });
+                    }
+
+                    return {
+                        hora: horaInicioLimpa,
+                        titulo: atracao.titulo || 'Atração Sem Título',
+                        descricao:
+                            atracao.resumo ||
+                            'Nenhum resumo disponível para esta atração.',
+                        autores: listaAutores,
+                        local:
+                            sessaoBanco.espaco_display?.nome ||
+                            `Espaço #${sessaoBanco.espaco}`,
+                        tags: listaTags.map((t) => ({
                             texto: t.texto,
                             corFundo: obterCorPorTag(t.texto),
-                            corTexto: '#FFFFFF'
-                        }))
-                    });
+                            corTexto: '#FFFFFF',
+                        })),
+                        inscrito: false,
+                    };
+                })
+                .filter((ativ) => {
+                    const titulo = ativ.titulo.toLowerCase();
+                    const autor = ativ.autores.join(' ').toLowerCase();
+                    const bateuNaTag = ativ.tags.some((tag) =>
+                        tag.texto.toLowerCase().includes(termo),
+                    );
+
+                    return (
+                        !termo ||
+                        titulo.includes(termo) ||
+                        autor.includes(termo) ||
+                        bateuNaTag
+                    );
+                });
+
+            if (atividadesFiltradas.length > 0) {
+                if (!mapaAgrupamento[chaveBlocoHorario]) {
+                    mapaAgrupamento[chaveBlocoHorario] = [];
                 }
-            });
-        });
-
-        const indiceUltimoItem = paginaAtual * itensPorPagina;
-        const indicePrimeiroItem = indiceUltimoItem - itensPorPagina;
-        const itensPaginados = listaTotal.slice(indicePrimeiroItem, indiceUltimoItem);
-
-        const agrupado = [];
-        itensPaginados.forEach(item => {
-            let bloco = agrupado.find(b => b.blocoHorario === item.blocoHorario);
-            if (!bloco) {
-                bloco = { blocoHorario: item.blocoHorario, atividades: [] };
-                agrupado.push(bloco);
+                mapaAgrupamento[chaveBlocoHorario].push(...atividadesFiltradas);
             }
-            const { blocoHorario, ...dados } = item;
-            bloco.atividades.push(dados);
         });
 
-        setSessoesFiltradas(agrupado);
-    }, [termoBusca, turnoAtivo, paginaAtual]);
+        const resultadoFinal = Object.keys(mapaAgrupamento)
+            .map((bloco) => ({
+                blocoHorario: bloco,
+                atividades: mapaAgrupamento[bloco],
+            }))
+            .sort((a, b) => a.blocoHorario.localeCompare(b.blocoHorario));
 
-    const totalItens = () => {
-        const termo = termoBusca.toLowerCase().trim();
-        let count = 0;
-        sessoesMockadas.forEach(b => {
-            b.atividades.forEach(a => {
-                const bateuTurno = a.turno === turnoAtivo;
-                const titulo = a.titulo.toLowerCase();
-                const autor = a.autores.join(' ').toLowerCase();
-                const tag = a.tags.some(t => t.texto.toLowerCase().includes(termo));
-                const bateuBusca = !termo || titulo.includes(termo) || autor.includes(termo) || tag;
-                
-                if (bateuTurno && bateuBusca) count++;
-            });
-        });
-        return count;
-    };
-
-    const numeroPaginas = Math.ceil(totalItens() / itensPorPagina);
+        setSessoesFiltradas(resultadoFinal);
+    }, [sessoes, dataSelecionada, termoBusca, turnoAtivo]);
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-white">
             <NavBar />
             <main className="flex-fill">
-                <section style={{ backgroundColor: verdeIFRS, color: 'white' }} className="py-5 text-center shadow-sm">
+                <section
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                        color: 'white',
+                    }}
+                    className="py-5 text-center shadow-sm"
+                >
                     <Container>
-                        <h1 className="display-5 fw-bold mb-2">Programação Oficial</h1>
-                        <p className="mb-4 opacity-90">Confira os horários e locais das apresentações do evento</p>
+                        <h1 className="display-5 fw-bold mb-2">
+                            Programação Oficial
+                        </h1>
+                        <p className="mb-4 opacity-90">
+                            Confira os horários e locais das atividades do
+                            evento
+                        </p>
                         <Row className="justify-content-center">
                             <Col md={8} lg={6}>
                                 <InputGroup className="shadow-sm rounded-pill overflow-hidden bg-white p-1">
                                     <Form.Control
                                         placeholder="Pesquise por título, autor ou tag..."
                                         value={termoBusca}
-                                        onChange={(e) => setTermoBusca(e.target.value)} 
+                                        onChange={(e) =>
+                                            setTermoBusca(e.target.value)
+                                        }
                                         className="border-0 px-3 py-2"
-                                        style={{ outline: 'none', boxShadow: 'none' }}
+                                        style={{
+                                            outline: 'none',
+                                            boxShadow: 'none',
+                                        }}
                                     />
-                                    <Button variant="dark" className="rounded-pill px-4 fw-bold d-flex align-items-center">
-                                        <MdSearch className="me-2" size={18} /> Buscar
+                                    <Button
+                                        variant="dark"
+                                        className="rounded-pill px-4 fw-bold d-flex align-items-center"
+                                    >
+                                        <MdSearch className="me-2" size={18} />{' '}
+                                        Buscar
                                     </Button>
                                 </InputGroup>
                             </Col>
@@ -254,86 +259,235 @@ export default function ProgramacaoEvento() {
                 </section>
 
                 <Container className="py-4 mt-2">
+                    {dias && dias.length > 0 && (
+                        <Row className="justify-content-center mb-4">
+                            <Col
+                                xs={12}
+                                md={4}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                <MdEvent size={24} className="text-secondary" />
+                                <Form.Group className="w-100 m-0">
+                                    <Form.Select
+                                        value={dataSelecionada}
+                                        onChange={(e) =>
+                                            setDataSelecionada(e.target.value)
+                                        }
+                                        className="fw-semibold border-secondary-subtle"
+                                    >
+                                        {dias.map((dia, index) => (
+                                            <option
+                                                key={index}
+                                                value={formatarDataValue(dia)}
+                                            >
+                                                Dia do Evento:{' '}
+                                                {formatarDataLabel(dia)}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                    )}
+
                     <div className="d-flex justify-content-center gap-3 mb-5">
                         {['manhã', 'tarde', 'noite'].map((turno) => (
-                            <Button 
+                            <Button
                                 key={turno}
-                                variant={turnoAtivo === turno ? 'dark' : 'outline-secondary'}
+                                variant={
+                                    turnoAtivo === turno
+                                        ? 'dark'
+                                        : 'outline-secondary'
+                                }
                                 className="rounded-pill px-4 fw-bold text-uppercase"
                                 onClick={() => setTurnoAtivo(turno)}
-                                style={turnoAtivo === turno ? { backgroundColor: `${verdeIFRS}`, borderColor: '#111827' } : {}}
+                                style={
+                                    turnoAtivo === turno
+                                        ? {
+                                              backgroundColor: `${verdeIFRS}`,
+                                              borderColor: '#111827',
+                                          }
+                                        : {}
+                                }
                             >
-                                25/OUT ({turno})
+                                {turno}
                             </Button>
                         ))}
                     </div>
 
                     <Row className="justify-content-center">
                         <Col lg={10}>
-                            {sessoesFiltradas.length > 0 ? (
-                                sessoesFiltradas.map((bloco, idx) => (
-                                    <div key={idx} className="mb-5">
-                                        <div className="d-flex align-items-center text-muted fw-bold mb-4 small" style={{ letterSpacing: '1px' }}>
-                                            <MdCalendarToday className="me-2" color={verdeIFRS} />
-                                            <span>{bloco.blocoHorario}</span>
-                                            <div className="flex-grow-1 border-bottom ms-3 opacity-25"></div>
-                                        </div>
-                                        <div className="d-flex flex-column gap-3">
-                                            {bloco.atividades.map((ativ, ativIdx) => (
-                                                <AtracaoCard 
-                                                    key={ativIdx} 
-                                                    {...ativ}
-                                                    onInscrever={() => console.log(ativ.titulo)}
-                                                    onVerResumo={()=> selecionarAtracaoResumo(ativ)}
+                            {loading ? (
+                                <div className="text-center py-5">
+                                    <Spinner
+                                        animation="border"
+                                        variant="success"
+                                    />
+                                    <p className="text-muted mt-2 small">
+                                        Buscando cronograma no servidor...
+                                    </p>
+                                </div>
+                            ) : error ? (
+                                <Alert variant="danger">
+                                    Não foi possível carregar a programação.
+                                    Erro: {error}
+                                </Alert>
+                            ) : sessoesFiltradas.length > 0 ? (
+                                sessoesFiltradas.map((sessaoGlobal, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="card shadow-sm border-0 mb-4 overflow-hidden"
+                                        style={{ borderRadius: '16px' }}
+                                    >
+                                        <div className="card-header bg-white text-dark py-3 px-4 d-flex align-items-center justify-content-between">
+                                            <div className="d-flex align-items-center gap-2 m-0 fw-bold">
+                                                <MdCalendarToday
+                                                    size={20}
+                                                    color={verdeIFRS}
                                                 />
-                                            ))}
+                                                <span className="fs-5">
+                                                    Sessão:{' '}
+                                                    {sessaoGlobal.blocoHorario}
+                                                </span>
+                                            </div>
+                                            <span className="badge bg-secondary text-uppercase px-3 py-2 rounded-pill">
+                                                {sessaoGlobal.atividades.length}{' '}
+                                                {sessaoGlobal.atividades
+                                                    .length === 1
+                                                    ? 'Trabalho'
+                                                    : 'Trabalhos'}
+                                            </span>
+                                        </div>
+
+                                        <div className="card-body p-0">
+                                            {sessaoGlobal.atividades.map(
+                                                (ativ, ativIdx) => (
+                                                    <div
+                                                        key={ativIdx}
+                                                        className="p-4 border-bottom last-border-0 d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-3 bg-white"
+                                                        style={{
+                                                            borderLeft: `6px solid ${obterCorPorTag(
+                                                                ativ.tags[0]
+                                                                    ?.texto ||
+                                                                    '',
+                                                            )}`,
+                                                        }}
+                                                    >
+                                                        <div className="flex-grow-1">
+                                                            <div className="d-flex flex-wrap gap-2 mb-2">
+                                                                <span className="badge bg-light text-dark border rounded-pill">
+                                                                    Horário:{' '}
+                                                                    {ativ.hora}
+                                                                </span>
+                                                                {ativ.tags.map(
+                                                                    (
+                                                                        t,
+                                                                        tIdx,
+                                                                    ) => (
+                                                                        <span
+                                                                            key={
+                                                                                tIdx
+                                                                            }
+                                                                            className="badge rounded-pill"
+                                                                            style={{
+                                                                                backgroundColor:
+                                                                                    t.corFundo,
+                                                                                color: t.corTexto,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                t.texto
+                                                                            }
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                            <h4 className="h5 fw-bold text-dark mb-2">
+                                                                {ativ.titulo}
+                                                            </h4>
+                                                            <div className="d-flex flex-wrap gap-3 text-muted small">
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdPeople
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />{' '}
+                                                                    {ativ.autores.join(
+                                                                        ', ',
+                                                                    )}
+                                                                </span>
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdPlace
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />{' '}
+                                                                    {ativ.local}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="d-flex gap-2 align-items-center justify-content-md-end">
+                                                            <Button
+                                                                variant="outline-dark"
+                                                                size="sm"
+                                                                className="rounded-pill px-3"
+                                                                onClick={() =>
+                                                                    selecionarAtracaoResumo(
+                                                                        ativ,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Ver Resumo
+                                                            </Button>
+                                                            <Button
+                                                                variant={
+                                                                    ativ.inscrito
+                                                                        ? 'success'
+                                                                        : 'primary'
+                                                                }
+                                                                size="sm"
+                                                                className="rounded-pill px-3"
+                                                                disabled={
+                                                                    ativ.inscrito
+                                                                }
+                                                            >
+                                                                {ativ.inscrito
+                                                                    ? 'Inscrito'
+                                                                    : 'Inscrever-se'}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-5">
-                                    <h5 className="text-muted">Nenhuma atividade encontrada neste turno.</h5>
+                                <div className="text-center py-5 bg-white rounded shadow-sm border">
+                                    <h5 className="text-muted m-0">
+                                        Nenhuma atividade programada para esta
+                                        data neste turno.
+                                    </h5>
                                 </div>
                             )}
                         </Col>
                     </Row>
-
-                    {numeroPaginas > 1 && (
-                        <div className="d-flex justify-content-center mt-5 mb-4">
-                            <Pagination className="custom-pagination">
-                                <Pagination.Prev 
-                                    onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
-                                    disabled={paginaAtual === 1}
-                                />
-                                {[...Array(numeroPaginas)].map((_, i) => (
-                                    <Pagination.Item 
-                                        key={i + 1} 
-                                        active={i + 1 === paginaAtual}
-                                        onClick={() => setPaginaAtual(i + 1)}
-                                    >
-                                        {i + 1}
-                                    </Pagination.Item>
-                                ))}
-                                <Pagination.Next 
-                                    onClick={() => setPaginaAtual(prev => Math.min(prev + 1, numeroPaginas))}
-                                    disabled={paginaAtual === numeroPaginas}
-                                />
-                            </Pagination>
-                        </div>
-                    )}
                 </Container>
+
                 {atracaoResumo && (
                     <ModalPopup
                         show={showModal}
                         titulo={atracaoResumo.titulo}
-                        tituloSecundario={`Autores: ${atracaoResumo.autores.join(', ')}`}
+                        tituloSecundario={`Autores: ${atracaoResumo.autores.join(
+                            ', ',
+                        )}`}
                         texto={atracaoResumo.descricao}
                         textoFechar="Voltar"
                         onFechar={() => setShowModal(false)}
                     />
                 )}
             </main>
-            <Footer 
+            <Footer
                 telefone="(51) 3333-1234"
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}

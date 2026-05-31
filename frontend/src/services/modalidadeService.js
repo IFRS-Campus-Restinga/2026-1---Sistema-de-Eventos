@@ -4,14 +4,18 @@ import { pegarTokenCsrf } from './csrfService';
 import { validarComOptions } from './optionValidadorService';
 
 export const pegarModalidades = async () => {
-    const response = await axios.get(`${API_URL}/api/modalidades/`);
+    const response = await axios.get(`${API_URL}/api/modalidades/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
 export const pegarModalidade = async (id) => {
     if (!id) return null;
 
-    const response = await axios.get(`${API_URL}/api/modalidades/${id}/`);
+    const response = await axios.get(`${API_URL}/api/modalidades/${id}/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -20,6 +24,7 @@ export const criarModalidade = async (dados) => {
     const csrfToken = csrfData?.csrfToken || '';
     const response = await axios.post(`${API_URL}/api/modalidades/`, dados, {
         headers: { 'X-CSRFToken': csrfToken },
+        withCredentials: true,
     });
     return response.data;
 };
@@ -34,6 +39,7 @@ export const atualizarModalidade = async (id, dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -47,13 +53,16 @@ export const deletarModalidade = async (id) => {
     const csrfToken = csrfData?.csrfToken || '';
     const response = await axios.delete(`${API_URL}/api/modalidades/${id}/`, {
         headers: { 'X-CSRFToken': csrfToken },
+        withCredentials: true,
     });
 
     return response.data;
 };
 
 export const pegarOptionsModalidades = async () => {
-    const response = await axios.options(`${API_URL}/api/modalidades/`);
+    const response = await axios.options(`${API_URL}/api/modalidades/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 

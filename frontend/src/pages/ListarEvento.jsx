@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Container,
     Row,
@@ -34,14 +34,14 @@ import { API_URL } from '../config';
 import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
+    adicionarEventoRecenteAdminId,
 } from '../utils/selectedEvento';
 import { getCurrentUser } from '../services/authService';
-
 
 export default function EventosListar() {
     const [eventos, setEventos] = useState([]);
@@ -56,6 +56,13 @@ export default function EventosListar() {
     const [showQrModal, setShowQrModal] = useState(false);
     const [eventoQrSelecionado, setEventoQrSelecionado] = useState(null);
     const navigate = useNavigate();
+
+    const qrContainerRef = useRef(null);
+
+    const registrarEventoSelecionado = (eventoId) => {
+        setSelectedEventoId(eventoId);
+        adicionarEventoRecenteAdminId(eventoId);
+    };
 
     useEffect(() => {
         carregarEventos();
@@ -91,6 +98,7 @@ export default function EventosListar() {
     );
 
     const abrirQr = (evento) => {
+        registrarEventoSelecionado(evento.id);
         setEventoQrSelecionado(evento);
         setShowQrModal(true);
     };
@@ -175,6 +183,20 @@ export default function EventosListar() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // pra baixar um jpeg ou png do qrcode bem bolado
+    const baixarQr = (formato = 'png') => {
+        const canvas = qrContainerRef.current?.querySelector('canvas');
+        if (!canvas || !eventoQrSelecionado) return;
+
+        const mimeType = formato === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const extensao = formato === 'jpeg' ? 'jpg' : 'png';
+
+        const link = document.createElement('a');
+        link.download = `qrcode-${eventoQrSelecionado.slug}.${extensao}`;
+        link.href = canvas.toDataURL(mimeType, 1);
+        link.click();
     };
 
     return (
@@ -286,7 +308,7 @@ export default function EventosListar() {
                                                         as={Link}
                                                         to={`/dashboard/${evento.id}`}
                                                         onClick={() =>
-                                                            setSelectedEventoId(
+                                                            registrarEventoSelecionado(
                                                                 evento.id,
                                                             )
                                                         }
@@ -298,6 +320,11 @@ export default function EventosListar() {
                                                         size="sm"
                                                         as={Link}
                                                         to={`/credenciamento/${evento.slug}`}
+                                                        onClick={() =>
+                                                            registrarEventoSelecionado(
+                                                                evento.id,
+                                                            )
+                                                        }
                                                     >
                                                         Presença
                                                     </Button>
@@ -327,11 +354,14 @@ export default function EventosListar() {
                                                     <Button
                                                         variant="warning"
                                                         size="sm"
-                                                        onClick={() =>
+                                                        onClick={() => {
+                                                            registrarEventoSelecionado(
+                                                                evento.id,
+                                                            );
                                                             navigate(
                                                                 `/editar_evento/${evento.id}`,
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                     >
                                                         <MdEdit size={22} />
                                                     </Button>
@@ -424,8 +454,11 @@ export default function EventosListar() {
                                 página de credenciamento.
                             </p>
 
-                            <div className="d-inline-flex flex-column align-items-center p-4 bg-white rounded shadow-sm mb-4 border">
-                                <QRCodeSVG
+                            <div
+                                className="d-inline-flex flex-column align-items-center p-4 bg-white rounded shadow-sm mb-4 border"
+                                ref={qrContainerRef}
+                            >
+                                <QRCodeCanvas
                                     value={urlCredenciamento}
                                     size={280}
                                     includeMargin
@@ -435,8 +468,18 @@ export default function EventosListar() {
                             <Form.Control
                                 readOnly
                                 value={urlCredenciamento}
-                                className="text-center"
+                                className="text-center mb-3"
                             />
+
+                            {/* uma mão pra fazer isso, tá? n vai n */}
+                            <div className="d-flex justify-content-center gap-2 mb-3">
+                                <Button onClick={() => baixarQr('png')}>
+                                    Baixar PNG
+                                </Button>
+                                <Button onClick={() => baixarQr('jpeg')}>
+                                    Baixar JPEG
+                                </Button>
+                            </div>
                         </>
                     )}
                     {!carregandoUsuario && !podeVerQr && (

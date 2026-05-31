@@ -12,8 +12,10 @@ from jwt.exceptions import InvalidTokenError
 try:
     from fs_auth_middleware.utils import jwt_decode as fs_jwt_decode
 except Exception:  # pragma: no cover - fallback para projetos sem fs_auth_middleware
+
     def fs_jwt_decode(token: str, key: str, algorithms: list[str]) -> dict:
         return jwt.decode(token, key, algorithms=algorithms)
+
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -24,13 +26,21 @@ def get_setting(name: str, default):
 
 
 def is_admin_user(user) -> bool:
-    return bool(getattr(user, "is_superuser", False) or getattr(user, "is_staff", False))
+    return bool(
+        getattr(user, "is_superuser", False) or getattr(user, "is_staff", False)
+    )
 
 
 def filter_permissions_for_user(user, permissions: list[str]) -> list[str]:
     if is_admin_user(user):
         return sorted(set(permissions))
-    return sorted({permission for permission in permissions if permission.split(".")[-1].startswith("view_")})
+    return sorted(
+        {
+            permission
+            for permission in permissions
+            if permission.split(".")[-1].startswith("view_")
+        }
+    )
 
 
 ACCESS_PROFILE_GROUP_MAP = {
@@ -48,7 +58,9 @@ def sync_group_from_access_profile(user, access_profile: str | None) -> None:
 
     target_group, _ = Group.objects.get_or_create(name=target_group_name)
     profile_group_names = set(ACCESS_PROFILE_GROUP_MAP.values())
-    removable_names = [name for name in profile_group_names if name != target_group_name]
+    removable_names = [
+        name for name in profile_group_names if name != target_group_name
+    ]
 
     removable_groups = list(Group.objects.filter(name__in=removable_names))
     if removable_groups:
@@ -63,6 +75,7 @@ class TokenValidationError(Exception):
 
 class UniqueConstraintViolationError(TokenValidationError):
     """Levantado quando uma constraint de unicidade é violada."""
+
     pass
 
 
@@ -191,7 +204,7 @@ def build_hub_auth_cookies(request_cookies: dict | None) -> dict:
     api_key do sistema como credencial via cookie 'system', conforme
     suportado pelo Hub para autenticacao server-to-server.
     """
-    allowed = ("access_token", "refresh_token", "sessionid", "csrftoken")
+    allowed = ("access_token", "refresh_token")
     cookies = {}
 
     if request_cookies:
@@ -244,9 +257,7 @@ class ExternalUserService:
         if not cookies:
             return {}
 
-        url = (
-            f"{base_system_url.rstrip('/')}/api/users/additional_infos/get/{external_user_id}/"
-        )
+        url = f"{base_system_url.rstrip('/')}/api/users/additional_infos/get/{external_user_id}/"
 
         try:
             response = requests.get(
@@ -288,7 +299,9 @@ class ExternalUserService:
             return {}
 
     @staticmethod
-    def get_user_data(external_user_id: str, request_cookies: dict | None = None) -> dict:
+    def get_user_data(
+        external_user_id: str, request_cookies: dict | None = None
+    ) -> dict:
         base_system_url = str(get_setting("BASE_SYSTEM_URL", "")).strip()
         if not base_system_url:
             technical = f"hub_{external_user_id}"
@@ -309,14 +322,14 @@ class ExternalUserService:
                 "groups": [],
             }
 
-        url = (
-            f"{base_system_url.rstrip('/')}/api/users/get/{external_user_id}/"
-        )
+        url = f"{base_system_url.rstrip('/')}/api/users/get/{external_user_id}/"
 
         try:
             identity_response = requests.get(
                 url,
-                params={"fields": "id,username,email,nome,cpf,registration,access_profile"},
+                params={
+                    "fields": "id,username,email,nome,cpf,registration,access_profile"
+                },
                 cookies=hub_cookies,
                 timeout=10,
             )
@@ -392,7 +405,9 @@ class ExternalUserService:
                 "display_name": display_name,
                 "email": str(identity_data.get("email") or "").strip(),
                 "nome": raw_nome,
-                "access_profile": str(identity_data.get("access_profile") or "").strip(),
+                "access_profile": str(
+                    identity_data.get("access_profile") or ""
+                ).strip(),
                 "cpf": ExternalUserService._pick_first_non_empty(
                     additional_info.get("cpf"),
                     identity_data.get("cpf"),
@@ -415,7 +430,9 @@ class ExternalUserService:
             }
 
     @staticmethod
-    def get_user_complete_data(external_user_id: str, request_cookies: dict = None) -> dict:
+    def get_user_complete_data(
+        external_user_id: str, request_cookies: dict = None
+    ) -> dict:
         """
         Busca dados completos do usuário do Hub via /api/users/get/data/
         """
@@ -432,9 +449,7 @@ class ExternalUserService:
         try:
             response = requests.get(
                 url,
-                params={
-                    "fields": "id,username,email,nome,cpf,access_profile"
-                },
+                params={"fields": "id,username,email,nome,cpf,access_profile"},
                 cookies=cookies,
                 timeout=10,
             )
@@ -456,7 +471,9 @@ class ExternalUserService:
             # Fallback: alguns ambientes do Hub não retornam CPF no /get/data,
             # mas retornam no endpoint por id.
             if not cpf_value and external_user_id:
-                detail_url = f"{base_system_url.rstrip('/')}/api/users/get/{external_user_id}/"
+                detail_url = (
+                    f"{base_system_url.rstrip('/')}/api/users/get/{external_user_id}/"
+                )
                 detail_response = requests.get(
                     detail_url,
                     params={"fields": "id,username,email,nome,cpf"},
@@ -464,7 +481,9 @@ class ExternalUserService:
                     timeout=10,
                 )
                 detail_response.raise_for_status()
-                detail_data = ExternalUserService._extract_user_payload(detail_response.json())
+                detail_data = ExternalUserService._extract_user_payload(
+                    detail_response.json()
+                )
                 cpf_value = ExternalUserService._pick_first_non_empty(
                     cpf_value,
                     detail_data.get("cpf"),
@@ -483,7 +502,9 @@ class ExternalUserService:
                         data.get("email"), detail_data.get("email")
                     ),
                     "nome": ExternalUserService._pick_first_non_empty(
-                        data.get("nome"), detail_data.get("nome"), detail_data.get("username")
+                        data.get("nome"),
+                        detail_data.get("nome"),
+                        detail_data.get("username"),
                     ),
                 }
 
@@ -492,7 +513,8 @@ class ExternalUserService:
                 "id": data.get("id"),
                 "username": data.get("username"),
                 "email": data.get("email") or "",  # Garante que email não seja None
-                "nome": data.get("nome") or data.get("username", ""),  # Usa username como fallback para nome
+                "nome": data.get("nome")
+                or data.get("username", ""),  # Usa username como fallback para nome
                 "cpf": cpf_value,
                 "access_profile": data.get("access_profile", ""),
             }
@@ -503,9 +525,9 @@ class ExternalUserService:
                     external_user_id,
                     sorted(list(data.keys())),
                 )
-            
+
             return mapped_data
-            
+
         except requests.RequestException as e:
             logger.warning(
                 "Falha ao buscar dados completos do Hub para external_user_id=%s: %s",
@@ -548,11 +570,11 @@ class UniqueValidationService:
         """Valida se CPF é único no sistema."""
         if not cpf or cpf.strip() == "":
             return  # Permite CPF vazio
-        
+
         query = User.objects.filter(cpf=cpf)
         if exclude_user_id:
             query = query.exclude(id=exclude_user_id)
-        
+
         if query.exists():
             raise UniqueConstraintViolationError(
                 f"CPF '{cpf}' já registrado no sistema. "
@@ -564,11 +586,11 @@ class UniqueValidationService:
         """Valida se email é único no sistema."""
         if not email or email.strip() == "":
             return  # Permite email vazio
-        
+
         query = User.objects.filter(email=email)
         if exclude_user_id:
             query = query.exclude(id=exclude_user_id)
-        
+
         if query.exists():
             raise UniqueConstraintViolationError(
                 f"Email '{email}' já está associado a outra conta. "
@@ -580,11 +602,11 @@ class UniqueValidationService:
         """Valida se hub_id é único no sistema."""
         if not hub_id or hub_id.strip() == "":
             return  # Permite hub_id vazio
-        
+
         query = User.objects.filter(hub_id=hub_id)
         if exclude_user_id:
             query = query.exclude(id=exclude_user_id)
-        
+
         if query.exists():
             raise UniqueConstraintViolationError(
                 f"Usuário do Hub '{hub_id}' já existe no sistema. "
@@ -592,7 +614,12 @@ class UniqueValidationService:
             )
 
     @staticmethod
-    def validate_all(cpf: str | None, email: str | None, hub_id: str | None, exclude_user_id: int | None = None) -> None:
+    def validate_all(
+        cpf: str | None,
+        email: str | None,
+        hub_id: str | None,
+        exclude_user_id: int | None = None,
+    ) -> None:
         """Valida todos os constraints de unicidade de uma vez."""
         UniqueValidationService.validate_cpf(cpf, exclude_user_id)
         UniqueValidationService.validate_email(email, exclude_user_id)
@@ -601,14 +628,22 @@ class UniqueValidationService:
 
 class TokenService:
     @staticmethod
-    def pair_token(external_user_id: str, request_cookies: dict = None) -> tuple[str, str, dict]:
+    def pair_token(
+        external_user_id: str, request_cookies: dict = None
+    ) -> tuple[str, str, dict]:
         now = datetime.now(timezone.utc)
-        refresh_exp = now + timedelta(days=get_setting("JWT_REFRESH_TOKEN_EXPIRE_DAYS", 1))
+        refresh_exp = now + timedelta(
+            days=get_setting("JWT_REFRESH_TOKEN_EXPIRE_DAYS", 1)
+        )
         jwt_secret = get_setting("JWT_SECRET_KEY", settings.SECRET_KEY)
         jwt_algorithm = get_setting("JWT_ALGORITHM", "HS256")
 
-        external_data = ExternalUserService.get_user_data(external_user_id, request_cookies)
-        complete_data = ExternalUserService.get_user_complete_data(external_user_id, request_cookies)
+        external_data = ExternalUserService.get_user_data(
+            external_user_id, request_cookies
+        )
+        complete_data = ExternalUserService.get_user_complete_data(
+            external_user_id, request_cookies
+        )
         additional_info = ExternalUserService.get_user_additional_info(
             external_user_id, request_cookies
         )
@@ -623,11 +658,13 @@ class TokenService:
         # no fluxo ?system= o Hub não aceita /get/data/ com credencial de sistema.
         if not complete_data:
             complete_data = {}
-        
+
         technical = f"hub_{external_user_id}"
         username = external_data.get("username", technical)
         display_name = external_data.get("display_name", username)
-        first_name, last_name = split_name_from_username(display_name if not is_technical_username(display_name) else username)
+        first_name, last_name = split_name_from_username(
+            display_name if not is_technical_username(display_name) else username
+        )
         email = (complete_data.get("email") or external_data.get("email") or "").strip()
         email = email or None
         cpf = normalize_cpf_or_none(
@@ -636,9 +673,7 @@ class TokenService:
             or external_data.get("cpf")
         )
         nome = (
-            external_data.get("nome")
-            or complete_data.get("nome")
-            or display_name
+            external_data.get("nome") or complete_data.get("nome") or display_name
         ).strip()[:255]
         access_profile = (
             external_data.get("access_profile")
@@ -668,12 +703,20 @@ class TokenService:
 
         # Atualiza com dados completos se disponíveis
         if complete_data:
-            user_defaults.update({
-                "email": (complete_data.get("email") or user_defaults["email"] or "").strip() or None,
-                "nome": complete_data.get("nome", user_defaults["nome"])[:255],
-                "cpf": normalize_cpf_or_none(complete_data.get("cpf")) or user_defaults["cpf"],
-                "access_profile": complete_data.get("access_profile", user_defaults["access_profile"]),
-            })
+            user_defaults.update(
+                {
+                    "email": (
+                        complete_data.get("email") or user_defaults["email"] or ""
+                    ).strip()
+                    or None,
+                    "nome": complete_data.get("nome", user_defaults["nome"])[:255],
+                    "cpf": normalize_cpf_or_none(complete_data.get("cpf"))
+                    or user_defaults["cpf"],
+                    "access_profile": complete_data.get(
+                        "access_profile", user_defaults["access_profile"]
+                    ),
+                }
+            )
 
         # Valida unicidade para CPF, email e hub_id antes de persistir.
         # Prioriza vínculo por ID externo (hub_id), com fallback para username técnico.
@@ -714,7 +757,9 @@ class TokenService:
 
         # Usuarios comuns so podem manter permissões locais de visualizacao.
         if not is_admin_user(user):
-            allowed_permissions = user.user_permissions.filter(codename__startswith="view_")
+            allowed_permissions = user.user_permissions.filter(
+                codename__startswith="view_"
+            )
             if user.user_permissions.exclude(codename__startswith="view_").exists():
                 user.user_permissions.set(allowed_permissions)
 
@@ -747,7 +792,8 @@ class TokenService:
 
         access_payload = {
             "iat": now,
-            "exp": now + timedelta(minutes=get_setting("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 30)),
+            "exp": now
+            + timedelta(minutes=get_setting("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 30)),
             "local_user_id": user.id,
             "external_user_id": external_user_id,
             "username": username,
@@ -803,7 +849,8 @@ class TokenService:
 
         access_payload = {
             "iat": now,
-            "exp": now + timedelta(minutes=get_setting("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 30)),
+            "exp": now
+            + timedelta(minutes=get_setting("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 30)),
             **payload,
         }
 

@@ -36,11 +36,10 @@ class ServidorListView(generics.ListAPIView):
         if q:
             from django.db.models import Q
 
-            # buscar por username, email, perfil.nome ou perfil.area_conhecimento
+            # buscar por username, email ou perfil.area_conhecimento
             usuarios = usuarios.filter(
                 Q(username__icontains=q)
                 | Q(email__icontains=q)
-                | Q(perfil__nome__icontains=q)
                 | Q(perfil__area_conhecimento__icontains=q)
             ).distinct()
         resultados = []
@@ -62,6 +61,12 @@ class ServidorListView(generics.ListAPIView):
                     "perfil_id": perfil_id,
                     "nome": nome,
                     "email": u.email,
+                    "nivel_ensino": getattr(perfil, "nivel_ensino", None)
+                    if perfil
+                    else None,
+                    "nivel_ensino_display": perfil.get_nivel_ensino_display()
+                    if perfil and getattr(perfil, "nivel_ensino", None)
+                    else None,
                     # incluir área de conhecimento do perfil para o frontend
                     "area_conhecimento": getattr(perfil, "area_conhecimento", None)
                     if perfil

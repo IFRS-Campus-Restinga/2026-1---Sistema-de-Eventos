@@ -28,9 +28,7 @@ class EnviarEmailsView(APIView):
             enviar_comunicado_geral(assunto=assunto, mensagem_texto=mensagem_texto)
 
             return Response(
-                {
-                    "mensagem": "Comunicado encaminhado para a fila de processamento assíncrono."
-                },
+                {"mensagem": "Comunicado encaminhado para a fila de processamento."},
                 status=status.HTTP_200_OK,
             )
 
