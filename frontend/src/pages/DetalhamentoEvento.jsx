@@ -84,7 +84,11 @@ export default function DetalheEvento() {
             <main className="flex-fill">
                 {/* HERO SECTION - Fundo Verde sólido como no Figma */}
                 <section
-                    style={{ backgroundColor: verdeIFRS, color: 'white' }}
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                        color: 'white',
+                    }}
                     className="py-5 text-center shadow-sm"
                 >
                     <Container>

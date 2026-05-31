@@ -135,7 +135,13 @@ export default function Dashboard() {
                     <Container>
                         <Row>
                             <Col>
-                                <Row className="rounded-4 bg-success p-3">
+                                <Row
+                                    className="rounded-4 bg-success p-3"
+                                    style={{
+                                        backgroundImage:
+                                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                                    }}
+                                >
                                     <Col
                                         sm={1}
                                         className="d-flex flex-column flex-md-row"

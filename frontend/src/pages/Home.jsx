@@ -1,26 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Container from 'react-bootstrap/esm/Container';
-import Row from 'react-bootstrap/esm/Row';
-import Col from 'react-bootstrap/esm/Col';
 import Spinner from 'react-bootstrap/esm/Spinner';
-import EventoCard from '../components/cards_listagem/EventoCard';
 import Alerta from '../components/common/Alerta';
+import ModalPopup from '../components/common/ModalPopup';
 import { MdOutlineSearch } from 'react-icons/md';
+import HomeCard from '../components/cards_listagem/HomeCard';
 import { useEventos } from '../hooks/useEventos';
 import useInscricoesEvento from '../hooks/useInscricoesEvento';
 import { redirectToLogin } from '../services/authService';
+import {
+    formatarDataEvento,
+    obterStatusHome,
+} from '../utils/homeEventoHelpers';
+
+const FILTROS = [
+    { value: 'TODOS', label: 'Todos' },
+    { value: 'INSCRICOES_ABERTAS', label: 'Inscrições abertas' },
+    { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+    { value: 'ENCERRADO', label: 'Encerrados' },
+];
 
 export default function Home({ campus = 'Campus Restinga' }) {
     const location = useLocation();
     const loginAlert = location.state?.loginAlert ?? null;
     const navigate = useNavigate();
     const [alertaInscricao, setAlertaInscricao] = useState(null);
+    const [modalConfirmarInscricao, setModalConfirmarInscricao] = useState({
+        show: false,
+        eventoId: null,
+        nomeEvento: '',
+    });
+    const [modalPosInscricao, setModalPosInscricao] = useState({
+        show: false,
+        eventoId: null,
+        nomeEvento: '',
+    });
+    const [filtroStatus, setFiltroStatus] = useState('TODOS');
+    const [termoBusca, setTermoBusca] = useState('');
 
-    const { eventos, possuiEtapaSubmissaoAberta } = useEventos();
+    const { eventos, loading, possuiEtapaSubmissaoAberta } = useEventos();
     const {
         estaInscritoEmEvento,
         criarInscricao,
@@ -29,6 +51,10 @@ export default function Home({ campus = 'Campus Restinga' }) {
     } = useInscricoesEvento();
 
     const handleInscrever = async (eventoId) => {
+        const eventoSelecionado = eventos.find(
+            (evento) => Number(evento?.id) === Number(eventoId),
+        );
+
         if (!usuarioLogado) {
             redirectToLogin();
             return;
@@ -41,14 +67,49 @@ export default function Home({ campus = 'Campus Restinga' }) {
             return;
         }
 
+        setModalConfirmarInscricao({
+            show: true,
+            eventoId,
+            nomeEvento: eventoSelecionado?.nome || '',
+        });
+    };
+
+    const fecharModalConfirmarInscricao = () => {
+        setModalConfirmarInscricao({
+            show: false,
+            eventoId: null,
+            nomeEvento: '',
+        });
+    };
+
+    const confirmarInscricao = async () => {
+        const { eventoId } = modalConfirmarInscricao;
+
+        fecharModalConfirmarInscricao();
+
+        if (!eventoId) {
+            return;
+        }
+
         try {
             await criarInscricao({
                 perfil_id: usuarioLogado.perfil_id,
                 evento_id: eventoId,
             });
+
+            const eventoInscrito = eventos.find(
+                (evento) => Number(evento?.id) === Number(eventoId),
+            );
+
             setAlertaInscricao({
                 mensagem: 'Inscrição realizada com sucesso!',
                 variacao: 'success',
+            });
+
+            setModalPosInscricao({
+                show: true,
+                eventoId,
+                nomeEvento: eventoInscrito?.nome || '',
             });
         } catch (erro) {
             console.error('Erro ao inscrever:', erro);
@@ -61,6 +122,26 @@ export default function Home({ campus = 'Campus Restinga' }) {
                 variacao: 'danger',
             });
         }
+    };
+
+    const fecharModalPosInscricao = () => {
+        setModalPosInscricao({
+            show: false,
+            eventoId: null,
+            nomeEvento: '',
+        });
+    };
+
+    const verAtracoesEvento = () => {
+        const { eventoId } = modalPosInscricao;
+
+        fecharModalPosInscricao();
+
+        if (!eventoId) {
+            return;
+        }
+
+        navigate(`/programacao_evento/${eventoId}`);
     };
 
     useEffect(() => {
@@ -77,10 +158,86 @@ export default function Home({ campus = 'Campus Restinga' }) {
         }
     }, [loginAlert, location.pathname]);
 
+    const eventosOrdenados = useMemo(() => {
+        return [...eventos].sort((eventoA, eventoB) => {
+            const idA = Number(eventoA?.id ?? 0);
+            const idB = Number(eventoB?.id ?? 0);
+
+            return idB - idA;
+        });
+    }, [eventos]);
+
+    const eventosFiltrados = useMemo(() => {
+        const termo = termoBusca.trim().toLowerCase();
+
+        return eventosOrdenados
+            .map((evento) => {
+                const statusInfo = obterStatusHome(evento);
+
+                return {
+                    ...evento,
+                    status_home: statusInfo.status,
+                    etapa_atual: statusInfo.etapaAtual,
+                };
+            })
+            .filter((evento) => {
+                if (!evento.status_home) {
+                    return false;
+                }
+
+                const statusOk =
+                    filtroStatus === 'TODOS' ||
+                    evento.status_home === filtroStatus;
+                const textoBase = [
+                    evento?.nome,
+                    evento?.tema,
+                    evento?.descricao,
+                    evento?.setor,
+                ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+
+                const buscaOk = !termo || textoBase.includes(termo);
+
+                return statusOk && buscaOk;
+            });
+    }, [eventosOrdenados, filtroStatus, termoBusca]);
+
+    const eventoDestaque = eventosFiltrados[0] ?? null;
+    const eventosSecundarios = eventosFiltrados.slice(1);
+    const temFiltroAtivo =
+        filtroStatus !== 'TODOS' || termoBusca.trim().length > 0;
+
+    const renderCard = (evento, destaque = false) => (
+        <HomeCard
+            key={evento.id}
+            evento={evento}
+            destaque={destaque}
+            onDetalhes={() => {
+                navigate(`/detalhe_evento/${evento.id}`);
+            }}
+            onInscrever={() => handleInscrever(evento.id)}
+            possuiInscricao={estaInscritoEmEvento(evento.id)}
+            statusInscricao={obterStatusInscricao(evento.id)}
+            permiteInscricao={possuiEtapaSubmissaoAberta(evento)}
+            formatarData={formatarDataEvento}
+            statusHome={evento.status_home}
+            etapaAtual={evento.etapa_atual}
+        />
+    );
+
     return (
         <>
             <NavBar />
-            <main className="flex-fill">
+            <main
+                className="flex-fill"
+                style={{
+                    background:
+                        'radial-gradient(circle at top left, rgba(15, 122, 67, 0.14), transparent 32%), radial-gradient(circle at bottom right, rgba(178, 106, 0, 0.11), transparent 28%), linear-gradient(180deg, #f4f7f2 0%, #eef3ec 100%)',
+                    color: '#17301f',
+                }}
+            >
                 {loginAlert && (
                     <Alerta
                         mensagem={loginAlert.mensagem}
@@ -89,85 +246,176 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     />
                 )}
 
-                <Container fluid className="p-0">
-                    <Row className="m-0">
-                        <Col
-                            style={{ background: '#059547', padding: '100px' }}
+                <section
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                        color: '#ffffff',
+                        padding: '4.25rem 1.5rem 4.75rem',
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            width: '24rem',
+                            height: '24rem',
+                            left: '-7rem',
+                            top: '-10rem',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            pointerEvents: 'none',
+                        }}
+                    />
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            width: '18rem',
+                            height: '18rem',
+                            right: '-5rem',
+                            bottom: '-8rem',
+                            borderRadius: '999px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            pointerEvents: 'none',
+                        }}
+                    />
+                    <div
+                        className="position-relative mx-auto text-center"
+                        style={{
+                            position: 'relative',
+                            zIndex: 1,
+                            maxWidth: '52rem',
+                        }}
+                    >
+                        <span
+                            className="d-inline-flex align-items-center gap-2 rounded-pill fw-bold text-uppercase"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                color: 'rgba(255, 255, 255, 0.76)',
+                                fontSize: '0.74rem',
+                                letterSpacing: '0.18em',
+                                padding: '0.45rem 0.85rem',
+                            }}
                         >
-                            <h1 className="text-white text-center fw-bold">
-                                Eventos IFRS {campus}
-                            </h1>
-                            <p className="text-white text-center fs-5">
-                                Acompanhe os principais eventos do IFRS {campus}
-                            </p>
-                        </Col>
-                    </Row>
+                            {campus} · 2026
+                        </span>
+                        <h1
+                            className="fw-bold text-white"
+                            style={{
+                                fontSize: 'clamp(2.75rem, 6vw, 4.8rem)',
+                                lineHeight: 0.96,
+                                margin: '1.1rem 0 0.9rem',
+                            }}
+                        >
+                            Eventos <em className="fst-italic">acadêmicos</em>
+                        </h1>
+                        <p
+                            className="mx-auto mb-0"
+                            style={{
+                                maxWidth: '40rem',
+                                color: 'rgba(255, 255, 255, 0.74)',
+                                fontSize: '1rem',
+                                lineHeight: 1.7,
+                            }}
+                        >
+                            Acompanhe, inscreva-se e participe dos principais
+                            eventos do IFRS {campus}.
+                        </p>
+                    </div>
+                </section>
 
-                    <Row className="m-0">
-                        <Col
-                            xs={12}
-                            md={10}
-                            lg={8}
-                            className="mx-auto d-flex flex-column align-items-center my-5 gap-4"
+                <Container className="py-5" style={{ maxWidth: '82rem' }}>
+                    <div className="d-grid gap-3 mb-4">
+                        <label
+                            className="d-flex align-items-center gap-2"
+                            htmlFor="home-search"
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.94)',
+                                border: '1px solid rgba(18, 48, 30, 0.09)',
+                                borderRadius: '1rem',
+                                boxShadow: '0 18px 36px rgba(22, 51, 28, 0.08)',
+                                minHeight: '3.5rem',
+                                padding: '0 1rem',
+                            }}
                         >
-                            {eventos.length > 0 ? (
-                                eventos.map((evento) => (
-                                    <EventoCard
-                                        key={evento.id}
-                                        titulo={evento.nome}
-                                        data={`Carga Horária: ${evento.carga_horaria}h`}
-                                        faseAtual={
-                                            evento.status_evento ||
-                                            'Em andamento'
-                                        }
-                                        corFase={
-                                            evento.status_evento === 'Aberto'
-                                                ? '#106D47'
-                                                : '#6c757d'
-                                        }
-                                        descricao={evento?.descricao}
-                                        textoBotao1="Ver Detalhes"
-                                        onClick1={() => {
-                                            navigate(
-                                                `/detalhe_evento/${evento.id}`,
-                                            );
-                                        }}
-                                        textoBotao2={
-                                            estaInscritoEmEvento(evento.id)
-                                                ? obterStatusInscricao(
-                                                      evento.id,
-                                                  ) === 'CANCELADA'
-                                                    ? 'Cancelada'
-                                                    : 'Inscrito'
-                                                : possuiEtapaSubmissaoAberta(
-                                                        evento,
-                                                    )
-                                                  ? 'Inscreva-se'
-                                                  : ''
-                                        }
-                                        onClick2={() =>
-                                            handleInscrever(evento.id)
-                                        }
-                                        icon1={MdOutlineSearch}
-                                        varianteBotao2={
-                                            obterStatusInscricao(evento.id) ===
-                                            'CANCELADA'
-                                                ? 'danger'
-                                                : 'outline-success'
-                                        }
-                                        id={evento.id}
-                                        desabilitarBotao2={estaInscritoEmEvento(
-                                            evento.id,
-                                        )}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-muted">
-                                    Nenhum evento disponível no momento.
-                                </p>
-                            )}
-                        </Col>
-                    </Row>
+                            <MdOutlineSearch aria-hidden="true" />
+                            <input
+                                className="form-control border-0 bg-transparent shadow-none p-0"
+                                id="home-search"
+                                type="search"
+                                value={termoBusca}
+                                onChange={(event) =>
+                                    setTermoBusca(event.target.value)
+                                }
+                                placeholder="Buscar eventos por nome, tema, área ou fase..."
+                            />
+                        </label>
+
+                        <div
+                            className="d-flex flex-wrap gap-2"
+                            role="tablist"
+                            aria-label="Filtros de eventos"
+                        >
+                            {FILTROS.map((filtro) => (
+                                <button
+                                    key={filtro.value}
+                                    type="button"
+                                    className={`btn btn-sm rounded-pill fw-semibold ${
+                                        filtroStatus === filtro.value
+                                            ? 'btn-success text-white shadow-sm'
+                                            : 'btn-outline-success'
+                                    }`}
+                                    onClick={() =>
+                                        setFiltroStatus(filtro.value)
+                                    }
+                                >
+                                    {filtro.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3 bg-white border rounded-4 shadow-sm gap-3">
+                            <Spinner animation="border" role="status" />
+                            <span>Carregando eventos...</span>
+                        </div>
+                    ) : eventosFiltrados.length > 0 && eventoDestaque ? (
+                        <div className="d-grid gap-4">
+                            {!temFiltroAtivo ? (
+                                <>
+                                    <div className="d-none d-lg-block">
+                                        {renderCard(eventoDestaque, true)}
+                                    </div>
+                                    <div className="d-block d-lg-none">
+                                        {renderCard(eventoDestaque, false)}
+                                    </div>
+                                </>
+                            ) : null}
+
+                            <div className="row row-cols-1 row-cols-lg-2 g-4">
+                                {(temFiltroAtivo
+                                    ? eventosFiltrados
+                                    : eventosSecundarios
+                                ).map((evento) => (
+                                    <div className="col" key={evento.id}>
+                                        {renderCard(evento, false)}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 px-3 bg-white border rounded-4 shadow-sm">
+                            <strong>Nenhum evento encontrado.</strong>
+                            <span>
+                                Ajuste a busca ou os filtros para visualizar
+                                outros eventos.
+                            </span>
+                        </div>
+                    )}
                 </Container>
             </main>
             {alertaInscricao && (
@@ -177,6 +425,38 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     duracao={3000}
                 />
             )}
+
+            <ModalPopup
+                show={modalConfirmarInscricao.show}
+                onFechar={fecharModalConfirmarInscricao}
+                onAcao={confirmarInscricao}
+                variante="success"
+                titulo="Confirmar inscrição"
+                tituloSecundario="Deseja confirmar a inscrição neste evento?"
+                texto={
+                    modalConfirmarInscricao.nomeEvento
+                        ? `Você está prestes a se inscrever em ${modalConfirmarInscricao.nomeEvento}.`
+                        : 'Você está prestes a confirmar sua inscrição.'
+                }
+                textoFechar="Cancelar"
+                textoAcao="Confirmar inscrição"
+            />
+
+            <ModalPopup
+                show={modalPosInscricao.show}
+                onFechar={fecharModalPosInscricao}
+                onAcao={verAtracoesEvento}
+                variante="success"
+                titulo="Inscrição confirmada"
+                tituloSecundario="Deseja ver as atrações deste evento agora?"
+                texto={
+                    modalPosInscricao.nomeEvento
+                        ? `Você se inscreveu em ${modalPosInscricao.nomeEvento}.`
+                        : 'Sua inscrição foi concluída com sucesso.'
+                }
+                textoFechar="Depois"
+                textoAcao="Ver atrações"
+            />
 
             <Footer
                 telefone={'(51) 3333-1234'}

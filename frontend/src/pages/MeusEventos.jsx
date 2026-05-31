@@ -53,7 +53,11 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                 <Container fluid className="p-0">
                     <Row className="m-0">
                         <Col
-                            style={{ background: '#059547', padding: '100px' }}
+                            style={{
+                                backgroundImage:
+                                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                                padding: '100px',
+                            }}
                         >
                             <h1 className="text-white text-center fw-bold">
                                 Meus Eventos

@@ -180,11 +180,17 @@ export default function NavBar() {
             key={expand}
             expand={expand}
             className="bg-body-tertiary p-0"
-            style={{ backgroundColor: '#00A44B' }}
+            style={{
+                backgroundImage:
+                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
+            }}
         >
             <Container
                 fluid
-                style={{ backgroundColor: '#00A44B' }}
+                style={{
+                    backgroundImage:
+                        'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                }}
                 className="py-2 position-relative"
             >
                 <Navbar.Brand href="#" className="ps-5">
