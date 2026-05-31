@@ -9,6 +9,7 @@ from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
 from ..models.espaco import Espaco
 from ..models.resposta import Resposta
+from ..enumerations.nivel_ensino import NivelEnsino
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
 
@@ -25,9 +26,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-    nivel_ensino_display = serializers.CharField(
-        source="get_nivel_ensino_display", read_only=True
-    )
+    # Sobrescreve o ChoiceField automático do model para aceitar CSV/lista.
+    nivel_ensino = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    nivel_ensino_display = serializers.SerializerMethodField()
 
     equipe_json = serializers.CharField(required=False, allow_blank=True, default="")
     respostas_campos = serializers.SerializerMethodField(read_only=True)
@@ -54,6 +55,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "acessibilidade",
             "evento",
             "status",
+            "sugestao_vagas",
             "equipe",
             "equipe_json",
             "data_hora_inicio",
@@ -78,13 +80,86 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if espaco:
             model_data["local_atracao"] = str(espaco)
 
-        # Criamos uma instância temporária para rodar o full_clean
+        modalidade = model_data.get("modalidade") or getattr(self.instance, "modalidade", None)
+        sugestao_vagas = model_data.get("sugestao_vagas")
+        if sugestao_vagas is not None and modalidade and modalidade.limite_vagas > 0:
+            if sugestao_vagas > modalidade.limite_vagas:
+                raise serializers.ValidationError(
+                    {
+                        "sugestao_vagas": (
+                            f"A sugestão de vagas não pode ultrapassar o limite da modalidade "
+                            f"({modalidade.limite_vagas})."
+                        )
+                    }
+                )
+
+        # nivel_ensino aceita múltiplos valores no formato CSV neste fluxo.
+        # slug é gerado automaticamente no save().
+        # Excluímos ambos do full_clean para evitar validações indevidas neste ponto.
         instance = Atracao(**model_data)
         try:
-            instance.full_clean()
+            instance.full_clean(exclude=["nivel_ensino", "slug"])
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def validate_nivel_ensino(self, value):
+        if value in (None, ""):
+            return value
+
+        itens = []
+        if isinstance(value, (list, tuple)):
+            itens = [str(item).strip() for item in value if str(item).strip()]
+        else:
+            valor_texto = str(value).strip()
+
+            # Aceita entrada com aspas externas (ex.: "\"ENSINO_MEDIO_INTEGRADO,SUBSEQUENTE\"").
+            if (
+                len(valor_texto) >= 2
+                and valor_texto[0] == valor_texto[-1]
+                and valor_texto[0] in {'"', "'"}
+            ):
+                valor_texto = valor_texto[1:-1].strip()
+
+            # Aceita payload em formato JSON (lista ou string).
+            if valor_texto.startswith("[") and valor_texto.endswith("]"):
+                try:
+                    parsed = json.loads(valor_texto)
+                    if isinstance(parsed, list):
+                        itens = [str(item).strip() for item in parsed if str(item).strip()]
+                    elif isinstance(parsed, str):
+                        valor_texto = parsed.strip()
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    pass
+
+            if not itens:
+                itens = [item.strip() for item in valor_texto.split(",") if item.strip()]
+
+        if not itens:
+            return ""
+
+        validos = {choice[0] for choice in NivelEnsino.choices}
+        invalidos = [item for item in itens if item not in validos]
+        if invalidos:
+            raise serializers.ValidationError(
+                f"Nível(is) de ensino inválido(s): {', '.join(invalidos)}"
+            )
+
+        # Mantemos persistência como CSV para compatibilidade de schema.
+        return ",".join(itens)
+
+    def get_nivel_ensino_display(self, obj):
+        valor = getattr(obj, "nivel_ensino", None)
+        if not valor:
+            return ""
+
+        mapa = {choice[0]: str(choice[1]) for choice in NivelEnsino.choices}
+        itens = [item.strip() for item in str(valor).split(",") if item.strip()]
+        if not itens:
+            return ""
+
+        labels = [mapa.get(item, item) for item in itens]
+        return ", ".join(labels)
 
     def validate_equipe_json(self, value):
         if not value:

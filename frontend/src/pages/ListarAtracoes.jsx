@@ -35,6 +35,7 @@ import {
 } from '../services/atracaoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
+import { pegarModalidade } from '../services/modalidadeService';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -67,6 +68,8 @@ export default function ListarAtracoes() {
     const [eventosEdicao, setEventosEdicao] = useState([]);
     const [usuariosEdicao, setUsuariosEdicao] = useState([]);
     const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
+    const [modalidadeEdicaoDetalhe, setModalidadeEdicaoDetalhe] = useState(null);
+    const [habilitarSugestaoVagasEdicao, setHabilitarSugestaoVagasEdicao] = useState(false);
 
     const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
@@ -81,6 +84,21 @@ export default function ListarAtracoes() {
 
     const contarPalavras = (texto) =>
         texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
+
+    const normalizarNiveisEnsino = (valor) => {
+        if (Array.isArray(valor)) {
+            return valor.filter((item) => String(item || '').trim() !== '');
+        }
+
+        if (!valor) {
+            return [];
+        }
+
+        return String(valor)
+            .split(',')
+            .map((item) => item.trim())
+            .filter((item) => item !== '');
+    };
 
     const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
         setAlerta((prev) => ({
@@ -175,6 +193,25 @@ export default function ListarAtracoes() {
         carregarDetalheEventoEdicao();
     }, [mostrarModalEdicao, formEdicao.evento, eventosEdicao]);
 
+    useEffect(() => {
+        const carregarDetalheModalidadeEdicao = async () => {
+            if (!mostrarModalEdicao || !formEdicao.modalidade) {
+                setModalidadeEdicaoDetalhe(null);
+                return;
+            }
+
+            try {
+                const detalhe = await pegarModalidade(formEdicao.modalidade);
+                setModalidadeEdicaoDetalhe(detalhe);
+            } catch (error) {
+                console.error('Erro ao carregar detalhe da modalidade na edicao:', error);
+                setModalidadeEdicaoDetalhe(null);
+            }
+        };
+
+        carregarDetalheModalidadeEdicao();
+    }, [mostrarModalEdicao, formEdicao.modalidade]);
+
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
 
@@ -248,6 +285,7 @@ export default function ListarAtracoes() {
     }, [atracoes, termoBusca]);
 
     const abrirModalEdicao = (atracao) => {
+        const sugestaoAtual = atracao.sugestao_vagas ?? '';
         setFormEdicao({
             id: atracao.id,
             titulo: atracao.titulo || '',
@@ -255,12 +293,13 @@ export default function ListarAtracoes() {
             status: atracao.status || 'PREVISTA',
             palavras_chave: atracao.palavras_chave || '',
             modalidade: atracao.modalidade || '',
-            nivel_ensino: atracao.nivel_ensino || '',
+            nivel_ensino: normalizarNiveisEnsino(atracao.nivel_ensino),
             area_conhecimento: atracao.area_conhecimento || '',
             orientador: atracao.orientador,
             sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
+            sugestao_vagas: sugestaoAtual,
             equipe: Array.isArray(atracao.equipe)
                 ? atracao.equipe.map((membro) => ({
                       nome: membro.nome || '',
@@ -269,7 +308,24 @@ export default function ListarAtracoes() {
                   }))
                 : [],
         });
+        setHabilitarSugestaoVagasEdicao(
+            sugestaoAtual !== '' && sugestaoAtual !== null && sugestaoAtual !== undefined,
+        );
         setMostrarModalEdicao(true);
+    };
+
+    const toggleNivelEnsinoEdicao = (nivelValue) => {
+        setFormEdicao((prev) => {
+            const atuais = normalizarNiveisEnsino(prev.nivel_ensino);
+            const atualizados = atuais.includes(nivelValue)
+                ? atuais.filter((item) => item !== nivelValue)
+                : [...atuais, nivelValue];
+
+            return {
+                ...prev,
+                nivel_ensino: atualizados,
+            };
+        });
     };
 
     const getNomeUsuario = (usuario) =>
@@ -329,7 +385,9 @@ export default function ListarAtracoes() {
 
         const tituloPalavras = contarPalavras(formEdicao.titulo || '');
 
-        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || !formEdicao.nivel_ensino || !formEdicao.area_conhecimento) {
+        const nivelEnsinoVazio = normalizarNiveisEnsino(formEdicao.nivel_ensino).length === 0;
+
+        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || nivelEnsinoVazio || !formEdicao.area_conhecimento) {
             mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
             return;
         }
@@ -626,6 +684,62 @@ export default function ListarAtracoes() {
                                                 </option>
                                             ))}
                                         </Form.Select>
+
+                                        {modalidadeEdicaoDetalhe && (
+                                            <div className="mt-2">
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    id="edicao-habilitar-sugestao-vagas"
+                                                    label="Habilitar sugestão para número de vagas"
+                                                    className="mb-2"
+                                                    checked={habilitarSugestaoVagasEdicao}
+                                                    onChange={(e) => {
+                                                        const habilitado = e.target.checked;
+                                                        setHabilitarSugestaoVagasEdicao(habilitado);
+                                                        if (!habilitado) {
+                                                            setFormEdicao((prev) => ({
+                                                                ...prev,
+                                                                sugestao_vagas: '',
+                                                            }));
+                                                        }
+                                                    }}
+                                                />
+
+                                                {habilitarSugestaoVagasEdicao && (
+                                                    <>
+                                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                                            Sugestão para Número de Vagas
+                                                        </Form.Label>
+                                                        <Form.Control
+                                                            type="number"
+                                                            min={1}
+                                                            max={
+                                                                modalidadeEdicaoDetalhe.limite_vagas > 0
+                                                                    ? modalidadeEdicaoDetalhe.limite_vagas
+                                                                    : undefined
+                                                            }
+                                                            value={formEdicao.sugestao_vagas ?? ''}
+                                                            onChange={(e) =>
+                                                                setFormEdicao((prev) => ({
+                                                                    ...prev,
+                                                                    sugestao_vagas:
+                                                                        e.target.value === ''
+                                                                            ? ''
+                                                                            : Number(e.target.value),
+                                                                }))
+                                                            }
+                                                            placeholder="Ex: 30"
+                                                        />
+                                                    </>
+                                                )}
+
+                                                <Form.Text className="text-muted">
+                                                    {modalidadeEdicaoDetalhe.limite_vagas > 0
+                                                        ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_vagas} vagas.`
+                                                        : 'Esta modalidade não possui limite de vagas definido.'}
+                                                </Form.Text>
+                                            </div>
+                                        )}
                                     </Form.Group>
                                 </Col>
                             </Row>
@@ -636,22 +750,26 @@ export default function ListarAtracoes() {
                                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                             Nivel de Ensino
                                         </Form.Label>
-                                        <Form.Select
-                                            value={formEdicao.nivel_ensino || ''}
-                                            onChange={(e) =>
-                                                setFormEdicao((prev) => ({
-                                                    ...prev,
-                                                    nivel_ensino: e.target.value,
-                                                }))
-                                            }
+                                        <div
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                borderRadius: '0.375rem',
+                                                padding: '0.75rem',
+                                                border: '1px solid #ced4da',
+                                            }}
                                         >
-                                            <option value="">Selecione o nivel</option>
                                             {opcoesEdicao.niveis_ensino.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
+                                                <Form.Check
+                                                    key={opt.value}
+                                                    type="checkbox"
+                                                    id={`edicao-nivel-${opt.value}`}
+                                                    label={opt.label}
+                                                    checked={normalizarNiveisEnsino(formEdicao.nivel_ensino).includes(opt.value)}
+                                                    onChange={() => toggleNivelEnsinoEdicao(opt.value)}
+                                                    className="mb-1"
+                                                />
                                             ))}
-                                        </Form.Select>
+                                        </div>
                                     </Form.Group>
                                 </Col>
                                 <Col md={6}>

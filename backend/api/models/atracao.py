@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.core.validators import MaxLengthValidator, MinLengthValidator, MinValueValidator
 from django.db import models
 
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
@@ -87,6 +87,13 @@ class Atracao(Base):
         verbose_name="Status",
         default=StatusAtracao.PREVISTA,
     )
+    sugestao_vagas = models.IntegerField(
+        verbose_name="Sugestão para Número de Vagas",
+        help_text="Sugestão opcional de vagas para esta atração",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+    )
 
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
@@ -109,7 +116,7 @@ class Atracao(Base):
     slug = models.SlugField(
         max_length=100,
         unique=True,
-        default="",
+        blank=True,
         null=True,
     )
 
@@ -142,7 +149,7 @@ class Atracao(Base):
 
     def save(self, *args, **kwargs):
         if self.slug is None or self.slug == "":
-            self.slug = slugify(self.nome)
+            self.slug = slugify(self.titulo)
         super().save(*args, **kwargs)
 
     def __str__(self):

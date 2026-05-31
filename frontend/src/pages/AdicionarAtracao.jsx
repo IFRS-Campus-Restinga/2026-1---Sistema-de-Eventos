@@ -26,7 +26,7 @@ export default function AdicionarAtracao() {
         resumo: '',
         palavras_chave: '',
         modalidade: '',
-        nivel_ensino: '',
+        nivel_ensino: [],
         area_conhecimento: '',
         orientador: null,
         sou_orientador: false,
@@ -34,6 +34,7 @@ export default function AdicionarAtracao() {
         acessibilidade: false,
         evento: '',
         status: 'PREVISTA',
+        sugestao_vagas: '',
         respostas_campos: {},
         equipe: []
     });
@@ -243,7 +244,10 @@ export default function AdicionarAtracao() {
 
     const handleSubmeter = async () => {
         if (isLoading) return;
-        if (!formState.titulo || !formState.resumo || !formState.modalidade || !formState.nivel_ensino || !formState.area_conhecimento || !formState.evento) {
+        const nivelEnsinoVazio =
+            !Array.isArray(formState.nivel_ensino) || formState.nivel_ensino.length === 0;
+
+        if (!formState.titulo || !formState.resumo || !formState.modalidade || nivelEnsinoVazio || !formState.area_conhecimento || !formState.evento) {
             mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
             return;
         }

@@ -25,6 +25,11 @@ export default function CriarAtracaoCard({
 }) {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [habilitarSugestaoVagas, setHabilitarSugestaoVagas] = useState(
+        formState.sugestao_vagas !== '' &&
+        formState.sugestao_vagas !== null &&
+        formState.sugestao_vagas !== undefined,
+    );
 
     const countWords = (text) =>
         text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
@@ -89,7 +94,9 @@ export default function CriarAtracaoCard({
                 if (!value) return 'Selecione uma modalidade';
                 break;
             case 'nivel_ensino':
-                if (!value) return 'Selecione um nível de ensino';
+                if (!Array.isArray(value) || value.length === 0) {
+                    return 'Selecione pelo menos um nível de ensino';
+                }
                 break;
             case 'area_conhecimento':
                 if (!value) return 'Selecione uma área de conhecimento';
@@ -113,6 +120,18 @@ export default function CriarAtracaoCard({
             const error = validateField(fieldName, value);
             setErrors({ ...errors, [fieldName]: error });
         }
+    };
+
+    const toggleNivelEnsino = (nivelValue) => {
+        const atuais = Array.isArray(formState.nivel_ensino)
+            ? formState.nivel_ensino
+            : [];
+
+        const atualizado = atuais.includes(nivelValue)
+            ? atuais.filter((item) => item !== nivelValue)
+            : [...atuais, nivelValue];
+
+        handleChange('nivel_ensino', atualizado);
     };
 
     const campoKey = (campoId) => `campo_${campoId}`;
@@ -360,43 +379,75 @@ export default function CriarAtracaoCard({
                                 )}
                             </Form.Group>
                             {modalidadeSelecionadaDetalhe && (
-                                <div className="mt-2 p-3 rounded border bg-white small">
-                                    <div className="fw-bold mb-1" style={{ color: '#00A44B' }}>
-                                        {modalidadeSelecionadaDetalhe.nome}
-                                    </div>
-                                    <div className="text-muted">
-                                        <div>
-                                            <strong>Número de vagas:</strong>{' '}
-                                            {modalidadeSelecionadaDetalhe.limite_vagas > 0
-                                                ? modalidadeSelecionadaDetalhe.limite_vagas
-                                                : 'Sem limite definido'}
-                                        </div>
-                                        <div>
-                                            <strong>Campos customizados:</strong>{' '}
-                                            {Array.isArray(modalidadeSelecionadaDetalhe.campos)
-                                                ? modalidadeSelecionadaDetalhe.campos.length
-                                                : 0}
-                                        </div>
-                                    </div>
-                                </div>
+                                <Form.Group className="mt-2">
+                                    <Form.Check
+                                        type="checkbox"
+                                        id="habilitar-sugestao-vagas"
+                                        label="Habilitar sugestão para número de vagas"
+                                        checked={habilitarSugestaoVagas}
+                                        onChange={(e) => {
+                                            const habilitado = e.target.checked;
+                                            setHabilitarSugestaoVagas(habilitado);
+                                            if (!habilitado) {
+                                                handleChange('sugestao_vagas', '');
+                                            }
+                                        }}
+                                        className="mb-2"
+                                    />
+
+                                    {habilitarSugestaoVagas && (
+                                        <>
+                                            <Form.Label style={labelStyle}>Sugestão para Número de Vagas</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                min={1}
+                                                max={modalidadeSelecionadaDetalhe.limite_vagas > 0 ? modalidadeSelecionadaDetalhe.limite_vagas : undefined}
+                                                value={formState.sugestao_vagas ?? ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    handleChange('sugestao_vagas', val === '' ? '' : Number(val));
+                                                }}
+                                                placeholder="Ex: 30"
+                                                style={{ backgroundColor: '#eeeeee' }}
+                                            />
+                                        </>
+                                    )}
+
+                                    <Form.Text className="text-muted">
+                                        {modalidadeSelecionadaDetalhe.limite_vagas > 0
+                                            ? `Limite definido para esta modalidade: ${modalidadeSelecionadaDetalhe.limite_vagas} vagas.`
+                                            : 'Esta modalidade não possui limite de vagas definido.'}
+                                    </Form.Text>
+                                </Form.Group>
                             )}
                         </Col>
                         <Col md={4}>
                             <Form.Group className="mb-3">
                                 <Form.Label style={labelStyle}>Nível de Ensino *</Form.Label>
-                                <Form.Select
-                                    value={formState.nivel_ensino}
-                                    onChange={(e) => handleChange('nivel_ensino', e.target.value)}
-                                    onBlur={() => handleBlur('nivel_ensino')}
-                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('nivel_ensino') }}
-                                    isValid={touched.nivel_ensino && !errors.nivel_ensino}
-                                    isInvalid={touched.nivel_ensino && errors.nivel_ensino}
+                                <div
+                                    style={{
+                                        backgroundColor: '#eeeeee',
+                                        borderRadius: '0.375rem',
+                                        padding: '0.75rem',
+                                        ...getFieldStyle('nivel_ensino'),
+                                    }}
                                 >
-                                    <option value="">Selecione o Nível de Ensino</option>
                                     {opcoes.niveis_ensino?.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        <Form.Check
+                                            key={opt.value}
+                                            type="checkbox"
+                                            id={`nivel-${opt.value}`}
+                                            label={opt.label}
+                                            checked={
+                                                Array.isArray(formState.nivel_ensino) &&
+                                                formState.nivel_ensino.includes(opt.value)
+                                            }
+                                            onChange={() => toggleNivelEnsino(opt.value)}
+                                            onBlur={() => handleBlur('nivel_ensino')}
+                                            className="mb-1"
+                                        />
                                     ))}
-                                </Form.Select>
+                                </div>
                                 {touched.nivel_ensino && errors.nivel_ensino && (
                                     <Form.Text className="text-danger">{errors.nivel_ensino}</Form.Text>
                                 )}

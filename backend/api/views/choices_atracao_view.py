@@ -17,7 +17,10 @@ class AtracaoOpcoesView(APIView):
     def get(self, request):
         modalidades = [
             {"value": modalidade.id, "label": modalidade.nome}
-            for modalidade in Modalidade.objects.filter(ativo=True).order_by("nome")
+            for modalidade in Modalidade.objects.filter(
+                ativo=True,
+                requer_avaliacao_submissao=True,
+            ).order_by("nome")
         ]
 
         niveis = [

@@ -15,6 +15,7 @@ const CAMPOS_ATRACAO = [
     'acessibilidade',
     'evento',
     'status',
+    'sugestao_vagas',
     'data_hora_inicio',
     'data_hora_fim',
     'local_atracao',
@@ -71,6 +72,27 @@ const montarPayloadAtracao = (dados) => {
             if (arquivo instanceof File || arquivo instanceof Blob) {
                 payload.append(key, arquivo);
             }
+            return;
+        }
+
+        if (key === 'nivel_ensino') {
+            const niveis = Array.isArray(dados[key])
+                ? dados[key].filter((item) => String(item || '').trim() !== '')
+                : String(dados[key] || '')
+                      .split(',')
+                      .map((item) => item.trim())
+                      .filter((item) => item !== '');
+
+            payload.append(key, niveis.join(','));
+            return;
+        }
+
+        if (key === 'sugestao_vagas') {
+            const valor = dados[key];
+            if (valor === '' || valor === null || valor === undefined) {
+                return;
+            }
+            payload.append(key, Number(valor));
             return;
         }
 

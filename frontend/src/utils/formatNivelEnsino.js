@@ -18,6 +18,22 @@ function humanizeToken(token) {
 
 export default function formatNivelEnsino(value) {
     if (!value && value !== 0) return null;
+
+    if (Array.isArray(value)) {
+        const itens = value
+            .map((item) => formatNivelEnsino(item))
+            .filter((item) => item);
+        return itens.join(', ');
+    }
+
+    if (typeof value === 'string' && value.includes(',')) {
+        const itens = value
+            .split(',')
+            .map((item) => formatNivelEnsino(item.trim()))
+            .filter((item) => item);
+        return itens.join(', ');
+    }
+
     if (typeof value === 'string' && value.indexOf('_') === -1) {
         const hasLowercase = /[a-z]/.test(value);
         if (hasLowercase) return value;
