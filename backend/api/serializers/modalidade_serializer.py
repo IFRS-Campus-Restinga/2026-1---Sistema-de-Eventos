@@ -1,5 +1,5 @@
-from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
 from ..models.modalidade import Modalidade
 from .campo_formulario_serializer import CampoFormularioSerializer
@@ -45,6 +45,29 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         return instance
 
     def validate(self, attrs):
+        # avaliação de submissão só é possível se submissão for permitida
+        permite_submissao = attrs.get(
+            "permite_submissao",
+            getattr(self.instance, "permite_submissao", False),
+        )
+        requer_avaliacao_submissao = attrs.get(
+            "requer_avaliacao_submissao",
+            getattr(self.instance, "requer_avaliacao_submissao", False),
+        )
+
+        if requer_avaliacao_submissao and not permite_submissao:
+            raise serializers.ValidationError(
+                {
+                    "requer_avaliacao_submissao": _(
+                        "Não é possível requerer avaliação de submissão se a modalidade não permite submissão."
+                    )
+                }
+            )
+
+        # Se submissão não é permitida, forçar avaliação de submissão para False
+        if not permite_submissao and "requer_avaliacao_submissao" not in attrs:
+            attrs["requer_avaliacao_submissao"] = False
+
         # determina se controle de vagas está ativo considerando dados do payload
         requer_controle = attrs.get(
             "requer_controle_vagas",
@@ -86,6 +109,7 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             "requer_avaliacao",
             "requer_controle_vagas",
             "requer_avaliacao_submissao",
+            "permite_submissao",
             "limite_avaliadores",
             "emite_certificado",
             "campos",

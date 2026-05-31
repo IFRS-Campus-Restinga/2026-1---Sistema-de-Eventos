@@ -33,6 +33,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     const [requerAvaliacaoSubmissao, setRequerAvaliacaoSubmissao] =
         useState(false);
     const [emiteCertificado, setEmiteCertificado] = useState(false);
+    const [permiteSubmissao, setPermiteSubmissao] = useState(false);
     const [requerControleVagas, setRequerControleVagas] = useState(false);
     const [limiteAvaliadores, setLimiteAvaliadores] = useState(0);
     const [carregandoEdicao, setCarregandoEdicao] = useState(false);
@@ -70,6 +71,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             requer_controle_vagas: requerControleVagas,
             emite_certificado: emiteCertificado,
             requer_avaliacao_submissao: requerAvaliacaoSubmissao,
+            permite_submissao: permiteSubmissao,
             limite_avaliadores: limiteAvaliadores,
         }),
         [
@@ -78,9 +80,18 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             emiteCertificado,
             requerControleVagas,
             requerAvaliacaoSubmissao,
+            permiteSubmissao,
             limiteAvaliadores,
         ],
     );
+
+    const handlePermiteSubmissaoChange = (valor) => {
+        setPermiteSubmissao(valor);
+
+        if (!valor) {
+            setRequerAvaliacaoSubmissao(false);
+        }
+    };
 
     const mostrarAlerta = (mensagem, variacao = 'danger') =>
         setAlerta((prev) => ({
@@ -114,10 +125,15 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
 
                 setTitulo(modalidadeData?.nome || '');
                 setRequerAvaliacao(Boolean(modalidadeData?.requer_avaliacao));
-                setRequerAvaliacaoSubmissao(
-                    Boolean(modalidadeData?.requer_avaliacao_submissao),
-                );
                 setEmiteCertificado(Boolean(modalidadeData?.emite_certificado));
+                const permiteSubmissaoInicial = Boolean(
+                    modalidadeData?.permite_submissao,
+                );
+                setPermiteSubmissao(permiteSubmissaoInicial);
+                setRequerAvaliacaoSubmissao(
+                    permiteSubmissaoInicial &&
+                        Boolean(modalidadeData?.requer_avaliacao_submissao),
+                );
                 setRequerControleVagas(
                     Boolean(modalidadeData?.requer_controle_vagas),
                 );
@@ -163,6 +179,8 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
         try {
             const payload = {
                 ...basePayloadMemo,
+                requer_avaliacao_submissao:
+                    permiteSubmissao && requerAvaliacaoSubmissao,
                 campos,
                 criteriosAtracao,
                 criteriosSubmissao,
@@ -227,6 +245,14 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                         onChange: (e) => setTitulo(e),
                                     },
                                     {
+                                        name: 'permite_submissao',
+                                        titulo: 'Permite Submissão',
+                                        tipo: 'switch',
+                                        preValue: permiteSubmissao,
+                                        onChange: (e) =>
+                                            handlePermiteSubmissaoChange(e),
+                                    },
+                                    {
                                         name: 'requer_avaliacao',
                                         titulo: 'Requer Avaliação da atração',
                                         tipo: 'switch',
@@ -240,6 +266,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                         preValue: requerAvaliacaoSubmissao,
                                         onChange: (e) =>
                                             setRequerAvaliacaoSubmissao(e),
+                                        desativado: !permiteSubmissao,
                                     },
                                     {
                                         name: 'limite_avaliadores',

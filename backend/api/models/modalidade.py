@@ -33,6 +33,12 @@ class Modalidade(Base):
         help_text=_("Informe se a Modalidade emite certificado"),
     )
 
+    permite_submissao = models.BooleanField(
+        verbose_name=_("Permite Submissão"),
+        help_text=_("Informe se a Modalidade permite submissão"),
+        default=False,
+    )
+
     requer_controle_vagas = models.BooleanField(
         verbose_name=_("Requer Controle de Vagas"),
         help_text=_("Informe se a Modalidade requer controle de vagas"),
@@ -62,6 +68,12 @@ class Modalidade(Base):
 
     def clean(self):
         errors = {}
+
+        #  avaliação de submissão só é possível se submissão for permitida
+        if self.requer_avaliacao_submissao and not self.permite_submissao:
+            errors["requer_avaliacao_submissao"] = _(
+                "Não é possível requerer avaliação de submissão se a modalidade não permite submissão."
+            )
 
         if ((not self.requer_avaliacao) and (not self.requer_avaliacao_submissao)) and (
             self.limite_avaliadores and self.limite_avaliadores > 0

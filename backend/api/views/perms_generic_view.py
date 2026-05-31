@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsGroupAndObjectPerm(BasePermission):
@@ -9,12 +9,17 @@ class IsGroupAndObjectPerm(BasePermission):
     admin_group_name = "Administrador"
 
     def is_admin(self, user):
-        return user.groups.filter(name=self.admin_group_name).exists()
+        return (
+            user.is_superuser or user.groups.filter(name=self.admin_group_name).exists()
+        )
 
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated:
             return False
+
+        if user.is_superuser:
+            return True
 
         if self.is_admin(user):
             return True
@@ -39,6 +44,17 @@ class IsGroupAndObjectPerm(BasePermission):
             return True
 
         return any(user.has_perm(perm, obj) for perm in self.required_object_perms)
+
+
+class PodeGerenciarConteudoAdministrativo(IsGroupAndObjectPerm):
+    required_groups = ["Administrador", "Coordenador"]
+    required_object_perms = []
+
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return super().has_permission(request, view)
 
 
 # PERMS DE EVENTO
@@ -89,6 +105,22 @@ class PodeAtribuirEspaco(IsGroupAndObjectPerm):
 class PodeCriarEspaco(IsGroupAndObjectPerm):
     required_groups = ["Administrador", "Coordenador"]
     required_object_perms = ["api.criar_espaco"]
+
+
+class PodeGerenciarModalidade(PodeGerenciarConteudoAdministrativo):
+    pass
+
+
+class PodeGerenciarCampoFormulario(PodeGerenciarConteudoAdministrativo):
+    pass
+
+
+class PodeGerenciarCriterioAvaliacaoAtracao(PodeGerenciarConteudoAdministrativo):
+    pass
+
+
+class PodeGerenciarCriterioAvaliacaoSubmissao(PodeGerenciarConteudoAdministrativo):
+    pass
 
 
 # PERMS PARA AVALIACAO

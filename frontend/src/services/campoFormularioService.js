@@ -3,7 +3,9 @@ import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
 export const pegarCampoFormulario = async () => {
-    const response = await axios.get(`${API_URL}/api/campo_formulario/`);
+    const response = await axios.get(`${API_URL}/api/campo_formulario/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -15,6 +17,7 @@ export const criarCampoFormulario = async (dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
     return response.data;
@@ -30,6 +33,7 @@ export const atualizarCampoFormulario = async (id, dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -45,6 +49,7 @@ export const deletarCampoFormulario = async (id) => {
         `${API_URL}/api/campo_formulario/${id}/`,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -52,6 +57,8 @@ export const deletarCampoFormulario = async (id) => {
 };
 
 export const pegarOptionsCampoFormulario = async () => {
-    const response = await axios.options(`${API_URL}/api/campo_formulario/`);
+    const response = await axios.options(`${API_URL}/api/campo_formulario/`, {
+        withCredentials: true,
+    });
     return response.data;
 };

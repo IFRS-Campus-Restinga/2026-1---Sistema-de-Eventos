@@ -3,7 +3,9 @@ import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 
 export const pegarCriterioAvaliacaoAtracao = async () => {
-    const response = await axios.get(`${API_URL}/api/criterio_avaliacao/`);
+    const response = await axios.get(`${API_URL}/api/criterio_avaliacao/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -15,6 +17,7 @@ export const criarCriterioAvaliacaoAtracao = async (dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
     return response.data;
@@ -30,6 +33,7 @@ export const atualizarCriterioAvaliacaoAtracao = async (id, dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -45,6 +49,7 @@ export const deletarCriterioAvaliacaoAtracao = async (id) => {
         `${API_URL}/api/criterio_avaliacao/${id}/`,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -52,6 +57,8 @@ export const deletarCriterioAvaliacaoAtracao = async (id) => {
 };
 
 export const pegarOptionsCriterioAvaliacaoAtracao = async () => {
-    const response = await axios.options(`${API_URL}/api/criterio_avaliacao/`);
+    const response = await axios.options(`${API_URL}/api/criterio_avaliacao/`, {
+        withCredentials: true,
+    });
     return response.data;
 };

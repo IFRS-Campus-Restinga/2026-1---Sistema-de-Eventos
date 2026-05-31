@@ -1,16 +1,16 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.modalidade import Modalidade
 from ..serializers import ModalidadeSerializer
+from .perms_generic_view import PodeGerenciarModalidade
 
 
 class ModalidadeListView(APIView):
     queryset = Modalidade.objects.all()
     serializer_class = ModalidadeSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarModalidade]
 
     def get_serializer(self, *args, **kwargs):
         return ModalidadeSerializer(*args, **kwargs)
@@ -30,7 +30,7 @@ class ModalidadeListView(APIView):
 
 
 class ModalidadeDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarModalidade]
 
     def get_object(self, pk):
         try:
