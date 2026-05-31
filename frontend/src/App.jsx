@@ -90,10 +90,10 @@ function App() {
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
-                <Route path="/editar_evento/:id" element={<AdicionarEvento />} />
-                <Route path="/listar_eventos" element={<ListarEvento />} />
+                <Route path="/editar_evento/:id" element={protegido(<AdicionarEvento />,ADMIN_GROUPS)} />
+                <Route path="/listar_eventos" element={protegido(<ListarEvento />, ADMIN_GROUPS)} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
-                <Route path="/programacao_evento/:id" element={protegido(<ProgramacaoEvento />)} />
+                <Route path="/programacao_evento/:id" element={<ProgramacaoEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
                 <Route path="/dashboard/:id/enviar_emails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />

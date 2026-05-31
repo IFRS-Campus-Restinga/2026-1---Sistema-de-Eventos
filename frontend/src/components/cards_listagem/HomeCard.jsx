@@ -5,37 +5,11 @@ import {
     MdOutlineLocalOffer,
 } from 'react-icons/md';
 
-const STATUS_LABELS = {
-    EM_ANDAMENTO: 'Em andamento',
-    INSCRICOES_ABERTAS: 'Inscrições abertas',
-    ENCERRADO: 'Encerrado',
-};
-
-const STATUS_VARIANTES = {
-    EM_ANDAMENTO: 'bg-success text-white',
-    INSCRICOES_ABERTAS: 'bg-warning text-dark',
-    ENCERRADO: 'bg-secondary text-white',
-};
-
-const STATUS_ACCENTS = {
-    EM_ANDAMENTO: '#0f7a43',
-    INSCRICOES_ABERTAS: '#b26a00',
-    ENCERRADO: '#4b6471',
-};
-
 const STATUS_BADGE_STYLE = 'badge rounded-pill px-3 py-2 fw-semibold';
 const MUTED_BADGE_STYLE =
     'badge rounded-pill px-3 py-2 fw-semibold bg-light text-secondary border';
 const GHOST_BADGE_STYLE =
     'badge rounded-pill px-3 py-2 fw-semibold bg-light text-secondary border';
-
-function getAccentColor(status) {
-    return STATUS_ACCENTS[status] || '#0f7a43';
-}
-
-function getBadgeClass(status) {
-    return STATUS_VARIANTES[status] || 'bg-success text-white';
-}
 
 function getInscriptionButtonClass(possuiInscricao, statusInscricao) {
     if (possuiInscricao && statusInscricao === 'CANCELADA') {
@@ -62,12 +36,9 @@ export default function HomeCard({
     statusInscricao,
     permiteInscricao,
     formatarData,
-    statusHome,
     etapaAtual,
 }) {
-    const accentColor = getAccentColor(statusHome);
-    const badgeClass = getBadgeClass(statusHome);
-    const statusLabel = STATUS_LABELS[statusHome] || 'Em andamento';
+    const etapaLabel = etapaAtual || 'Etapa atual';
     const mostrarBotaoInscricao = permiteInscricao || possuiInscricao;
     const inscriptionButtonClass = `${getInscriptionButtonClass(
         possuiInscricao,
@@ -88,9 +59,9 @@ export default function HomeCard({
                     <div className="col-lg-8 p-4 p-lg-4 d-flex flex-column gap-3">
                         <div className="d-flex flex-wrap gap-2">
                             <span
-                                className={`${STATUS_BADGE_STYLE} ${badgeClass}`}
+                                className={`${STATUS_BADGE_STYLE} bg-success text-white`}
                             >
-                                {statusLabel}
+                                {etapaLabel}
                             </span>
                             <span className={MUTED_BADGE_STYLE}>
                                 Mais recente
@@ -135,7 +106,7 @@ export default function HomeCard({
                                 >
                                     Fase atual
                                 </span>
-                                <strong>{etapaAtual || statusLabel}</strong>
+                                <strong>{etapaLabel}</strong>
                             </div>
 
                             <div className="d-flex flex-wrap justify-content-md-end gap-2">
@@ -171,7 +142,8 @@ export default function HomeCard({
                     <div
                         className="col-lg-4 d-flex flex-column justify-content-center align-items-center text-center p-4 p-lg-4"
                         style={{
-                            backgroundImage: `radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 48%), linear-gradient(180deg, ${accentColor} 0%, ${accentColor} 100%)`,
+                            backgroundImage:
+                                'radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 48%), linear-gradient(180deg, #0f7a43 0%, #0f7a43 100%)',
                             color: '#ffffff',
                         }}
                     >
@@ -197,8 +169,10 @@ export default function HomeCard({
             ) : (
                 <div className="card-body p-4 d-flex flex-column gap-3">
                     <div className="d-flex flex-wrap gap-2">
-                        <span className={`${STATUS_BADGE_STYLE} ${badgeClass}`}>
-                            {statusLabel}
+                        <span
+                            className={`${STATUS_BADGE_STYLE} bg-success text-white`}
+                        >
+                            {etapaLabel}
                         </span>
                         {evento.setor ? (
                             <span className={GHOST_BADGE_STYLE}>

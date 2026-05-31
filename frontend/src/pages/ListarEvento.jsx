@@ -39,6 +39,7 @@ import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
+    adicionarEventoRecenteAdminId,
 } from '../utils/selectedEvento';
 import { getCurrentUser } from '../services/authService';
 
@@ -57,6 +58,11 @@ export default function EventosListar() {
     const navigate = useNavigate();
 
     const qrContainerRef = useRef(null);
+
+    const registrarEventoSelecionado = (eventoId) => {
+        setSelectedEventoId(eventoId);
+        adicionarEventoRecenteAdminId(eventoId);
+    };
 
     useEffect(() => {
         carregarEventos();
@@ -92,6 +98,7 @@ export default function EventosListar() {
     );
 
     const abrirQr = (evento) => {
+        registrarEventoSelecionado(evento.id);
         setEventoQrSelecionado(evento);
         setShowQrModal(true);
     };
@@ -301,7 +308,7 @@ export default function EventosListar() {
                                                         as={Link}
                                                         to={`/dashboard/${evento.id}`}
                                                         onClick={() =>
-                                                            setSelectedEventoId(
+                                                            registrarEventoSelecionado(
                                                                 evento.id,
                                                             )
                                                         }
@@ -313,6 +320,11 @@ export default function EventosListar() {
                                                         size="sm"
                                                         as={Link}
                                                         to={`/credenciamento/${evento.slug}`}
+                                                        onClick={() =>
+                                                            registrarEventoSelecionado(
+                                                                evento.id,
+                                                            )
+                                                        }
                                                     >
                                                         Presença
                                                     </Button>
@@ -342,11 +354,14 @@ export default function EventosListar() {
                                                     <Button
                                                         variant="warning"
                                                         size="sm"
-                                                        onClick={() =>
+                                                        onClick={() => {
+                                                            registrarEventoSelecionado(
+                                                                evento.id,
+                                                            );
                                                             navigate(
                                                                 `/editar_evento/${evento.id}`,
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                     >
                                                         <MdEdit size={22} />
                                                     </Button>

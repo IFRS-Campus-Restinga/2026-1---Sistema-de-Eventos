@@ -1,5 +1,6 @@
 from django.db.models import RestrictedError
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,7 +12,13 @@ from .perms_generic_view import IsAdmin
 class SessaoListView(APIView):
     queryset = Sessao.objects.all()
     serializer_class = SessaoSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+
+        return [IsAdmin()]
 
     def get(self, request, *args, **kwargs):
         # Filtros
@@ -39,7 +46,13 @@ class SessaoListView(APIView):
 
 
 class SessaoDetailView(APIView):
-    permission_classes = [IsAdmin]
+    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+
+        return [IsAdmin()]
 
     def get_object(self, pk):
         try:

@@ -19,8 +19,9 @@ import {
 
 const FILTROS = [
     { value: 'TODOS', label: 'Todos' },
-    { value: 'INSCRICOES_ABERTAS', label: 'Inscrições abertas' },
     { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+    { value: 'INSCRICOES_ABERTAS', label: 'Inscrições abertas' },
+    { value: 'SUBMISSAO_TRABALHOS', label: 'Submissões de trabalhos' },
     { value: 'ENCERRADO', label: 'Encerrados' },
 ];
 
@@ -42,7 +43,12 @@ export default function Home({ campus = 'Campus Restinga' }) {
     const [filtroStatus, setFiltroStatus] = useState('TODOS');
     const [termoBusca, setTermoBusca] = useState('');
 
-    const { eventos, loading, possuiEtapaSubmissaoAberta } = useEventos();
+    const {
+        eventos,
+        loading,
+        possuiEtapaSubmissaoAberta,
+        possuiEtapaRealizacaoAberta,
+    } = useEventos();
     const {
         estaInscritoEmEvento,
         criarInscricao,
@@ -173,21 +179,28 @@ export default function Home({ campus = 'Campus Restinga' }) {
         return eventosOrdenados
             .map((evento) => {
                 const statusInfo = obterStatusHome(evento);
+                const inscricaoAberta = possuiEtapaSubmissaoAberta(evento);
 
                 return {
                     ...evento,
                     status_home: statusInfo.status,
                     etapa_atual: statusInfo.etapaAtual,
+                    inscricao_aberta: inscricaoAberta,
                 };
             })
             .filter((evento) => {
-                if (!evento.status_home) {
+                if (!evento.status_home && !evento.inscricao_aberta) {
                     return false;
                 }
 
                 const statusOk =
                     filtroStatus === 'TODOS' ||
-                    evento.status_home === filtroStatus;
+                    (filtroStatus === 'EM_ANDAMENTO'
+                        ? possuiEtapaRealizacaoAberta(evento)
+                        : filtroStatus === 'INSCRICOES_ABERTAS'
+                          ? evento.status_home === filtroStatus ||
+                            evento.inscricao_aberta === true
+                          : evento.status_home === filtroStatus);
                 const textoBase = [
                     evento?.nome,
                     evento?.tema,
@@ -202,7 +215,13 @@ export default function Home({ campus = 'Campus Restinga' }) {
 
                 return statusOk && buscaOk;
             });
-    }, [eventosOrdenados, filtroStatus, termoBusca]);
+    }, [
+        eventosOrdenados,
+        filtroStatus,
+        termoBusca,
+        possuiEtapaRealizacaoAberta,
+        possuiEtapaSubmissaoAberta,
+    ]);
 
     const eventoDestaque = eventosFiltrados[0] ?? null;
     const eventosSecundarios = eventosFiltrados.slice(1);

@@ -6,8 +6,19 @@ const ETAPA_LABELS = {
     REALIZACAO_EVENTO: 'Realização do evento',
 };
 
-const TIPOS_INSCRICAO = new Set(['INSCRICAO_PUBLICO', 'SUBMISSAO_TRABALHOS']);
+const TIPOS_SUBMISSAO = new Set(['SUBMISSAO_TRABALHOS']);
+const TIPOS_INSCRICAO = new Set(['INSCRICAO', 'INSCRICAO_PUBLICO']);
 const TIPO_REALIZACAO = 'REALIZACAO_EVENTO';
+const TIPO_AVALIACAO_PREVIA = 'AVALIACAO_PREVIA';
+
+function isEtapaAtiva(etapa, agora) {
+    if (!etapa?.data_inicio || !etapa?.data_fim) return false;
+
+    const inicio = new Date(etapa.data_inicio);
+    const fim = new Date(etapa.data_fim);
+
+    return inicio <= agora && agora <= fim;
+}
 
 export function formatarEtapa(tipoEtapa) {
     return ETAPA_LABELS[tipoEtapa] || 'Etapa atual';
@@ -45,35 +56,33 @@ export function obterStatusHome(evento, agora = new Date()) {
         return inicioA - inicioB;
     });
 
-    const etapaRealizacaoAtiva = etapas.find(
-        (etapa) =>
-            etapa?.tipo_etapa === TIPO_REALIZACAO &&
-            etapa?.data_inicio &&
-            etapa?.data_fim &&
-            new Date(etapa.data_inicio) <= agora &&
-            agora <= new Date(etapa.data_fim),
-    );
+    const etapasAtivas = [...etapas]
+        .filter((etapa) => isEtapaAtiva(etapa, agora))
+        .sort((etapaA, etapaB) => {
+            const inicioA = new Date(etapaA?.data_inicio ?? 0).getTime();
+            const inicioB = new Date(etapaB?.data_inicio ?? 0).getTime();
 
-    if (etapaRealizacaoAtiva) {
+            return inicioB - inicioA;
+        });
+
+    const etapaAtiva = etapasAtivas[0] ?? null;
+
+    if (etapaAtiva) {
+        let statusDaEtapaAtiva = 'EM_ANDAMENTO';
+
+        if (TIPOS_SUBMISSAO.has(etapaAtiva.tipo_etapa)) {
+            statusDaEtapaAtiva = 'SUBMISSAO_TRABALHOS';
+        } else if (TIPOS_INSCRICAO.has(etapaAtiva.tipo_etapa)) {
+            statusDaEtapaAtiva = 'INSCRICOES_ABERTAS';
+        } else if (etapaAtiva.tipo_etapa === TIPO_AVALIACAO_PREVIA) {
+            statusDaEtapaAtiva = 'EM_ANDAMENTO';
+        } else if (etapaAtiva.tipo_etapa === TIPO_REALIZACAO) {
+            statusDaEtapaAtiva = 'EM_ANDAMENTO';
+        }
+
         return {
-            status: 'EM_ANDAMENTO',
-            etapaAtual: formatarEtapa(etapaRealizacaoAtiva.tipo_etapa),
-        };
-    }
-
-    const etapaInscricaoAtiva = etapas.find(
-        (etapa) =>
-            TIPOS_INSCRICAO.has(etapa?.tipo_etapa) &&
-            etapa?.data_inicio &&
-            etapa?.data_fim &&
-            new Date(etapa.data_inicio) <= agora &&
-            agora <= new Date(etapa.data_fim),
-    );
-
-    if (etapaInscricaoAtiva) {
-        return {
-            status: 'INSCRICOES_ABERTAS',
-            etapaAtual: formatarEtapa(etapaInscricaoAtiva.tipo_etapa),
+            status: statusDaEtapaAtiva,
+            etapaAtual: formatarEtapa(etapaAtiva.tipo_etapa),
         };
     }
 
