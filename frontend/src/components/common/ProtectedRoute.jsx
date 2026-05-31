@@ -3,12 +3,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { checkSession, redirectToLogin } from '../../services/authService';
 import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
 
+const GRUPOS_VAZIOS = [];
+
 export default function ProtectedRoute({
     children,
     fallback = <p>Verificando sessão...</p>,
     redirectMode = 'hub',
     redirectTo = '/',
-    gruposPermitidos = [],
+    gruposPermitidos = GRUPOS_VAZIOS,
     permitirAvaliador = false,
     redirectUnauthorizedTo = '/',
 }) {
