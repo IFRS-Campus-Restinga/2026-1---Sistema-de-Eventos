@@ -19,6 +19,7 @@ export default function CriarAtracaoCard({
     modalidadeSelecionadaDetalhe,
     camposModalidade = [],
     usuarios,
+    usuarioLogado,
     isLoading = false,
     handleSalvarRascunho,
     handleSubmeter,
@@ -197,7 +198,7 @@ export default function CriarAtracaoCard({
     };
 
     const handleAddMembro = () => {
-        const novaEquipe = [...formState.equipe, { nome: '', instituicao_curso: '', funcao: 'COAUTOR' }];
+        const novaEquipe = [...formState.equipe, { user_id: '', nome: '', instituicao_curso: '', funcao: 'COAUTOR' }];
         setFormState({ ...formState, equipe: novaEquipe });
     };
 
@@ -208,7 +209,24 @@ export default function CriarAtracaoCard({
 
     const handleMembroChange = (index, field, value) => {
         const novaEquipe = [...formState.equipe];
-        novaEquipe[index][field] = value;
+
+        if (field === 'user_id') {
+            const usuarioSelecionado = (usuarios || []).find(
+                (usuario) => String(usuario.id) === String(value),
+            );
+
+            novaEquipe[index] = {
+                ...novaEquipe[index],
+                user_id: value,
+                nome: usuarioSelecionado ? getNomeUsuario(usuarioSelecionado) : '',
+                instituicao_curso: usuarioSelecionado
+                    ? (usuarioSelecionado.nivel_ensino_display || usuarioSelecionado.nivel_ensino || '')
+                    : '',
+            };
+        } else {
+            novaEquipe[index][field] = value;
+        }
+
         setFormState({ ...formState, equipe: novaEquipe });
     };
 
@@ -350,6 +368,42 @@ export default function CriarAtracaoCard({
             usuarioEncontrado?.nivel_ensino ||
             ''
         );
+    };
+
+    const getNivelEnsinoMembro = (membro) => {
+        if (membro?.user_id) {
+            const usuarioPorId = (usuarios || []).find(
+                (usuario) => String(usuario.id) === String(membro.user_id),
+            );
+
+            return (
+                usuarioPorId?.nivel_ensino_display ||
+                usuarioPorId?.nivel_ensino ||
+                membro?.instituicao_curso ||
+                ''
+            );
+        }
+
+        return getNivelEnsinoUsuario(membro?.nome) || membro?.instituicao_curso || '';
+    };
+
+    const usuarioLogadoId = usuarioLogado?.id;
+
+    const getUsuariosDisponiveisParaLinha = (index) => {
+        const idsSelecionadosEmOutrasLinhas = new Set(
+            (formState.equipe || [])
+                .filter((_, i) => i !== index)
+                .map((membro) => String(membro?.user_id || '').trim())
+                .filter((id) => id !== ''),
+        );
+
+        return (usuarios || []).filter((usuario) => {
+            const idUsuario = String(usuario.id);
+            if (String(usuarioLogadoId || '') === idUsuario) {
+                return false;
+            }
+            return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
+        });
     };
 
     return (
@@ -594,47 +648,6 @@ export default function CriarAtracaoCard({
 
                 {/* SEÇÃO 3: EQUIPE */}
                 <SecaoFormulario icone={FaUsers} titulo="Equipe">
-                    <div className="mb-4">
-                        <div className="d-flex align-items-center gap-4 mb-3">
-                            <Form.Label style={labelStyle} className="mb-0">Orientador(a) *</Form.Label>
-                            <Form.Check
-                                type="checkbox"
-                                label="Sou o Orientador"
-                                id="check-orientador"
-                                className="fw-normal"
-                                style={{ color: '#333' }}
-                                checked={formState.sou_orientador}
-                                onChange={(e) => setFormState({ ...formState, sou_orientador: e.target.checked })}
-                            />
-                        </div>
-
-                        {!formState.sou_orientador && (
-                            <div className="mb-3">
-                                <Form.Select
-                                    value={formState.orientador || ''}
-                                    onChange={(e) =>
-                                        setFormState({
-                                            ...formState,
-                                            orientador: e.target.value ? Number(e.target.value) : null,
-                                        })
-                                    }
-                                    style={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
-                                    className="py-2"
-                                >
-                                    <option value="">Selecione o orientador</option>
-                                    {usuarios?.map((usuario) => (
-                                        <option key={usuario.id} value={usuario.id}>
-                                            {getNomeUsuario(usuario)}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                                <div className="mt-2" style={{ fontSize: '0.95rem', color: '#333' }}>
-                                    O orientador receberá um e-mail para validar este trabalho.
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     <div className="mt-4">
                         <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Membros da Equipe</h6>
                         <Table hover className="mt-3 align-middle" style={{ border: '1px solid #dee2e6', borderCollapse: 'collapse' }}>
@@ -650,17 +663,28 @@ export default function CriarAtracaoCard({
                                 {formState.equipe.map((membro, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Control
-                                                value={membro.nome}
-                                                onChange={(e) => handleMembroChange(index, 'nome', e.target.value)}
-                                                placeholder="Nome"
+                                            {(() => {
+                                                const usuariosDisponiveis = getUsuariosDisponiveisParaLinha(index);
+                                                return (
+                                            <Form.Select
+                                                value={membro.user_id || ''}
+                                                onChange={(e) => handleMembroChange(index, 'user_id', e.target.value)}
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
                                                 className="bg-white"
-                                            />
+                                            >
+                                                <option value="">Selecione o autor</option>
+                                                {usuariosDisponiveis.map((usuario) => (
+                                                    <option key={usuario.id} value={usuario.id}>
+                                                        {getNomeUsuario(usuario)}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
                                             <Form.Control
-                                                value={getNivelEnsinoUsuario(membro.nome) || membro.instituicao_curso || ''}
+                                                value={getNivelEnsinoMembro(membro)}
                                                 placeholder="Nível de ensino (auto-preenchido)"
                                                 disabled
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: '#e9ecef' }}
@@ -671,13 +695,22 @@ export default function CriarAtracaoCard({
                                             <Form.Select
                                                 value={membro.funcao || ''}
                                                 onChange={(e) => handleMembroChange(index, 'funcao', e.target.value)}
-                                                disabled={!membro.nome}
-                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.nome ? '#e9ecef' : '#fff' }}
+                                                disabled={!membro.user_id}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.user_id ? '#e9ecef' : '#fff' }}
                                             >
                                                 <option value="">Selecione um papel</option>
+                                                <option
+                                                    value="AUTOR"
+                                                    disabled={
+                                                        (formState.equipe || []).some(
+                                                            (item, i) => i !== index && item?.funcao === 'AUTOR',
+                                                        )
+                                                    }
+                                                >
+                                                    Autor
+                                                </option>
                                                 <option value="COAUTOR">Co-autor</option>
-                                                <option value="APRESENTADOR">Apresentador</option>
-                                                <option value="REVISOR">Revisor</option>
+                                                <option value="ORIENTADOR">Orientador</option>
                                             </Form.Select>
                                         </td>
                                         <td className="text-center py-2">

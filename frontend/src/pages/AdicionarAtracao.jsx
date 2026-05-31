@@ -17,6 +17,7 @@ import Alerta from '../components/common/Alerta';
 import { useNavigate } from 'react-router-dom';
 import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
 import { useState, useEffect } from 'react';
+import { getCurrentUser } from '../services/authService';
 
 export default function AdicionarAtracao() {
     const navigate = useNavigate();
@@ -28,8 +29,6 @@ export default function AdicionarAtracao() {
         modalidade: '',
         nivel_ensino: [],
         area_conhecimento: '',
-        orientador: null,
-        sou_orientador: false,
         anexo_pdf: null,
         acessibilidade: false,
         evento: '',
@@ -50,6 +49,7 @@ export default function AdicionarAtracao() {
     const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
     const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] = useState(null);
     const [usuarios, setUsuarios] = useState([]);
+    const [usuarioLogado, setUsuarioLogado] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [alerta, setAlerta] = useState({
         mensagem: '',
@@ -93,11 +93,12 @@ export default function AdicionarAtracao() {
 
     useEffect(() => {
         const carregarDados = async () => {
-            const [dadosOpcoes, dadosEventos, dadosUsuarios] =
+            const [dadosOpcoes, dadosEventos, dadosUsuarios, dadosUsuarioLogado] =
                 await Promise.allSettled([
                     buscarOpcoesAtracao(),
                     buscarEventos(),
                     buscarUsuarios(),
+                    getCurrentUser(),
                 ]);
 
             if (dadosOpcoes.status === 'fulfilled') {
@@ -129,13 +130,17 @@ export default function AdicionarAtracao() {
                 setUsuarios(dadosUsuarios.value);
             } else {
                 console.error(
-                    'Erro ao carregar usuários (orientador):',
+                    'Erro ao carregar usuários para equipe:',
                     dadosUsuarios.reason,
                 );
                 mostrarAlerta(
-                    'Lista de orientadores indisponível no momento. Você ainda pode preencher o restante do formulário.',
+                    'Lista de usuários da equipe indisponível no momento. Você ainda pode preencher o restante do formulário.',
                     'warning',
                 );
+            }
+
+            if (dadosUsuarioLogado?.status === 'fulfilled') {
+                setUsuarioLogado(dadosUsuarioLogado.value || null);
             }
         };
         carregarDados();
@@ -252,8 +257,26 @@ export default function AdicionarAtracao() {
             return;
         }
 
-        if (formState.equipe.length === 0) {
+        const equipeComUsuario = (formState.equipe || []).filter((membro) => {
+            const possuiUsuario = String(membro?.user_id || '').trim() !== '';
+            const possuiNome = String(membro?.nome || '').trim() !== '';
+            return possuiUsuario || possuiNome;
+        });
+
+        if (equipeComUsuario.length === 0) {
             mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
+            return;
+        }
+
+        const membrosSemFuncao = equipeComUsuario.filter((membro) => !membro?.funcao);
+        if (membrosSemFuncao.length > 0) {
+            mostrarAlerta('Defina um papel para todos os membros da equipe.');
+            return;
+        }
+
+        const totalAutores = equipeComUsuario.filter((membro) => membro.funcao === 'AUTOR').length;
+        if (totalAutores !== 1) {
+            mostrarAlerta('A equipe deve possuir exatamente 1 Autor.');
             return;
         }
 
@@ -304,6 +327,7 @@ export default function AdicionarAtracao() {
                                 modalidadeSelecionadaDetalhe={modalidadeSelecionadaDetalhe}
                                 camposModalidade={modalidadeSelecionadaDetalhe?.campos || []}
                                 usuarios={usuarios}
+                                usuarioLogado={usuarioLogado}
                                 isLoading={isLoading}
                                 handleSalvarRascunho={handleSalvarRascunho}
                                 handleSubmeter={handleSubmeter}

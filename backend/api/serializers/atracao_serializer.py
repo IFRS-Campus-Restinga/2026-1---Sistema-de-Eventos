@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 class AtracaoSerializer(serializers.ModelSerializer):
     equipe = CoautorSerializer(many=True, required=False, read_only=True)
-    orientador_nome = serializers.ReadOnlyField(source="orientador.get_full_name")
     tipo = serializers.ReadOnlyField(source="modalidade.nome")
     espaco_detalhe = EspacoSerializer(source="espaco", read_only=True)
     espaco = serializers.PrimaryKeyRelatedField(
@@ -48,9 +47,6 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "nivel_ensino",
             "nivel_ensino_display",
             "area_conhecimento",
-            "orientador",
-            "orientador_nome",
-            "sou_orientador",
             "anexo_pdf",
             "acessibilidade",
             "evento",

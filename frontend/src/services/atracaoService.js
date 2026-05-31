@@ -9,8 +9,6 @@ const CAMPOS_ATRACAO = [
     'modalidade',
     'nivel_ensino',
     'area_conhecimento',
-    'orientador',
-    'sou_orientador',
     'anexo_pdf',
     'acessibilidade',
     'evento',
@@ -55,7 +53,15 @@ const montarPayloadAtracao = (dados) => {
         }
 
         if (key === 'equipe') {
-            payload.append('equipe_json', JSON.stringify(dados[key]));
+            const equipeNormalizada = Array.isArray(dados[key])
+                ? dados[key].map((membro) => ({
+                      nome: membro?.nome || '',
+                      instituicao_curso: membro?.instituicao_curso || '',
+                      funcao: membro?.funcao || '',
+                  }))
+                : [];
+
+            payload.append('equipe_json', JSON.stringify(equipeNormalizada));
             return;
         }
 
