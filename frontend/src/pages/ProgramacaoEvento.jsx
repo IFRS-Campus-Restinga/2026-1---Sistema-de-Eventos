@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap';
-import { MdSearch, MdCalendarToday, MdPlace, MdPeople } from 'react-icons/md';
+import { MdSearch, MdCalendarToday, MdPlace, MdPeople, MdEvent } from 'react-icons/md';
 import { useParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -13,16 +13,16 @@ import { obterCorPorTag } from '../utils/themeTags';
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
     const verdeIFRS = "#00A44B";
-    
-    // Estados de controle local
+ 
     const [termoBusca, setTermoBusca] = useState('');
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
+    const [dataSelecionada, setDataSelecionada] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [atracaoResumo, setAtracaoResumo] = useState(null);
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
 
-    // ✅ Consumindo o Hook de Sessões que o SessaoBoard usa para bater no Banco de Dados
-    const { sessoes, loading, error, carregarEvento, fetchSessoes } = useSessoes();
+    
+    const { sessoes, dias, loading, error, carregarEvento, fetchSessoes } = useSessoes();
 
     useEffect(() => {
         if (eventoId) {
@@ -31,12 +31,30 @@ export default function ProgramacaoEvento() {
         }
     }, [eventoId]);
 
+    useEffect(() => {
+        if (dias && dias.length > 0) {
+            setDataSelecionada(formatarDataValue(dias[0]));
+        }
+    }, [dias]);
+
     const selecionarAtracaoResumo = (atracao) => {
         setAtracaoResumo(atracao);
         setShowModal(true);
     };
 
-    // Processamento, Filtragem e Agrupamento dos dados reais vindos da API
+
+    function formatarDataValue(data) {
+        return data.toISOString().split('T')[0];
+    }
+
+    function formatarDataLabel(data) {
+        return data.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+        });
+    }
+
+
     useEffect(() => {
         if (!sessoes || sessoes.length === 0) {
             setSessoesFiltradas([]);
@@ -47,15 +65,14 @@ export default function ProgramacaoEvento() {
         const mapaAgrupamento = {};
 
         sessoes.forEach(sessaoBanco => {
-            // 1. Extração e Normalização de Horários e Turnos da API (Padrão ISO)
+            const dataSessao = sessaoBanco.data_horario_inicio.split('T')[0];
+            if (dataSelecionada && dataSessao !== dataSelecionada) return;
             const stringHorarioInicio = sessaoBanco.data_horario_inicio.split('T')[1] || '';
             const stringHorarioFim = sessaoBanco.data_horario_fim.split('T')[1] || '';
             
-            const horaInicioLimpa = stringHorarioInicio.slice(0, 5); // "08:30"
-            const horaFimLimpa = stringHorarioFim.slice(0, 5);     // "10:00"
+            const horaInicioLimpa = stringHorarioInicio.slice(0, 5); 
+            const horaFimLimpa = stringHorarioFim.slice(0, 5);     
             const chaveBlocoHorario = `${horaInicioLimpa} - ${horaFimLimpa}`;
-
-            // Determina o turno dinamicamente baseado na hora inteira do banco
             let turnoCalculado = 'manhã';
             const horaInteira = parseInt(horaInicioLimpa.split(':')[0], 10);
             if (horaInteira >= 12 && horaInteira < 18) {
@@ -64,17 +81,13 @@ export default function ProgramacaoEvento() {
                 turnoCalculado = 'noite';
             }
 
-            // Ignora o laço se a sessão não pertencer ao turno ativo clicado na aba
             if (turnoCalculado !== turnoAtivo) return;
 
-            // 2. Mapeamento e filtragem das apresentações alocadas nesta sessão
             const apresentacoesOriginais = sessaoBanco.ordem_apresentacoes_display || [];
-            
             const atividadesFiltradas = apresentacoesOriginais
                 .map(itemOrdem => {
                     const atracao = itemOrdem.atracao_display || itemOrdem.atracao || {};
                     
-                    // Tratamento dos autores mapeando a estrutura da equipe_json ou autor do banco
                     let listaAutores = [];
                     if (atracao.equipe_json) {
                         try {
@@ -89,7 +102,6 @@ export default function ProgramacaoEvento() {
                         listaAutores = [atracao.autor];
                     }
 
-                    // Conversão das modalidades ou áreas em formato de tags legíveis
                     const listaTags = [];
                     if (atracao.tipo) listaTags.push({ texto: atracao.tipo });
                     if (atracao.area_conhecimento?.area_conhecimento_display) {
@@ -109,11 +121,10 @@ export default function ProgramacaoEvento() {
                             corFundo: obterCorPorTag(t.texto),
                             corTexto: '#FFFFFF'
                         })),
-                        inscrito: false // Pode ser acoplado à regra de inscrições posteriormente
+                        inscrito: false
                     };
                 })
                 .filter(ativ => {
-                    // Executa o filtro de busca textual digitado no input superior
                     const titulo = ativ.titulo.toLowerCase();
                     const autor = ativ.autores.join(' ').toLowerCase();
                     const bateuNaTag = ativ.tags.some(tag => tag.texto.toLowerCase().includes(termo));
@@ -121,7 +132,7 @@ export default function ProgramacaoEvento() {
                     return !termo || titulo.includes(termo) || autor.includes(termo) || bateuNaTag;
                 });
 
-            // 3. Agrupamento Unificado: Se houver mais de uma sessão no mesmo horário, elas viram uma só
+            
             if (atividadesFiltradas.length > 0) {
                 if (!mapaAgrupamento[chaveBlocoHorario]) {
                     mapaAgrupamento[chaveBlocoHorario] = [];
@@ -130,14 +141,13 @@ export default function ProgramacaoEvento() {
             }
         });
 
-        // Transforma o objeto agrupador em uma estrutura de array para renderização do JSX
         const resultadoFinal = Object.keys(mapaAgrupamento).map(bloco => ({
             blocoHorario: bloco,
             atividades: mapaAgrupamento[bloco]
         })).sort((a, b) => a.blocoHorario.localeCompare(b.blocoHorario));
 
         setSessoesFiltradas(resultadoFinal);
-    }, [sessoes, termoBusca, turnoAtivo]);
+    }, [sessoes, dataSelecionada, termoBusca, turnoAtivo]);
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-white">
@@ -146,7 +156,7 @@ export default function ProgramacaoEvento() {
                 <section style={{ backgroundColor: verdeIFRS, color: 'white' }} className="py-5 text-center shadow-sm">
                     <Container>
                         <h1 className="display-5 fw-bold mb-2">Programação Oficial</h1>
-                        <p className="mb-4 opacity-90">Confira a distribuição em tempo real das sessões e apresentações</p>
+                        <p className="mb-4 opacity-90">Confira os horários e locais das atividades do evento</p>
                         <Row className="justify-content-center">
                             <Col md={8} lg={6}>
                                 <InputGroup className="shadow-sm rounded-pill overflow-hidden bg-white p-1">
@@ -167,7 +177,29 @@ export default function ProgramacaoEvento() {
                 </section>
 
                 <Container className="py-4 mt-2">
-                    {/* Filtros de Turnos */}
+                    
+                    {dias && dias.length > 0 && (
+                        <Row className="justify-content-center mb-4">
+                            <Col xs={12} md={4} className="d-flex align-items-center gap-2">
+                                <MdEvent size={24} className="text-secondary" />
+                                <Form.Group className="w-100 m-0">
+                                    <Form.Select
+                                        value={dataSelecionada}
+                                        onChange={(e) => setDataSelecionada(e.target.value)}
+                                        className="fw-semibold border-secondary-subtle"
+                                    >
+                                        {dias.map((dia, index) => (
+                                            <option key={index} value={formatarDataValue(dia)}>
+                                                Dia do Evento: {formatarDataLabel(dia)}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                    )}
+
+                    
                     <div className="d-flex justify-content-center gap-3 mb-5">
                         {['manhã', 'tarde', 'noite'].map((turno) => (
                             <Button 
@@ -187,7 +219,7 @@ export default function ProgramacaoEvento() {
                             {loading ? (
                                 <div className="text-center py-5">
                                     <Spinner animation="border" variant="success" />
-                                    <p className="text-muted mt-2 small">Sincronizando cronograma com o servidor...</p>
+                                    <p className="text-muted mt-2 small">Buscando cronograma no servidor...</p>
                                 </div>
                             ) : error ? (
                                 <Alert variant="danger">
@@ -195,7 +227,6 @@ export default function ProgramacaoEvento() {
                                 </Alert>
                             ) : sessoesFiltradas.length > 0 ? (
                                 sessoesFiltradas.map((sessaoGlobal, idx) => (
-                                    /* ✅ CARD ÚNICO: Todas as sessões que estão no mesmo horário são acopladas aqui */
                                     <div key={idx} className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: '16px' }}>
                                         <div className="card-header bg-white text-dark py-3 px-4 d-flex align-items-center justify-content-between">
                                             <div className="d-flex align-items-center gap-2 m-0 fw-bold">
@@ -207,7 +238,6 @@ export default function ProgramacaoEvento() {
                                             </span>
                                         </div>
                                         
-                                        {/* ✅ LISTAGEM CORRIDA E COMPLETA: Sem quebras por paginação (1, 2, 3) */}
                                         <div className="card-body p-0">
                                             {sessaoGlobal.atividades.map((ativ, ativIdx) => (
                                                 <div 
@@ -245,7 +275,7 @@ export default function ProgramacaoEvento() {
                                 ))
                             ) : (
                                 <div className="text-center py-5 bg-white rounded shadow-sm border">
-                                    <h5 className="text-muted m-0">Nenhuma atividade programada para este turno.</h5>
+                                    <h5 className="text-muted m-0">Nenhuma atividade programada para esta data neste turno.</h5>
                                 </div>
                             )}
                         </Col>
