@@ -5,11 +5,14 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from ..models.atracao import Atracao
+from ..models.autoria import Autoria
 from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
 from ..models.espaco import Espaco
 from ..models.resposta import Resposta
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.tipo_autoria import TipoAutoria
+from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
 
@@ -18,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class AtracaoSerializer(serializers.ModelSerializer):
     equipe = CoautorSerializer(many=True, required=False, read_only=True)
+    autorias = AutoriaSerializer(many=True, required=False, read_only=True)
     tipo = serializers.ReadOnlyField(source="modalidade.nome")
     espaco_detalhe = EspacoSerializer(source="espaco", read_only=True)
     espaco = serializers.PrimaryKeyRelatedField(
@@ -30,6 +34,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
     nivel_ensino_display = serializers.SerializerMethodField()
 
     equipe_json = serializers.CharField(required=False, allow_blank=True, default="")
+    autoria_json = serializers.CharField(required=False, allow_blank=True, default="")
     respostas_campos = serializers.SerializerMethodField(read_only=True)
     respostas_campos_json = serializers.CharField(
         required=False, allow_blank=True, default=""
@@ -54,6 +59,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "sugestao_vagas",
             "equipe",
             "equipe_json",
+            "autorias",
+            "autoria_json",
             "data_hora_inicio",
             "data_hora_fim",
             "espaco",
@@ -70,6 +77,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         # Removemos campos que não existem no modelo (campos exclusivos do Serializer)
         model_data = data.copy()
         model_data.pop("equipe_json", None)
+        model_data.pop("autoria_json", None)
         model_data.pop("respostas_campos_json", None)
 
         espaco = model_data.get("espaco")
@@ -175,6 +183,83 @@ class AtracaoSerializer(serializers.ModelSerializer):
         except (json.JSONDecodeError, ValueError):
             return {}
 
+    def validate_autoria_json(self, value):
+        if not value:
+            return []
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, ValueError):
+            return []
+
+    def _normalizar_autorias(self, autoria_data):
+        if not isinstance(autoria_data, list):
+            return []
+
+        tipos_validos = {choice[0] for choice in TipoAutoria.choices}
+        autorias_normalizadas = []
+        usuarios_vistos = set()
+
+        for index, item in enumerate(autoria_data):
+            if not isinstance(item, dict):
+                continue
+
+            usuario_id = item.get("usuario") or item.get("user_id")
+            if usuario_id in (None, ""):
+                continue
+
+            try:
+                usuario_id = int(usuario_id)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {"autoria_json": f"Usuário inválido na posição {index + 1}."}
+                )
+
+            if usuario_id in usuarios_vistos:
+                raise serializers.ValidationError(
+                    {"autoria_json": "Um mesmo usuário não pode aparecer mais de uma vez."}
+                )
+            usuarios_vistos.add(usuario_id)
+
+            tipo_valor = item.get("tipo") or item.get("funcao")
+            tipo = str(tipo_valor or "").strip().upper()
+            if tipo not in tipos_validos:
+                raise serializers.ValidationError(
+                    {
+                        "autoria_json": (
+                            f"Tipo de autoria inválido na posição {index + 1}. "
+                            "Use AUTOR, COAUTOR ou ORIENTADOR."
+                        )
+                    }
+                )
+
+            ordem = item.get("ordem", index + 1)
+            try:
+                ordem = int(ordem)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {"autoria_json": f"Ordem inválida na posição {index + 1}."}
+                )
+
+            autorias_normalizadas.append(
+                {
+                    "usuario_id": usuario_id,
+                    "tipo": tipo,
+                    "ordem": ordem,
+                }
+            )
+
+        if autorias_normalizadas:
+            total_autores = len(
+                [a for a in autorias_normalizadas if a["tipo"] == TipoAutoria.AUTOR]
+            )
+            if total_autores != 1:
+                raise serializers.ValidationError(
+                    {"autoria_json": "A submissão deve possuir exatamente 1 AUTOR."}
+                )
+
+        return autorias_normalizadas
+
     def get_respostas_campos(self, obj):
         respostas = obj.respostas.select_related("campo_formulario").all()
         retorno = {}
@@ -254,9 +339,21 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if respostas_para_criar:
             Resposta.objects.bulk_create(respostas_para_criar)
 
+    def _sincronizar_autorias(self, submissao, autorias_data):
+        if not isinstance(autorias_data, list):
+            return
+
+        submissao.autorias.all().delete()
+        if not autorias_data:
+            return
+
+        objetos = [Autoria(submissao=submissao, **autoria) for autoria in autorias_data]
+        Autoria.objects.bulk_create(objetos)
+
     def create(self, validated_data):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
         equipe_data = validated_data.pop("equipe_json", [])
+        autoria_data = validated_data.pop("autoria_json", [])
         respostas_campos_data = validated_data.pop("respostas_campos_json", {})
 
         espaco = validated_data.get("espaco")
@@ -271,11 +368,18 @@ class AtracaoSerializer(serializers.ModelSerializer):
             if membro.get("nome"):
                 Coautor.objects.create(atracao=atracao, **membro)
 
+        autorias_normalizadas = self._normalizar_autorias(
+            autoria_data if autoria_data else equipe_data
+        )
+        if autorias_normalizadas:
+            self._sincronizar_autorias(atracao, autorias_normalizadas)
+
         self._sincronizar_respostas(atracao, respostas_campos_data)
         return atracao
 
     def update(self, instance, validated_data):
         equipe_data = validated_data.pop("equipe_json", None)
+        autoria_data = validated_data.pop("autoria_json", None)
         respostas_campos_data = validated_data.pop("respostas_campos_json", None)
 
         espaco = validated_data.get("espaco")
@@ -291,6 +395,14 @@ class AtracaoSerializer(serializers.ModelSerializer):
             for membro in equipe_data:
                 if membro.get("nome"):
                     Coautor.objects.create(atracao=instance, **membro)
+
+        if isinstance(autoria_data, list):
+            autorias_normalizadas = self._normalizar_autorias(autoria_data)
+            self._sincronizar_autorias(instance, autorias_normalizadas)
+        elif isinstance(equipe_data, list):
+            autorias_normalizadas = self._normalizar_autorias(equipe_data)
+            if autorias_normalizadas:
+                self._sincronizar_autorias(instance, autorias_normalizadas)
 
         if isinstance(respostas_campos_data, dict):
             self._sincronizar_respostas(instance, respostas_campos_data)
