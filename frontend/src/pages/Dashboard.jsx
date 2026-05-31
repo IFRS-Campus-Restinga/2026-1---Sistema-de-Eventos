@@ -661,7 +661,7 @@ export default function Dashboard() {
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
                                                 to={
                                                     eventoId
-                                                        ? `/dashboard/${eventoId}/enviaremails`
+                                                        ? `/dashboard/${eventoId}/enviar_emails`
                                                         : '#'
                                                 }
                                             >
