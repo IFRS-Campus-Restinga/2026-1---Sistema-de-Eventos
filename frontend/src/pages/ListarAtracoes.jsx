@@ -29,12 +29,9 @@ import {
     buscarEventos,
     buscarOpcoesAtracao,
     buscarUsuarios,
-    definirMembroEquipeAtracao,
     editarAtracao,
     excluirAtracao,
     listarAtracoes,
-    listarEquipeAtracao,
-    removerMembroEquipeAtracao,
 } from '../services/atracaoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
@@ -296,6 +293,10 @@ export default function ListarAtracoes() {
 
     const abrirModalEdicao = (atracao) => {
         const sugestaoAtual = atracao.sugestao_vagas ?? '';
+        const fonteAutoria = Array.isArray(atracao.autorias) && atracao.autorias.length > 0
+            ? atracao.autorias
+            : (Array.isArray(atracao.equipe) ? atracao.equipe : []);
+
         setFormEdicao({
             id: atracao.id,
             titulo: atracao.titulo || '',
@@ -308,24 +309,23 @@ export default function ListarAtracoes() {
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
             sugestao_vagas: sugestaoAtual,
-            equipe: Array.isArray(atracao.equipe)
-                ? atracao.equipe.map((membro) => ({
-                      user_id:
-                          membro.user_id ||
-                          (usuariosEdicao || []).find(
-                              (usuario) =>
-                                  getNomeUsuario(usuario).trim().toLowerCase() ===
-                                  (membro.nome || '').trim().toLowerCase(),
-                          )?.id ||
-                          '',
-                      nome: membro.nome || '',
-                      instituicao_curso: membro.instituicao_curso || '',
-                      funcao:
-                          membro.funcao === 'COLABORADOR'
-                              ? 'COAUTOR'
-                              : (membro.funcao || ''),
-                  }))
-                : [],
+            equipe: fonteAutoria.map((membro) => ({
+                user_id:
+                    membro.user_id ||
+                    membro.usuario ||
+                    (usuariosEdicao || []).find(
+                        (usuario) =>
+                            getNomeUsuario(usuario).trim().toLowerCase() ===
+                            (membro.nome || '').trim().toLowerCase(),
+                    )?.id ||
+                    '',
+                nome: membro.nome || '',
+                instituicao_curso: membro.instituicao_curso || '',
+                funcao:
+                    membro.funcao === 'COLABORADOR'
+                        ? 'COAUTOR'
+                        : (membro.funcao || membro.tipo || ''),
+            })),
         });
         setHabilitarSugestaoVagasEdicao(
             sugestaoAtual !== '' && sugestaoAtual !== null && sugestaoAtual !== undefined,
@@ -506,59 +506,7 @@ export default function ListarAtracoes() {
 
         try {
             setSalvandoEdicao(true);
-
-            const dadosSemEquipe = { ...formEdicao };
-            delete dadosSemEquipe.equipe;
-            await editarAtracao(formEdicao.id, dadosSemEquipe);
-
-            const equipeDesejada = equipeComUsuario.map((membro) => ({
-                user_id: String(membro.user_id),
-                funcao: membro.funcao,
-                instituicao_curso: membro.instituicao_curso || '',
-            }));
-
-            const equipeAtualResp = await listarEquipeAtracao(formEdicao.id);
-            const equipeAtual = Array.isArray(equipeAtualResp?.equipe)
-                ? equipeAtualResp.equipe
-                : [];
-
-            const mapaAtual = new Map(
-                equipeAtual
-                    .filter((membro) => String(membro?.user_id || '').trim() !== '')
-                    .map((membro) => [String(membro.user_id), membro]),
-            );
-
-            const mapaDesejado = new Map(
-                equipeDesejada.map((membro) => [String(membro.user_id), membro]),
-            );
-
-            const removidos = [...mapaAtual.keys()].filter(
-                (userId) => !mapaDesejado.has(userId),
-            );
-
-            for (const userId of removidos) {
-                await removerMembroEquipeAtracao(formEdicao.id, userId);
-            }
-
-            const membrosNaoAutor = equipeDesejada.filter(
-                (membro) => membro.funcao !== 'AUTOR',
-            );
-            const membrosAutor = equipeDesejada.filter(
-                (membro) => membro.funcao === 'AUTOR',
-            );
-
-            for (const membro of [...membrosNaoAutor, ...membrosAutor]) {
-                const atual = mapaAtual.get(String(membro.user_id));
-                const houveMudanca =
-                    !atual ||
-                    String(atual.funcao || '') !== String(membro.funcao || '') ||
-                    String(atual.instituicao_curso || '') !==
-                        String(membro.instituicao_curso || '');
-
-                if (houveMudanca) {
-                    await definirMembroEquipeAtracao(formEdicao.id, membro);
-                }
-            }
+            await editarAtracao(formEdicao.id, formEdicao);
 
             mostrarAlerta('Submissão atualizada com sucesso.', 'success');
             setMostrarModalEdicao(false);
@@ -761,7 +709,6 @@ export default function ListarAtracoes() {
                     getAreasEventoEdicao={getAreasEventoEdicao}
                     normalizarAreaEdicao={normalizarAreaEdicao}
                     usuariosEdicao={usuariosEdicao}
-                    usuarioLogadoEdicao={usuarioLogadoEdicao}
                     getNomeUsuario={getNomeUsuario}
                     getNivelEnsinoMembroEdicao={getNivelEnsinoMembroEdicao}
                     getUsuariosDisponiveisLinhaEdicao={getUsuariosDisponiveisLinhaEdicao}

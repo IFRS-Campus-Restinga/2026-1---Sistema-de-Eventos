@@ -54,15 +54,26 @@ const montarPayloadAtracao = (dados) => {
 
         if (key === 'equipe') {
             const equipeNormalizada = Array.isArray(dados[key])
-                ? dados[key].map((membro) => ({
+                ? dados[key].map((membro, index) => ({
                       user_id: membro?.user_id || null,
                       nome: membro?.nome || '',
                       instituicao_curso: membro?.instituicao_curso || '',
                       funcao: membro?.funcao || '',
+                      ordem: index + 1,
                   }))
                 : [];
 
             payload.append('equipe_json', JSON.stringify(equipeNormalizada));
+
+            const autoriaNormalizada = equipeNormalizada
+                .filter((membro) => String(membro?.user_id || '').trim() !== '')
+                .map((membro) => ({
+                    usuario: Number(membro.user_id),
+                    tipo: membro.funcao,
+                    ordem: membro.ordem,
+                }));
+
+            payload.append('autoria_json', JSON.stringify(autoriaNormalizada));
             return;
         }
 

@@ -147,9 +147,24 @@ class Atracao(Base):
         ordering = ["-id"]
         permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
 
+    def _gerar_slug_unico(self):
+        base_slug = slugify(self.titulo or "")[:100]
+        if not base_slug:
+            base_slug = "atracao"
+
+        slug = base_slug
+        contador = 1
+
+        while Atracao.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            sufixo = f"-{contador}"
+            slug = f"{base_slug[: 100 - len(sufixo)]}{sufixo}"
+            contador += 1
+
+        return slug
+
     def save(self, *args, **kwargs):
         if self.slug is None or self.slug == "":
-            self.slug = slugify(self.titulo)
+            self.slug = self._gerar_slug_unico()
         super().save(*args, **kwargs)
 
     def __str__(self):

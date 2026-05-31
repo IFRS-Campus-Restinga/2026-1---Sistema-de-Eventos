@@ -101,6 +101,55 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     // Para armazenar erros de validação
     const [errors, setErrors] = useState({});
 
+    const extrairNomesAutores = (atracaoEntrada) => {
+        const atracao = atracaoEntrada?.atracao || atracaoEntrada || {};
+
+        if (Array.isArray(atracao.autorias) && atracao.autorias.length > 0) {
+            const nomesAutoria = atracao.autorias
+                .map((item) => item?.nome || item?.usuario_nome || item?.autor)
+                .filter((nome) => String(nome || '').trim() !== '');
+
+            if (nomesAutoria.length > 0) {
+                return nomesAutoria;
+            }
+        }
+
+        if (atracao.equipe_json) {
+            try {
+                const equipe =
+                    typeof atracao.equipe_json === 'string'
+                        ? JSON.parse(atracao.equipe_json)
+                        : atracao.equipe_json;
+
+                const nomesEquipe = (Array.isArray(equipe) ? equipe : [])
+                    .map((membro) => membro?.nome || membro?.autor)
+                    .filter((nome) => String(nome || '').trim() !== '');
+
+                if (nomesEquipe.length > 0) {
+                    return nomesEquipe;
+                }
+            } catch (e) {
+                // Ignora parsing inválido e segue com fallbacks.
+            }
+        }
+
+        if (Array.isArray(atracao.equipe) && atracao.equipe.length > 0) {
+            const nomesEquipeDireta = atracao.equipe
+                .map((membro) => membro?.nome || membro?.autor)
+                .filter((nome) => String(nome || '').trim() !== '');
+
+            if (nomesEquipeDireta.length > 0) {
+                return nomesEquipeDireta;
+            }
+        }
+
+        if (atracao.autor) {
+            return [atracao.autor];
+        }
+
+        return [];
+    };
+
     useEffect(() => {
         if (eventoId) {
             carregarEvento(eventoId);
@@ -604,6 +653,8 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             zIndex: isDragging ? 1000 : 0,
         };
 
+        const nomesAutores = extrairNomesAutores(atracao);
+
         return (
             <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
                 <div
@@ -622,7 +673,10 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     </div>
 
                     <small style={{ fontSize: '10px' }}>
-                        {atracao.autor || atracao.atracao?.autor}
+                        {nomesAutores.join(', ') ||
+                            atracao.autor ||
+                            atracao.atracao?.autor ||
+                            'Autor não informado'}
                     </small>
 
                     <small className="text-muted">
@@ -983,16 +1037,20 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                     const busca =
                                                         buscaAtracao.toLowerCase();
 
+                                                    const buscaAutores =
+                                                        extrairNomesAutores(
+                                                            atracao,
+                                                        )
+                                                            .join(' ')
+                                                            .toLowerCase();
+
                                                     return (
                                                         atracao.titulo
                                                             ?.toLowerCase()
                                                             .includes(busca) ||
-                                                        JSON.stringify(
-                                                            atracao.equipe_json ||
-                                                                '',
-                                                        )
-                                                            .toLowerCase()
-                                                            .includes(busca) ||
+                                                        buscaAutores.includes(
+                                                            busca,
+                                                        ) ||
                                                         atracao.tipo //modalidade pelo nome
                                                             ?.toLowerCase()
                                                             .includes(busca) ||

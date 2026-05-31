@@ -25,6 +25,45 @@ import ModalPopup from '../components/common/ModalPopup';
 import useSessoes from '../hooks/useSessoes';
 import { obterCorPorTag } from '../utils/themeTags';
 
+const extrairNomesAutores = (atracao) => {
+    const fonte = atracao || {};
+
+    if (Array.isArray(fonte.autorias) && fonte.autorias.length > 0) {
+        const nomesAutoria = fonte.autorias
+            .map((item) => item?.nome || item?.usuario_nome || item?.autor)
+            .filter((nome) => String(nome || '').trim() !== '');
+
+        if (nomesAutoria.length > 0) {
+            return nomesAutoria;
+        }
+    }
+
+    if (fonte.equipe_json) {
+        try {
+            const equipe =
+                typeof fonte.equipe_json === 'string'
+                    ? JSON.parse(fonte.equipe_json)
+                    : fonte.equipe_json;
+
+            const nomesEquipe = (Array.isArray(equipe) ? equipe : [])
+                .map((membro) => membro?.nome || membro?.autor)
+                .filter((nome) => String(nome || '').trim() !== '');
+
+            if (nomesEquipe.length > 0) {
+                return nomesEquipe;
+            }
+        } catch (e) {
+            // Ignora erro de parsing e tenta próximos fallbacks.
+        }
+    }
+
+    if (fonte.autor) {
+        return [fonte.autor];
+    }
+
+    return ['Autor Não Informado'];
+};
+
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
     const verdeIFRS = '#00A44B';
@@ -105,22 +144,7 @@ export default function ProgramacaoEvento() {
                     const atracao =
                         itemOrdem.atracao_display || itemOrdem.atracao || {};
 
-                    let listaAutores = [];
-                    if (atracao.equipe_json) {
-                        try {
-                            const equipe =
-                                typeof atracao.equipe_json === 'string'
-                                    ? JSON.parse(atracao.equipe_json)
-                                    : atracao.equipe_json;
-                            listaAutores = equipe.map((m) => m.nome || m.autor);
-                        } catch (e) {
-                            listaAutores = [
-                                atracao.autor || 'Autor Não Informado',
-                            ];
-                        }
-                    } else if (atracao.autor) {
-                        listaAutores = [atracao.autor];
-                    }
+                    const listaAutores = extrairNomesAutores(atracao);
 
                     const listaTags = [];
                     if (atracao.tipo) listaTags.push({ texto: atracao.tipo });

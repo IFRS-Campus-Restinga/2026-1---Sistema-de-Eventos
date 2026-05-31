@@ -363,6 +363,29 @@ class AtracaoSerializer(serializers.ModelSerializer):
         objetos = [Autoria(submissao=submissao, **autoria) for autoria in autorias_ordenadas]
         Autoria.objects.bulk_create(objetos)
 
+    def _normalizar_coautores_legacy(self, equipe_data):
+        if not isinstance(equipe_data, list):
+            return []
+
+        membros_normalizados = []
+        for membro in equipe_data:
+            if not isinstance(membro, dict):
+                continue
+
+            nome = str(membro.get("nome") or "").strip()
+            if not nome:
+                continue
+
+            membros_normalizados.append(
+                {
+                    "nome": nome,
+                    "instituicao_curso": membro.get("instituicao_curso") or "",
+                    "funcao": membro.get("funcao") or TipoAutoria.COAUTOR,
+                }
+            )
+
+        return membros_normalizados
+
     def create(self, validated_data):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
         equipe_data = validated_data.pop("equipe_json", [])
@@ -377,7 +400,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
             equipe_data = []
 
         atracao = Atracao.objects.create(**validated_data)
-        for membro in equipe_data:
+        equipe_legacy_normalizada = self._normalizar_coautores_legacy(equipe_data)
+        for membro in equipe_legacy_normalizada:
             if membro.get("nome"):
                 Coautor.objects.create(atracao=atracao, **membro)
 
@@ -405,7 +429,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
         if equipe_data and isinstance(equipe_data, list):
             instance.equipe.all().delete()
-            for membro in equipe_data:
+            equipe_legacy_normalizada = self._normalizar_coautores_legacy(equipe_data)
+            for membro in equipe_legacy_normalizada:
                 if membro.get("nome"):
                     Coautor.objects.create(atracao=instance, **membro)
 
