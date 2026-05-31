@@ -31,6 +31,7 @@ import SemResultado from './pages/SemResultado';
 import AvaliarSubmissao from './pages/AvaliarSubmissao';
 import PresencaEvento from './pages/AlunoCredenciamento';
 import EnviarEmails from './pages/EnviarEmails';
+import ConfigurarTemplates from './pages/ConfigurarTemplates';
 import SessaoBoard from './pages/SessaoBoard';
 import ListarInscritosEvento from './pages/ListarInscritosEvento';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
@@ -86,7 +87,8 @@ function App() {
                 <Route path="/programacao_evento/:id" element={protegido(<ProgramacaoEvento />)} />
 
                 {/* Comunicação com Publico (emails) */}
-                <Route path="/dashboard/:id/enviaremails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id/enviar_emails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+                <Route path="/configurar_templates" element={protegido(<ConfigurarTemplates />, ADMIN_GROUPS)} />
 
                 {/* Locais & Espacos */}
                 <Route path="/adicionar_local" element={protegido(<LocalForm />, ADMIN_GROUPS)} />

@@ -1,11 +1,12 @@
 //Bibliotecas
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/esm/Button';
 import Form from 'react-bootstrap/esm/Form';
 import { Spinner } from 'react-bootstrap';
+import { BsGearFill } from 'react-icons/bs';
 
 //Componentes comuns
 import NavBar from '../components/nav_bar/NavBar';
@@ -19,6 +20,7 @@ import { useEnviarEmails } from '../hooks/useEnviarEmails';
 
 export default function EnviarEmails({ campus = 'Campus Restinga' }) {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { csrfToken } = useCsrf();
 
     // Extração das propriedades e métodos encapsulados no hook
@@ -36,10 +38,55 @@ export default function EnviarEmails({ campus = 'Campus Restinga' }) {
         handleCheckboxChange,
         handleSelecionarTodos,
         handleSubmit,
+
+        // Fazendo agora
+        templates = [],
+        templateSelecionado,
+        handleTemplateChange,
     } = useEnviarEmails(id);
 
     // Campos da coluna direita
     const camposComposicao = [
+        {
+            tipo: 'select',
+            titulo: (
+                <span className="d-flex align-items-center gap-2">
+                    Templates
+                    <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        className="d-flex align-items-center justify-content-center p-0"
+                        style={{ width: '28px', height: '28px' }}
+                        title="Configurar Meus Templates"
+                        onClick={() => navigate('/configurar_templates')} // Redirecionamento aplicado
+                    >
+                        <BsGearFill size={14} />
+                    </Button>
+                </span>
+            ),
+            name: 'template',
+            preValue: templateSelecionado,
+            onChange: (valor) => handleTemplateChange(valor),
+            opcoes: [
+                {
+                    text: '-- Selecione um template para preencher a mensagem --',
+                    value: '',
+                },
+                ...templates
+                    .filter((t) => t.tipo === 'sistema')
+                    .map((t) => ({
+                        text: `[Sistema] ${t.nome_exibicao}`,
+                        value: `sistema_${t.id}`,
+                    })),
+                ...templates
+                    .filter((t) => t.tipo === 'perfil')
+                    .map((t) => ({
+                        text: t.nome_exibicao,
+                        value: `perfil_${t.id}`,
+                    })),
+            ],
+        },
+
         {
             tipo: 'text',
             titulo: 'Assunto',
