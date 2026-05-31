@@ -141,7 +141,7 @@ function ItensGestaoRecentes({ navigate }) {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             navigate(
-                                                `/dashboard/${evento.id}/enviaremails`,
+                                                `/dashboard/${evento.id}/enviar_emails`,
                                             );
                                         }}
                                     >
