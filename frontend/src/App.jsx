@@ -41,10 +41,17 @@ import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
 
+const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
+
 function App() {
-    const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
     const protegido = (rota, gruposPermitidos) => (
         <ProtectedRoute gruposPermitidos={gruposPermitidos}>
+            {rota}
+        </ProtectedRoute>
+    );
+
+    const protegidoComAvaliador = (rota, gruposPermitidos) => (
+        <ProtectedRoute gruposPermitidos={gruposPermitidos} permitirAvaliador>
             {rota}
         </ProtectedRoute>
     );
@@ -108,14 +115,14 @@ function App() {
                 <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
                 <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
-                <Route path="/meus_eventos_avaliador" element={protegido(<MeusEventosAvaliador />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
-                <Route path="/avaliar_submissao" element={protegido(<AvaliarSubmissao />, ADMIN_GROUPS)} />
-                <Route path="/minhas_avaliacoes" element={protegido(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
-                <Route path="/avaliar_atracao" element={protegido(<AvaliarAtracao />, ADMIN_GROUPS)} />
+                <Route path="/meus_eventos_avaliador"  element={protegidoComAvaliador(<MeusEventosAvaliador />, ADMIN_GROUPS)}/>
+                <Route path="/avaliar_submissao" element={protegidoComAvaliador(<AvaliarSubmissao />, ADMIN_GROUPS)} />
+                <Route path="/minhas_avaliacoes" element={protegidoComAvaliador(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
+                <Route path="/avaliar_atracao" element={protegidoComAvaliador(<AvaliarAtracao />, ADMIN_GROUPS)} />
 
                 {/* Permissoes / Grupos / Pessoas */}
                 <Route path="/permissoes_grupos" element={protegido(<PermissoesGroups />, ADMIN_GROUPS)} />

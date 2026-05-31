@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { checkSession, redirectToLogin } from '../../services/authService';
+import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
 
 export default function ProtectedRoute({
     children,
@@ -8,12 +9,14 @@ export default function ProtectedRoute({
     redirectMode = 'hub',
     redirectTo = '/',
     gruposPermitidos = [],
+    permitirAvaliador = false,
     redirectUnauthorizedTo = '/',
 }) {
     const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
+    const [temAcessoAvaliador, setTemAcessoAvaliador] = useState(false);
 
     useEffect(() => {
         let ativo = true;
@@ -21,16 +24,54 @@ export default function ProtectedRoute({
         async function validarSessao() {
             try {
                 const result = await checkSession();
-                if (!ativo) return;
-                setIsAuthenticated(Boolean(result?.authenticated));
-                setUser(result?.user ?? null);
+                if (ativo) {
+                    setIsAuthenticated(Boolean(result?.authenticated));
+                    const usuario = result?.user ?? null;
+                    setUser(usuario);
+
+                    const gruposDoUsuario = Array.isArray(usuario?.groups)
+                        ? usuario.groups
+                              .map((group) =>
+                                  typeof group === 'string'
+                                      ? group
+                                      : group?.name,
+                              )
+                              .filter(Boolean)
+                        : [];
+
+                    const temGrupoPermitido =
+                        !Array.isArray(gruposPermitidos) ||
+                        gruposPermitidos.length === 0 ||
+                        gruposPermitidos.some((group) =>
+                            gruposDoUsuario.includes(group),
+                        );
+
+                    if (!result?.authenticated) {
+                        setTemAcessoAvaliador(false);
+                    } else if (temGrupoPermitido || !permitirAvaliador) {
+                        setTemAcessoAvaliador(false);
+                    } else {
+                        const eventosAvaliador =
+                            await listarMeusEventosAvaliador();
+
+                        if (ativo) {
+                            setTemAcessoAvaliador(
+                                Array.isArray(eventosAvaliador) &&
+                                    eventosAvaliador.length > 0,
+                            );
+                        }
+                    }
+                }
             } catch {
-                if (!ativo) return;
-                setIsAuthenticated(false);
-                setUser(null);
+                if (ativo) {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    setTemAcessoAvaliador(false);
+                }
             } finally {
-                if (!ativo) return;
-                setLoading(false);
+                if (ativo) {
+                    setLoading(false);
+                }
             }
         }
 
@@ -39,7 +80,7 @@ export default function ProtectedRoute({
         return () => {
             ativo = false;
         };
-    }, []);
+    }, [gruposPermitidos, permitirAvaliador]);
 
     useEffect(() => {
         if (loading || isAuthenticated) return;
@@ -61,6 +102,8 @@ export default function ProtectedRoute({
         gruposPermitidos.length === 0 ||
         gruposPermitidos.some((group) => gruposDoUsuario.includes(group));
 
+    const temPermissaoAvaliador = permitirAvaliador && temAcessoAvaliador;
+
     if (loading) {
         return fallback;
     }
@@ -73,7 +116,7 @@ export default function ProtectedRoute({
         return <Navigate to={redirectTo} replace state={{ from: location }} />;
     }
 
-    if (!temGrupoPermitido) {
+    if (!temGrupoPermitido && !temPermissaoAvaliador) {
         return (
             <Navigate
                 to={redirectUnauthorizedTo}
