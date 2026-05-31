@@ -199,6 +199,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         tipos_validos = {choice[0] for choice in TipoAutoria.choices}
         autorias_normalizadas = []
         usuarios_vistos = set()
+        ordens_vistas = set()
 
         for index, item in enumerate(autoria_data):
             if not isinstance(item, dict):
@@ -240,6 +241,17 @@ class AtracaoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"autoria_json": f"Ordem inválida na posição {index + 1}."}
                 )
+
+            if ordem <= 0:
+                raise serializers.ValidationError(
+                    {"autoria_json": f"A ordem deve ser maior que zero na posição {index + 1}."}
+                )
+
+            if ordem in ordens_vistas:
+                raise serializers.ValidationError(
+                    {"autoria_json": "A ordem de autoria não pode se repetir."}
+                )
+            ordens_vistas.add(ordem)
 
             autorias_normalizadas.append(
                 {
@@ -347,7 +359,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if not autorias_data:
             return
 
-        objetos = [Autoria(submissao=submissao, **autoria) for autoria in autorias_data]
+        autorias_ordenadas = sorted(autorias_data, key=lambda autoria: autoria.get("ordem", 0))
+        objetos = [Autoria(submissao=submissao, **autoria) for autoria in autorias_ordenadas]
         Autoria.objects.bulk_create(objetos)
 
     def create(self, validated_data):
