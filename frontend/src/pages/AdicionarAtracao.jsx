@@ -258,13 +258,11 @@ export default function AdicionarAtracao() {
         }
 
         const equipeComUsuario = (formState.equipe || []).filter((membro) => {
-            const possuiUsuario = String(membro?.user_id || '').trim() !== '';
-            const possuiNome = String(membro?.nome || '').trim() !== '';
-            return possuiUsuario || possuiNome;
+            return String(membro?.user_id || '').trim() !== '';
         });
 
         if (equipeComUsuario.length === 0) {
-            mostrarAlerta('Por favor, adicione pelo menos um membro na seção de Equipe.');
+            mostrarAlerta('Por favor, adicione pelo menos um membro com usuário selecionado na seção de Equipe.');
             return;
         }
 

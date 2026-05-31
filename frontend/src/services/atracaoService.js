@@ -55,6 +55,7 @@ const montarPayloadAtracao = (dados) => {
         if (key === 'equipe') {
             const equipeNormalizada = Array.isArray(dados[key])
                 ? dados[key].map((membro) => ({
+                      user_id: membro?.user_id || null,
                       nome: membro?.nome || '',
                       instituicao_curso: membro?.instituicao_curso || '',
                       funcao: membro?.funcao || '',
@@ -201,5 +202,52 @@ export const buscarUsuarios = async (q) => {
         params: q ? { q } : {},
         withCredentials: true,
     });
+    return response.data;
+};
+
+export const listarEquipeAtracao = async (atracaoId) => {
+    if (!atracaoId) return { equipe: [] };
+
+    const response = await axios.get(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
+        withCredentials: true,
+    });
+
+    return response.data;
+};
+
+export const definirMembroEquipeAtracao = async (atracaoId, { user_id, funcao, instituicao_curso = '' }) => {
+    if (!atracaoId || !user_id || !funcao) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.patch(
+        `${API_URL}/api/atracoes/${atracaoId}/equipe/`,
+        { user_id, funcao, instituicao_curso },
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const removerMembroEquipeAtracao = async (atracaoId, userId) => {
+    if (!atracaoId || !userId) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.delete(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
+        data: { user_id: userId },
+        headers: {
+            'X-CSRFToken': csrfToken,
+        },
+        withCredentials: true,
+    });
+
     return response.data;
 };
