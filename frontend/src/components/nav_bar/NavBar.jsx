@@ -319,7 +319,7 @@ export default function NavBar() {
                 }}
                 className="py-2 position-relative"
             >
-                <Navbar.Brand href="#" className="ps-5">
+                <Navbar.Brand href="/" className="ps-5">
                     <IFLogo
                         escalaTitulo={12}
                         escalaTexto={10}
