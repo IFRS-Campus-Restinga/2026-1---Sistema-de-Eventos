@@ -134,20 +134,31 @@ export function obterStatusHome(evento, agora = new Date()) {
 
 export function formatarDataEvento(evento) {
     const etapas = evento?.etapas || [];
-    const etapaMaisProxima = etapas.find(
-        (etapa) => etapa?.data_inicio || etapa?.data_fim,
-    );
+    const datasValidas = etapas
+        .flatMap((etapa) => [etapa?.data_inicio, etapa?.data_fim])
+        .filter(Boolean)
+        .map((dataBruta) => new Date(dataBruta))
+        .filter((data) => !Number.isNaN(data.getTime()));
 
-    if (etapaMaisProxima?.data_inicio) {
-        const data = new Date(etapaMaisProxima.data_inicio);
+    if (datasValidas.length > 0) {
+        const menorData = new Date(
+            Math.min(...datasValidas.map((data) => data.getTime())),
+        );
+        const maiorData = new Date(
+            Math.max(...datasValidas.map((data) => data.getTime())),
+        );
 
-        if (!Number.isNaN(data.getTime())) {
-            return new Intl.DateTimeFormat('pt-BR', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-            }).format(data);
+        const formato = new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
+
+        if (menorData.getTime() === maiorData.getTime()) {
+            return formato.format(menorData);
         }
+
+        return `${formato.format(menorData)} - ${formato.format(maiorData)}`;
     }
 
     return `ID ${evento?.id ?? '-'}`;
