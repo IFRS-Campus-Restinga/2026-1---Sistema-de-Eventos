@@ -129,6 +129,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Oficina",
@@ -137,6 +138,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Pôster",
@@ -145,6 +147,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Mesa-redonda",
@@ -153,6 +156,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
 ]
 
