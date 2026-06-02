@@ -38,6 +38,10 @@ class ModalidadeSerializer(serializers.ModelSerializer):
         required=False, allow_null=True, min_value=0
     )
 
+    limite_maximo_vagas = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0
+    )
+
     def create(self, validated_data):
         instance = Modalidade(**validated_data)
         instance.full_clean()
@@ -89,6 +93,24 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             if self.instance and getattr(self.instance, "limite_vagas", None):
                 attrs["limite_vagas"] = None
 
+            if (
+                "limite_maximo_vagas" in attrs
+                and attrs.get("limite_maximo_vagas") is not None
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "limite_maximo_vagas": _(
+                            "Só é possível definir limite máximo de vagas se requer_controle_vagas for True."
+                        )
+                    }
+                )
+
+            if (
+                self.instance
+                and getattr(self.instance, "limite_maximo_vagas", None) is not None
+            ):
+                attrs["limite_maximo_vagas"] = None
+
         return attrs
 
     def update(self, instance, validated_data):
@@ -116,4 +138,5 @@ class ModalidadeSerializer(serializers.ModelSerializer):
             "criterios",
             "criterios_submissao",
             "limite_vagas",
+            "limite_maximo_vagas",
         ]

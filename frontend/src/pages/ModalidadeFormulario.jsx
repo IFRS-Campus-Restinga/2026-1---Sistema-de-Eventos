@@ -36,6 +36,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
     const [permiteSubmissao, setPermiteSubmissao] = useState(false);
     const [requerControleVagas, setRequerControleVagas] = useState(false);
     const [limiteAvaliadores, setLimiteAvaliadores] = useState(0);
+    const [limiteMaximoVagas, setLimiteMaximoVagas] = useState('');
     const [carregandoEdicao, setCarregandoEdicao] = useState(false);
     const [camposIniciais, setCamposIniciais] = useState([]);
     const [criteriosAtracaoIniciais, setCriteriosAtracaoIniciais] = useState(
@@ -73,6 +74,10 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             requer_avaliacao_submissao: requerAvaliacaoSubmissao,
             permite_submissao: permiteSubmissao,
             limite_avaliadores: limiteAvaliadores,
+            limite_maximo_vagas:
+                requerControleVagas && limiteMaximoVagas !== ''
+                    ? limiteMaximoVagas
+                    : null,
         }),
         [
             titulo,
@@ -82,6 +87,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
             requerAvaliacaoSubmissao,
             permiteSubmissao,
             limiteAvaliadores,
+            limiteMaximoVagas,
         ],
     );
 
@@ -90,6 +96,14 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
 
         if (!valor) {
             setRequerAvaliacaoSubmissao(false);
+        }
+    };
+
+    const handleRequerControleVagasChange = (valor) => {
+        setRequerControleVagas(valor);
+
+        if (!valor) {
+            setLimiteMaximoVagas('');
         }
     };
 
@@ -137,6 +151,7 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                 setRequerControleVagas(
                     Boolean(modalidadeData?.requer_controle_vagas),
                 );
+                setLimiteMaximoVagas(modalidadeData?.limite_maximo_vagas ?? '');
                 setLimiteAvaliadores(
                     Number(modalidadeData?.limite_avaliadores || 0),
                 );
@@ -181,6 +196,10 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                 ...basePayloadMemo,
                 requer_avaliacao_submissao:
                     permiteSubmissao && requerAvaliacaoSubmissao,
+                limite_maximo_vagas:
+                    requerControleVagas && limiteMaximoVagas !== ''
+                        ? limiteMaximoVagas
+                        : null,
                 campos,
                 criteriosAtracao,
                 criteriosSubmissao,
@@ -292,7 +311,16 @@ export default function ModalidadeFormulario({ campus = 'Campus Restinga' }) {
                                         tipo: 'switch',
                                         preValue: requerControleVagas,
                                         onChange: (e) =>
-                                            setRequerControleVagas(e),
+                                            handleRequerControleVagasChange(e),
+                                    },
+                                    {
+                                        name: 'limite_maximo_vagas',
+                                        titulo: 'Número máximo de vagas',
+                                        tipo: 'number',
+                                        preValue: limiteMaximoVagas,
+                                        onChange: (e) =>
+                                            setLimiteMaximoVagas(e),
+                                        desativado: !requerControleVagas,
                                     },
                                 ]}
                             />
