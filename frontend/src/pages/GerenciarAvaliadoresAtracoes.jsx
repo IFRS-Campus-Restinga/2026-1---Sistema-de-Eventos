@@ -19,6 +19,9 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         filtroArea,
         filtroBusca,
         areaOptions,
+        filtroModalidade,
+        setFiltroModalidade,
+        opcoesModalidade,
         ordenarOpcoes,
         valorOrdenacao,
         setFiltroArea,
@@ -77,6 +80,11 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                 onAreaChange={(e) =>
                                     setFiltroArea(e.target.value)
                                 }
+                                filtroModalidade={filtroModalidade}
+                                onModalidadeChange={(e) =>
+                                    setFiltroModalidade(e.target.value)
+                                }
+                                opcoesModalidade={opcoesModalidade}
                                 areaOptions={areaOptions}
                                 ordenarOpcoes={ordenarOpcoes}
                                 valorOrdenacao={valorOrdenacao}
@@ -120,6 +128,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 selecionadasSugestoes={selecionadasSugestoes}
                 toggleSelecao={toggleSelecao}
                 avaliadoresContagemMap={avaliadoresContagemMap}
+                modalidadesMap={modalidadesMap}
                 onSalvar={salvarAtribuicoes}
                 onFechar={fecharModalAtribuicao}
             />
@@ -127,6 +136,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                 avaliacaoModal={avaliacaoModal}
                 criteriosMap={criteriosMap}
                 onFechar={fecharAvaliacao}
+                modalidadesMap={modalidadesMap}
             />
 
             {alerta && (
