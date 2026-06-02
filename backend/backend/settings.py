@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
-import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -191,21 +190,24 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # Autenticação do e-mail
-EMAIL_HOST_USER = "sistema.eventos.testes@gmail.com"
-EMAIL_HOST_PASSWORD = "eulnwpqkvvfwqbtn"
+EMAIL_HOST_USER = "naoresponda_sistema@restinga.ifrs.edu.br"
+EMAIL_HOST_PASSWORD = "sqnghirhsbdtegwl"
 
 # Remetente padrão das mensagens
-DEFAULT_FROM_EMAIL = "sistema.eventos.testes@gmail.com"
+DEFAULT_FROM_EMAIL = "naoresponda_sistema@restinga.ifrs.edu.br"
 
 # CONFIGURAÇÕES DO CELERY E REDIS (Upstash) para envio de e-mails
 
 # Connection String da UpStash
-CELERY_BROKER_URL = "rediss://default:gQAAAAAAAfC-AAIgcDI2OTA0NjIzYTE2Njg0YjkxOTM5Y2YxMTkwMGNkYjQ1MQ@popular-falcon-127166.upstash.io:6379"
+# CELERY_BROKER_URL = "rediss://default:gQAAAAAAAfC-AAIgcDI2OTA0NjIzYTE2Njg0YjkxOTM5Y2YxMTkwMGNkYjQ1MQ@popular-falcon-127166.upstash.io:6379" Upstash deixei já aqui caso precise retornar a Upstash
+CELERY_BROKER_URL = "redis://default:jLwe3xTAr3f52Orn0hLgraq8Jzjls6Kc@great-leather-amusement-38746.db.redis.io:19045"
 
 # SSL parâmetros de segurança
-CELERY_BROKER_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_NONE  # Em produção deve ser configurado o Certificado e mudar a linha para: 'ssl_cert_reqs': ssl.CERT_REQUIRED
-}
+
+
+# CELERY_BROKER_USE_SSL = {
+#     "ssl_cert_reqs": ssl.CERT_NONE  # Em produção deve ser configurado o Certificado e mudar a linha para: 'ssl_cert_reqs': ssl.CERT_REQUIRED Upstash deixei já aqui caso precise retornar a Upstash
+# }
 
 # Padrões de segurança e formato de dados para a fila
 CELERY_ACCEPT_CONTENT = ["json"]

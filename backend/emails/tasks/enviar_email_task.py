@@ -8,7 +8,7 @@ logger = logging.getLogger(
 
 """
 Função genérica de envio. Não deve ser chamada diretamente por Serializers.
-Fluxo correto: seu Serializer -> Chama um service -> Chama essa task com as propriedades.
+Fluxo correto: seu Serializer isValid -> Faz o que você normalmente faria -> View chama essa Task com as propriedades.
 """
 
 
