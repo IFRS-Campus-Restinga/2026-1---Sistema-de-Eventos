@@ -95,8 +95,8 @@ export default function CriarAtracaoCard({
                 if (!value) return 'Selecione uma modalidade';
                 break;
             case 'nivel_ensino':
-                if (!Array.isArray(value) || value.length === 0) {
-                    return 'Selecione pelo menos um nível de ensino';
+                if (!String(value || '').trim()) {
+                    return 'Selecione um nível de ensino';
                 }
                 break;
             case 'area_conhecimento':
@@ -123,16 +123,8 @@ export default function CriarAtracaoCard({
         }
     };
 
-    const toggleNivelEnsino = (nivelValue) => {
-        const atuais = Array.isArray(formState.nivel_ensino)
-            ? formState.nivel_ensino
-            : [];
-
-        const atualizado = atuais.includes(nivelValue)
-            ? atuais.filter((item) => item !== nivelValue)
-            : [...atuais, nivelValue];
-
-        handleChange('nivel_ensino', atualizado);
+    const selecionarNivelEnsino = (nivelValue) => {
+        handleChange('nivel_ensino', nivelValue);
     };
 
     const campoKey = (campoId) => `campo_${campoId}`;
@@ -496,14 +488,12 @@ export default function CriarAtracaoCard({
                                     {opcoes.niveis_ensino?.map((opt) => (
                                         <Form.Check
                                             key={opt.value}
-                                            type="checkbox"
+                                            type="radio"
+                                            name="nivel_ensino"
                                             id={`nivel-${opt.value}`}
                                             label={opt.label}
-                                            checked={
-                                                Array.isArray(formState.nivel_ensino) &&
-                                                formState.nivel_ensino.includes(opt.value)
-                                            }
-                                            onChange={() => toggleNivelEnsino(opt.value)}
+                                            checked={String(formState.nivel_ensino || '') === String(opt.value)}
+                                            onChange={() => selecionarNivelEnsino(opt.value)}
                                             onBlur={() => handleBlur('nivel_ensino')}
                                             className="mb-1"
                                         />

@@ -7,6 +7,7 @@ from .avaliacao_atracao import *
 from .avaliacao_submissao import *
 from .base import *
 from .campo_formulario import *
+from .coautor import *
 from .criterio_avaliacao_atracao import *
 from .criterio_avaliacao_submissao import *
 from .espaco import *

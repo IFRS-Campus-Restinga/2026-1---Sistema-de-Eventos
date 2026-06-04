@@ -10,8 +10,7 @@ export default function EditarAtracaoModal({
     setHabilitarSugestaoVagasEdicao,
     contarPalavras,
     LIMITS_EDICAO,
-    normalizarNiveisEnsino,
-    toggleNivelEnsinoEdicao,
+    selecionarNivelEnsinoEdicao,
     getAreasEventoEdicao,
     normalizarAreaEdicao,
     getNomeUsuario,
@@ -169,11 +168,12 @@ export default function EditarAtracaoModal({
                                     {opcoesEdicao.niveis_ensino.map((opt) => (
                                         <Form.Check
                                             key={opt.value}
-                                            type="checkbox"
+                                            type="radio"
+                                            name="edicao_nivel_ensino"
                                             id={`edicao-nivel-${opt.value}`}
                                             label={opt.label}
-                                            checked={normalizarNiveisEnsino(formEdicao.nivel_ensino).includes(opt.value)}
-                                            onChange={() => toggleNivelEnsinoEdicao(opt.value)}
+                                            checked={String(formEdicao.nivel_ensino || '') === String(opt.value)}
+                                            onChange={() => selecionarNivelEnsinoEdicao(opt.value)}
                                             className="mb-1"
                                         />
                                     ))}

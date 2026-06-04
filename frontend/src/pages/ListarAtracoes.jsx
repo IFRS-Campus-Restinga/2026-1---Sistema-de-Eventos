@@ -89,17 +89,18 @@ export default function ListarAtracoes() {
 
     const normalizarNiveisEnsino = (valor) => {
         if (Array.isArray(valor)) {
-            return valor.filter((item) => String(item || '').trim() !== '');
+            const primeiroValido = valor.find((item) => String(item || '').trim() !== '');
+            return primeiroValido ? String(primeiroValido).trim() : '';
         }
 
         if (!valor) {
-            return [];
+            return '';
         }
 
         return String(valor)
             .split(',')
             .map((item) => item.trim())
-            .filter((item) => item !== '');
+            .find((item) => item !== '') || '';
     };
 
     const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
@@ -333,18 +334,11 @@ export default function ListarAtracoes() {
         setMostrarModalEdicao(true);
     };
 
-    const toggleNivelEnsinoEdicao = (nivelValue) => {
-        setFormEdicao((prev) => {
-            const atuais = normalizarNiveisEnsino(prev.nivel_ensino);
-            const atualizados = atuais.includes(nivelValue)
-                ? atuais.filter((item) => item !== nivelValue)
-                : [...atuais, nivelValue];
-
-            return {
-                ...prev,
-                nivel_ensino: atualizados,
-            };
-        });
+    const selecionarNivelEnsinoEdicao = (nivelValue) => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            nivel_ensino: nivelValue,
+        }));
     };
 
     const getNomeUsuario = (usuario) =>
@@ -455,7 +449,7 @@ export default function ListarAtracoes() {
 
         const tituloPalavras = contarPalavras(formEdicao.titulo || '');
 
-        const nivelEnsinoVazio = normalizarNiveisEnsino(formEdicao.nivel_ensino).length === 0;
+        const nivelEnsinoVazio = !String(formEdicao.nivel_ensino || '').trim();
 
         if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || nivelEnsinoVazio || !formEdicao.area_conhecimento) {
             mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
@@ -705,7 +699,7 @@ export default function ListarAtracoes() {
                     contarPalavras={contarPalavras}
                     LIMITS_EDICAO={LIMITS_EDICAO}
                     normalizarNiveisEnsino={normalizarNiveisEnsino}
-                    toggleNivelEnsinoEdicao={toggleNivelEnsinoEdicao}
+                    selecionarNivelEnsinoEdicao={selecionarNivelEnsinoEdicao}
                     getAreasEventoEdicao={getAreasEventoEdicao}
                     normalizarAreaEdicao={normalizarAreaEdicao}
                     usuariosEdicao={usuariosEdicao}
