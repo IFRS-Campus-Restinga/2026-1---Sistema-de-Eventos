@@ -26,6 +26,10 @@ import ModalPopup from '../components/common/ModalPopup';
 import Footer from '../components/footer/Footer';
 import NavBar from '../components/nav_bar/NavBar';
 import { listarAtracoes } from '../services/atracaoService';
+import {
+    criarInscricaoEvento,
+    listarMinhasInscricoesEventos,
+} from '../services/inscricaoEventoService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
@@ -41,20 +45,23 @@ export default function InscricaoAtracoes() {
     const [termoBusca, setTermoBusca] = useState('');
     const [salvandoEdicao, setSalvandoEdicao] = useState(false);
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
+    const [mostrarModalSucesso, setMostrarModalSucesso] = useState(false);
+    const [mensagemModalSucesso, setMensagemModalSucesso] = useState('');
     const [formEdicao, setFormEdicao] = useState({
         id: null,
         titulo: '',
         resumo: '',
         espaco: '',
         status: 'PREVISTA',
+        autor_nome: '',
         orientador_nome: '',
+        equipe_nomes: [],
     });
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
         reacao: 0,
     });
-    const [opcoesEdicao] = useState({ modalidades: [], niveis_ensino: [] });
 
     const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
@@ -131,35 +138,6 @@ export default function InscricaoAtracoes() {
         carregarAtracoes();
     }, [carregarAtracoes]);
 
-    // não carregamos opções de edição nesta página (somente inscrição)
-
-    // não precisamos do detalhe do evento para inscrição/visualização simples
-
-    // não precisamos carregar espaços aqui
-
-    const getStatusConfig = (status) => {
-        const statusNormalizado = (status || '').toUpperCase();
-
-        const mapa = {
-            RASCUNHO: { label: 'RASCUNHO', bg: 'secondary' },
-            PREVISTA: { label: 'SUBMETIDA', bg: 'primary' },
-            CONFIRMADA: { label: 'CONFIRMADA', bg: 'success' },
-            EM_ANDAMENTO: { label: 'EM ANDAMENTO', bg: 'warning' },
-            ENCERRADA: { label: 'ENCERRADA', bg: 'dark' },
-            CANCELADA: { label: 'CANCELADA', bg: 'danger' },
-            EM_AVALIACAO: { label: 'EM AVALIACAO', bg: 'warning' },
-            APROVADA: { label: 'APROVADA', bg: 'success' },
-            REPROVADA: { label: 'REPROVADA', bg: 'danger' },
-        };
-
-        return (
-            mapa[statusNormalizado] || {
-                label: statusNormalizado || 'N/A',
-                bg: 'secondary',
-            }
-        );
-    };
-
     const inscrito = estaInscritoEmAtracao(formEdicao.id);
     const statusInscricao = obterStatusInscricao(formEdicao.id);
 
@@ -204,7 +182,6 @@ export default function InscricaoAtracoes() {
                 atracao.titulo,
                 atracao.tipo,
                 atracao.local_atracao,
-                getStatusConfig(atracao.status).label,
             ]
                 .map((valor) => normalizarTexto(valor))
                 .join(' ');
@@ -226,22 +203,18 @@ export default function InscricaoAtracoes() {
             modalidade: atracao.modalidade || '',
             nivel_ensino: atracao.nivel_ensino || '',
             area_conhecimento: atracao.area_conhecimento || '',
+            autor_nome: atracao.autor_nome || '',
             orientador: atracao.orientador,
             orientador_nome: atracao.orientador_nome || '',
+            equipe_nomes: Array.isArray(atracao.equipe_nomes)
+                ? atracao.equipe_nomes
+                : [],
             sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
         });
         setMostrarModalEdicao(true);
     };
-
-    const getNomeUsuario = (usuario) =>
-        (usuario &&
-            typeof usuario === 'object' &&
-            (usuario.nome || usuario.name || usuario.username)) ||
-        (typeof usuario === 'number' || typeof usuario === 'string'
-            ? `Usuário ${usuario}`
-            : null);
 
     const handleInscrever = async () => {
         if (!usuarioLogado) {
@@ -258,11 +231,40 @@ export default function InscricaoAtracoes() {
 
         try {
             setSalvandoEdicao(true);
+
+            const inscricoesEvento = await listarMinhasInscricoesEventos();
+            const eventoIdDaAtracao = Number(formEdicao.evento);
+            const perfilIdSessao = usuarioLogado.perfil_id;
+
+            const jaInscritoNoEvento = Array.isArray(inscricoesEvento)
+                ? inscricoesEvento.some(
+                      (inscricao) =>
+                          Number(inscricao.evento_id) === eventoIdDaAtracao &&
+                          Number(inscricao.perfil_id) ===
+                              Number(perfilIdSessao),
+                  )
+                : false;
+
+            let autoInscricaoEvento = false;
+
+            if (!jaInscritoNoEvento && eventoIdDaAtracao) {
+                await criarInscricaoEvento({
+                    perfil_id: perfilIdSessao,
+                    evento_id: eventoIdDaAtracao,
+                });
+                autoInscricaoEvento = true;
+            }
+
             await criarInscricao({
-                perfil_id: usuarioLogado.perfil_id,
+                perfil_id: perfilIdSessao,
                 atracao_id: formEdicao.id,
             });
-            mostrarAlerta('Inscrição realizada com sucesso.', 'success');
+            setMensagemModalSucesso(
+                autoInscricaoEvento
+                    ? 'Você não estava inscrito no evento, portanto o sistema fez sua inscrição no evento automaticamente e depois nessa atração.'
+                    : 'Inscrição realizada com sucesso.',
+            );
+            setMostrarModalSucesso(true);
             setMostrarModalEdicao(false);
             await carregarAtracoes();
         } catch (erro) {
@@ -450,10 +452,22 @@ export default function InscricaoAtracoes() {
                     <p className="text-muted">{formEdicao.resumo || '—'}</p>
                     <hr />
 
-                    <h6 className="mb-1">Autor / Orientador</h6>
+                    <h6 className="mb-1">Autor</h6>
+                    <p className="text-muted">{formEdicao.autor_nome || '—'}</p>
+                    <hr />
+
+                    <h6 className="mb-1">Orientador</h6>
                     <p className="text-muted">
-                        {getNomeUsuario(formEdicao.orientador) || '—'}
+                        {formEdicao.orientador_nome || '—'}
                     </p>
+
+                    {/* <h6 className="mb-1">Membros da Equipe</h6>
+                    <p className="text-muted mb-0">
+                        {Array.isArray(formEdicao.equipe_nomes) &&
+                        formEdicao.equipe_nomes.length > 0
+                            ? formEdicao.equipe_nomes.join(', ')
+                            : '—'}
+                    </p> */}
                 </Modal.Body>
 
                 <Modal.Footer>
@@ -484,6 +498,17 @@ export default function InscricaoAtracoes() {
                     )}
                 </Modal.Footer>
             </Modal>
+
+            {/* esse bisonho que notifica o usuário da dupla inscrição evento/atraçãos */}
+            <ModalPopup
+                show={mostrarModalSucesso}
+                titulo="Inscrição concluída"
+                texto={mensagemModalSucesso}
+                textoFechar="Fechar"
+                onFechar={() => setMostrarModalSucesso(false)}
+                variante="success"
+                size="md"
+            />
 
             <Footer
                 telefone="(51) 3333-1234"

@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 class AtracaoSerializer(serializers.ModelSerializer):
     equipe = CoautorSerializer(many=True, required=False, read_only=True)
     autorias = AutoriaSerializer(many=True, required=False, read_only=True)
+    autor_nome = serializers.SerializerMethodField()
+    orientador_nome = serializers.SerializerMethodField()
+    equipe_nomes = serializers.SerializerMethodField()
     tipo = serializers.ReadOnlyField(source="modalidade.nome")
     espaco_detalhe = EspacoSerializer(source="espaco", read_only=True)
     espaco = serializers.PrimaryKeyRelatedField(
@@ -30,7 +33,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     # Sobrescreve o ChoiceField automático do model para aceitar CSV/lista.
-    nivel_ensino = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    nivel_ensino = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
     nivel_ensino_display = serializers.SerializerMethodField()
 
     equipe_json = serializers.CharField(required=False, allow_blank=True, default="")
@@ -52,6 +57,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "nivel_ensino",
             "nivel_ensino_display",
             "area_conhecimento",
+            "autor_nome",
+            "orientador",
+            "orientador_nome",
             "anexo_pdf",
             "acessibilidade",
             "evento",
@@ -61,6 +69,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "equipe_json",
             "autorias",
             "autoria_json",
+            "equipe_nomes",
             "data_hora_inicio",
             "data_hora_fim",
             "espaco",
@@ -69,6 +78,56 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "respostas_campos",
             "respostas_campos_json",
         ]
+
+    # aq a gnt pega e resolve os nomes pra apresentar na tela de inscrição em atrações
+    def _resolver_nome_usuario(self, usuario):
+        if not usuario:
+            return ""
+
+        candidatos = [
+            getattr(usuario, "nome", None),
+            getattr(usuario, "get_full_name", lambda: "")(),
+            f"{getattr(usuario, 'first_name', '')} {getattr(usuario, 'last_name', '')}".strip(),
+            getattr(usuario, "username", None),
+            str(getattr(usuario, "id", "")),
+        ]
+        for candidato in candidatos:
+            if candidato:
+                return str(candidato).strip()
+        return ""
+
+    def get_autor_nome(self, obj):
+        autoria_autor = (
+            obj.autorias.select_related("usuario")
+            .filter(tipo=TipoAutoria.AUTOR)
+            .order_by("ordem", "id")
+            .first()
+        )
+        if autoria_autor:
+            return self._resolver_nome_usuario(autoria_autor.usuario)
+        return ""
+
+    def get_orientador_nome(self, obj):
+        if getattr(obj, "orientador", None):
+            nome_orientador = self._resolver_nome_usuario(obj.orientador)
+            if nome_orientador:
+                return nome_orientador
+
+        autoria_orientador = (
+            obj.autorias.select_related("usuario")
+            .filter(tipo=TipoAutoria.ORIENTADOR)
+            .order_by("ordem", "id")
+            .first()
+        )
+        if autoria_orientador:
+            return self._resolver_nome_usuario(autoria_orientador.usuario)
+
+        return ""
+
+    # precisa dessa porqueira aq, se n ele n puxa, fé
+    def get_equipe_nomes(self, obj):
+        membros = obj.equipe.all().order_by("id")
+        return [membro.nome for membro in membros if getattr(membro, "nome", "")]
 
     def validate(self, data):
         """
@@ -84,7 +143,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if espaco:
             model_data["local_atracao"] = str(espaco)
 
-        modalidade = model_data.get("modalidade") or getattr(self.instance, "modalidade", None)
+        modalidade = model_data.get("modalidade") or getattr(
+            self.instance, "modalidade", None
+        )
         sugestao_vagas = model_data.get("sugestao_vagas")
         limite_modalidade = None
         if modalidade:
@@ -94,7 +155,11 @@ class AtracaoSerializer(serializers.ModelSerializer):
                 getattr(modalidade, "limite_vagas", None),
             )
 
-        if sugestao_vagas is not None and limite_modalidade is not None and limite_modalidade > 0:
+        if (
+            sugestao_vagas is not None
+            and limite_modalidade is not None
+            and limite_modalidade > 0
+        ):
             if sugestao_vagas > limite_modalidade:
                 raise serializers.ValidationError(
                     {
@@ -138,14 +203,18 @@ class AtracaoSerializer(serializers.ModelSerializer):
                 try:
                     parsed = json.loads(valor_texto)
                     if isinstance(parsed, list):
-                        itens = [str(item).strip() for item in parsed if str(item).strip()]
+                        itens = [
+                            str(item).strip() for item in parsed if str(item).strip()
+                        ]
                     elif isinstance(parsed, str):
                         valor_texto = parsed.strip()
                 except (json.JSONDecodeError, ValueError, TypeError):
                     pass
 
             if not itens:
-                itens = [item.strip() for item in valor_texto.split(",") if item.strip()]
+                itens = [
+                    item.strip() for item in valor_texto.split(",") if item.strip()
+                ]
 
         if not itens:
             return ""
@@ -226,7 +295,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
             if usuario_id in usuarios_vistos:
                 raise serializers.ValidationError(
-                    {"autoria_json": "Um mesmo usuário não pode aparecer mais de uma vez."}
+                    {
+                        "autoria_json": "Um mesmo usuário não pode aparecer mais de uma vez."
+                    }
                 )
             usuarios_vistos.add(usuario_id)
 
@@ -252,7 +323,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
             if ordem <= 0:
                 raise serializers.ValidationError(
-                    {"autoria_json": f"A ordem deve ser maior que zero na posição {index + 1}."}
+                    {
+                        "autoria_json": f"A ordem deve ser maior que zero na posição {index + 1}."
+                    }
                 )
 
             if ordem in ordens_vistas:
@@ -367,8 +440,12 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if not autorias_data:
             return
 
-        autorias_ordenadas = sorted(autorias_data, key=lambda autoria: autoria.get("ordem", 0))
-        objetos = [Autoria(submissao=submissao, **autoria) for autoria in autorias_ordenadas]
+        autorias_ordenadas = sorted(
+            autorias_data, key=lambda autoria: autoria.get("ordem", 0)
+        )
+        objetos = [
+            Autoria(submissao=submissao, **autoria) for autoria in autorias_ordenadas
+        ]
         Autoria.objects.bulk_create(objetos)
 
     def _normalizar_coautores_legacy(self, equipe_data):
