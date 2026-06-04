@@ -119,8 +119,10 @@ export default function EditarAtracaoModal({
                                                     type="number"
                                                     min={1}
                                                     max={
-                                                        modalidadeEdicaoDetalhe.limite_vagas > 0
-                                                            ? modalidadeEdicaoDetalhe.limite_vagas
+                                                        (modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                            modalidadeEdicaoDetalhe.limite_vagas) > 0
+                                                            ? (modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                              modalidadeEdicaoDetalhe.limite_vagas)
                                                             : undefined
                                                     }
                                                     value={formEdicao.sugestao_vagas ?? ''}
@@ -139,8 +141,9 @@ export default function EditarAtracaoModal({
                                         )}
 
                                         <Form.Text className="text-muted">
-                                            {modalidadeEdicaoDetalhe.limite_vagas > 0
-                                                ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_vagas} vagas.`
+                                            {(modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                modalidadeEdicaoDetalhe.limite_vagas) > 0
+                                                ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_maximo_vagas ?? modalidadeEdicaoDetalhe.limite_vagas} vagas.`
                                                 : 'Esta modalidade não possui limite de vagas definido.'}
                                         </Form.Text>
                                     </div>

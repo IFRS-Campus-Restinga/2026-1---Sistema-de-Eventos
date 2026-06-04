@@ -86,13 +86,21 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
         modalidade = model_data.get("modalidade") or getattr(self.instance, "modalidade", None)
         sugestao_vagas = model_data.get("sugestao_vagas")
-        if sugestao_vagas is not None and modalidade and modalidade.limite_vagas > 0:
-            if sugestao_vagas > modalidade.limite_vagas:
+        limite_modalidade = None
+        if modalidade:
+            limite_modalidade = getattr(
+                modalidade,
+                "limite_maximo_vagas",
+                getattr(modalidade, "limite_vagas", None),
+            )
+
+        if sugestao_vagas is not None and limite_modalidade is not None and limite_modalidade > 0:
+            if sugestao_vagas > limite_modalidade:
                 raise serializers.ValidationError(
                     {
                         "sugestao_vagas": (
                             f"A sugestão de vagas não pode ultrapassar o limite da modalidade "
-                            f"({modalidade.limite_vagas})."
+                            f"({limite_modalidade})."
                         )
                     }
                 )

@@ -455,7 +455,13 @@ export default function CriarAtracaoCard({
                                             <Form.Control
                                                 type="number"
                                                 min={1}
-                                                max={modalidadeSelecionadaDetalhe.limite_vagas > 0 ? modalidadeSelecionadaDetalhe.limite_vagas : undefined}
+                                                max={
+                                                    (modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                                        modalidadeSelecionadaDetalhe.limite_vagas) > 0
+                                                        ? (modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                                          modalidadeSelecionadaDetalhe.limite_vagas)
+                                                        : undefined
+                                                }
                                                 value={formState.sugestao_vagas ?? ''}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
@@ -468,8 +474,9 @@ export default function CriarAtracaoCard({
                                     )}
 
                                     <Form.Text className="text-muted">
-                                        {modalidadeSelecionadaDetalhe.limite_vagas > 0
-                                            ? `Limite definido para esta modalidade: ${modalidadeSelecionadaDetalhe.limite_vagas} vagas.`
+                                        {(modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                            modalidadeSelecionadaDetalhe.limite_vagas) > 0
+                                            ? `Limite definido para esta modalidade: ${modalidadeSelecionadaDetalhe.limite_maximo_vagas ?? modalidadeSelecionadaDetalhe.limite_vagas} vagas.`
                                             : 'Esta modalidade não possui limite de vagas definido.'}
                                     </Form.Text>
                                 </Form.Group>
