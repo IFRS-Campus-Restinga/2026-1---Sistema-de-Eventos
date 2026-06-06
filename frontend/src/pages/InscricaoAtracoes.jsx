@@ -56,6 +56,7 @@ export default function InscricaoAtracoes() {
         autor_nome: '',
         orientador_nome: '',
         equipe_nomes: [],
+        autorias: [],
     });
     const [alerta, setAlerta] = useState({
         mensagem: '',
@@ -204,6 +205,7 @@ export default function InscricaoAtracoes() {
             nivel_ensino: atracao.nivel_ensino || '',
             area_conhecimento: atracao.area_conhecimento || '',
             autor_nome: atracao.autor_nome || '',
+            autorias: Array.isArray(atracao.autorias) ? atracao.autorias : [],
             orientador: atracao.orientador,
             orientador_nome: atracao.orientador_nome || '',
             equipe_nomes: Array.isArray(atracao.equipe_nomes)
@@ -216,12 +218,63 @@ export default function InscricaoAtracoes() {
         setMostrarModalEdicao(true);
     };
 
+    const usuarioEhAutorDaAtracao = () => {
+        const userId = usuarioLogado?.id;
+        if (!userId) return false;
+        const autorias = formEdicao?.autorias || [];
+        return autorias.some(
+            (a) =>
+                String(a.tipo).toUpperCase() === 'AUTOR' &&
+                Number(a.usuario) === Number(userId),
+        );
+    };
+
+    const _normalizarNome = (texto) =>
+        (texto || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .toLowerCase()
+            .trim();
+
+    const usuarioEstaNaEquipeDaAtracao = () => {
+        const nomesEquipe = Array.isArray(formEdicao?.equipe_nomes)
+            ? formEdicao.equipe_nomes
+            : [];
+        if (!nomesEquipe.length) return false;
+
+        const candidato =
+            usuarioLogado?.nome ||
+            usuarioLogado?.name ||
+            `${usuarioLogado?.first_name || ''} ${
+                usuarioLogado?.last_name || ''
+            }` ||
+            usuarioLogado?.username ||
+            '';
+
+        const nomeNormalizado = _normalizarNome(candidato);
+        if (!nomeNormalizado) return false;
+
+        return nomesEquipe.some((nome) => {
+            if (!nome) return false;
+            return _normalizarNome(nome) === nomeNormalizado;
+        });
+    };
+
     const handleInscrever = async () => {
         if (!usuarioLogado) {
             mostrarAlerta('Faça login antes de se inscrever.', 'danger');
             return;
         }
         if (!formEdicao?.id) return;
+
+        if (usuarioEhAutorDaAtracao()) {
+            mostrarAlerta(
+                'Você é autor desta atração e não pode se inscrever nela.',
+                'warning',
+            );
+            return;
+        }
 
         const jaInscrito = estaInscritoEmAtracao(formEdicao.id);
         if (jaInscrito) {
@@ -490,7 +543,9 @@ export default function InscricaoAtracoes() {
                                 salvandoEdicao ||
                                 carregandoUsuario ||
                                 carregandoInscricao ||
-                                !formEdicao?.id
+                                !formEdicao?.id ||
+                                usuarioEhAutorDaAtracao() ||
+                                usuarioEstaNaEquipeDaAtracao()
                             }
                         >
                             {salvandoEdicao ? 'Inscrevendo...' : 'Inscrever-se'}

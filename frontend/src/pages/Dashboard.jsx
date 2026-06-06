@@ -423,9 +423,7 @@ export default function Dashboard() {
                                             >
                                                 <Link
                                                     className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        '/listar_inscritos_evento'
-                                                    }
+                                                    to={`/listar_inscritos_evento?eventoId=${eventoId}`}
                                                 >
                                                     <HiOutlineClipboardList
                                                         size={20}

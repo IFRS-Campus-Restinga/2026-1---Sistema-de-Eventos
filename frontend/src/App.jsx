@@ -24,7 +24,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
-import ListarInscritos from './pages/ListarInscritos';
+import ListarInscritosAtracao from './pages/ListarInscritosAtracao';
 import MeusEventos from './pages/MeusEventos';
 import MinhasParticipacoes from './pages/MinhasParticipacoes';
 import MeusEventosAvaliador from './pages/MeusEventosAvaliador';
@@ -112,7 +112,7 @@ function App() {
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
-                <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/listar_inscritos_atracao/:atracaoSlug" element={protegido(<ListarInscritosAtracao />)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
                 <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
