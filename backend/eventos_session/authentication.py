@@ -5,13 +5,14 @@ from eventos_session.services.token_service import (
     TokenService,
     TokenValidationError,
     TokenValidationService,
+    get_token_cookie_name,
 )
 
 
 class CookieJWTAuthentication(BaseAuthentication):
     """Authenticate DRF requests from custom access token stored in HttpOnly cookie."""
 
-    cookie_name = "access_token"
+    cookie_name = get_token_cookie_name("access_token")
 
     def authenticate(self, request):
         token = request.COOKIES.get(self.cookie_name)
