@@ -165,11 +165,28 @@ export default function Home({ campus = 'Campus Restinga' }) {
     }, [loginAlert, location.pathname]);
 
     const eventosOrdenados = useMemo(() => {
-        return [...eventos].sort((eventoA, eventoB) => {
-            const idA = Number(eventoA?.id ?? 0);
-            const idB = Number(eventoB?.id ?? 0);
+        // Ordena por data (menor primeiro). Usa a menor data válida entre as etapas
+        // de cada evento. Se não houver data, coloca o evento ao final.
+        const getMenorData = (evento) => {
+            const datas = (evento?.etapas || [])
+                .flatMap((et) => [et?.data_inicio, et?.data_fim])
+                .filter(Boolean)
+                .map((d) => new Date(d).getTime())
+                .filter((t) => !Number.isNaN(t));
 
-            return idB - idA;
+            return datas.length > 0 ? Math.min(...datas) : Infinity;
+        };
+
+        return [...eventos].sort((eventoA, eventoB) => {
+            const tA = getMenorData(eventoA);
+            const tB = getMenorData(eventoB);
+
+            if (tA === tB) {
+                // desempate de datas por  id (mais novo primeiro)
+                return Number(eventoB?.id ?? 0) - Number(eventoA?.id ?? 0);
+            }
+
+            return tA - tB;
         });
     }, [eventos]);
 
@@ -206,6 +223,15 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     evento?.tema,
                     evento?.descricao,
                     evento?.setor,
+                    evento?.etapa_atual,
+
+                    // tipos de etapas (INSCRICAO, REALIZACAO_EVENTO, etc.)
+                    evento?.etapas
+                        ? evento.etapas
+                              .map((et) => et?.tipo_etapa)
+                              .filter(Boolean)
+                              .join(' ')
+                        : null,
                 ]
                     .filter(Boolean)
                     .join(' ')
@@ -387,7 +413,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                 onChange={(event) =>
                                     setTermoBusca(event.target.value)
                                 }
-                                placeholder="Buscar eventos por nome, tema, área ou fase..."
+                                placeholder="Buscar eventos por nome, tema ou fase..."
                             />
                         </label>
 
