@@ -253,13 +253,13 @@ ETAPAS_DATA = [
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2026-04-01 08:00:00",
-        "data_fim": "2026-06-15 23:59:59",
+        "data_fim": "2026-06-06 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "REALIZACAO_EVENTO",
-        "data_inicio": "2025-10-20 08:00:00",
-        "data_fim": "2025-10-22 18:00:00",
+        "data_inicio": "2026-06-07 08:00:00",
+        "data_fim": "2026-06-10 18:00:00",
     },
     {
         "evento_nome": "Mostra de Extensão",
@@ -738,7 +738,7 @@ def seed_etapas():
         if evento_base:
             agora = timezone.now()
             fim = agora + datetime.timedelta(days=3)
-            etapa, created = EtapaEvento.objects.update_or_create(
+            etapa, created = EtapaEvento.objects.get_or_create(
                 evento=evento_base,
                 tipo_etapa="REALIZACAO_EVENTO",
                 defaults={"data_inicio": agora, "data_fim": fim},
@@ -749,7 +749,7 @@ def seed_etapas():
                 )
             else:
                 print(
-                    f"Etapa de REALIZACAO_EVENTO atualizada para '{evento_base.nome}' ({agora} -> {fim})."
+                    f"Etapa de REALIZACAO_EVENTO já existe para '{evento_base.nome}'; não foi alterada."
                 )
 
 
