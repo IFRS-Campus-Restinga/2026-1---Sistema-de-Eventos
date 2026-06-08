@@ -12,6 +12,7 @@ from ..models.espaco import Espaco
 from ..models.resposta import Resposta
 from ..enumerations.nivel_ensino import NivelEnsino
 from ..enumerations.tipo_autoria import TipoAutoria
+from ..services.submissao_service import sincronizar_submissao_por_registro_legado
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
@@ -20,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class AtracaoSerializer(serializers.ModelSerializer):
-    equipe = CoautorSerializer(many=True, required=False, read_only=True)
+    equipe = CoautorSerializer(
+        source="submissao.equipe", many=True, required=False, read_only=True
+    )
     autorias = AutoriaSerializer(many=True, required=False, read_only=True)
     autor_nome = serializers.SerializerMethodField()
     orientador_nome = serializers.SerializerMethodField()
@@ -97,8 +100,13 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return ""
 
     def get_autor_nome(self, obj):
+        submissao = getattr(obj, "submissao", None)
+        autorias = getattr(submissao, "autorias", None) if submissao else None
+        if not autorias:
+            return ""
+
         autoria_autor = (
-            obj.autorias.select_related("usuario")
+            autorias.select_related("usuario")
             .filter(tipo=TipoAutoria.AUTOR)
             .order_by("ordem", "id")
             .first()
@@ -108,13 +116,18 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return ""
 
     def get_orientador_nome(self, obj):
-        if getattr(obj, "orientador", None):
-            nome_orientador = self._resolver_nome_usuario(obj.orientador)
+        submissao = getattr(obj, "submissao", None)
+        if submissao and getattr(submissao, "orientador", None):
+            nome_orientador = self._resolver_nome_usuario(submissao.orientador)
             if nome_orientador:
                 return nome_orientador
 
+        autorias = getattr(submissao, "autorias", None) if submissao else None
+        if not autorias:
+            return ""
+
         autoria_orientador = (
-            obj.autorias.select_related("usuario")
+            autorias.select_related("usuario")
             .filter(tipo=TipoAutoria.ORIENTADOR)
             .order_by("ordem", "id")
             .first()
@@ -126,7 +139,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
     # precisa dessa porqueira aq, se n ele n puxa, fé
     def get_equipe_nomes(self, obj):
-        membros = obj.equipe.all().order_by("id")
+        submissao = getattr(obj, "submissao", None)
+        membros = submissao.equipe.all().order_by("id") if submissao else []
         return [membro.nome for membro in membros if getattr(membro, "nome", "")]
 
     def validate(self, data):
@@ -354,7 +368,12 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return autorias_normalizadas
 
     def get_respostas_campos(self, obj):
-        respostas = obj.respostas.select_related("campo_formulario").all()
+        submissao = getattr(obj, "submissao", None)
+        respostas_manager = getattr(submissao, "respostas", None) if submissao else None
+        if not respostas_manager:
+            return {}
+
+        respostas = respostas_manager.select_related("campo_formulario").all()
         retorno = {}
         for resposta in respostas:
             chave = f"campo_{resposta.campo_formulario_id}"
@@ -385,13 +404,13 @@ class AtracaoSerializer(serializers.ModelSerializer):
             retorno[chave] = resposta.valor
         return retorno
 
-    def _sincronizar_respostas(self, atracao, respostas_campos_data):
-        Resposta.objects.filter(atracao=atracao).delete()
+    def _sincronizar_respostas(self, submissao, respostas_campos_data):
+        Resposta.objects.filter(atracao=submissao).delete()
 
         if not isinstance(respostas_campos_data, dict):
             return
 
-        modalidade_id = atracao.modalidade_id
+        modalidade_id = submissao.modalidade_id
         if not modalidade_id:
             return
 
@@ -423,7 +442,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
             respostas_para_criar.append(
                 Resposta(
-                    atracao=atracao,
+                    atracao=submissao,
                     campo_formulario_id=campo_id,
                     valor=valor_texto,
                 )
@@ -485,18 +504,20 @@ class AtracaoSerializer(serializers.ModelSerializer):
             equipe_data = []
 
         atracao = Atracao.objects.create(**validated_data)
+        submissao = sincronizar_submissao_por_registro_legado(atracao)
+
         equipe_legacy_normalizada = self._normalizar_coautores_legacy(equipe_data)
         for membro in equipe_legacy_normalizada:
             if membro.get("nome"):
-                Coautor.objects.create(atracao=atracao, **membro)
+                Coautor.objects.create(submissao=submissao, **membro)
 
         autorias_normalizadas = self._normalizar_autorias(
             autoria_data if autoria_data else equipe_data
         )
         if autorias_normalizadas:
-            self._sincronizar_autorias(atracao, autorias_normalizadas)
+            self._sincronizar_autorias(submissao, autorias_normalizadas)
 
-        self._sincronizar_respostas(atracao, respostas_campos_data)
+        self._sincronizar_respostas(submissao, respostas_campos_data)
         return atracao
 
     def update(self, instance, validated_data):
@@ -512,22 +533,25 @@ class AtracaoSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        submissao = sincronizar_submissao_por_registro_legado(instance)
+
         if equipe_data and isinstance(equipe_data, list):
-            instance.equipe.all().delete()
+            submissao.equipe.all().delete()
             equipe_legacy_normalizada = self._normalizar_coautores_legacy(equipe_data)
             for membro in equipe_legacy_normalizada:
                 if membro.get("nome"):
-                    Coautor.objects.create(atracao=instance, **membro)
+                    Coautor.objects.create(submissao=submissao, **membro)
 
         if isinstance(autoria_data, list):
             autorias_normalizadas = self._normalizar_autorias(autoria_data)
-            self._sincronizar_autorias(instance, autorias_normalizadas)
+            self._sincronizar_autorias(submissao, autorias_normalizadas)
         elif isinstance(equipe_data, list):
             autorias_normalizadas = self._normalizar_autorias(equipe_data)
             if autorias_normalizadas:
-                self._sincronizar_autorias(instance, autorias_normalizadas)
+                self._sincronizar_autorias(submissao, autorias_normalizadas)
 
         if isinstance(respostas_campos_data, dict):
-            self._sincronizar_respostas(instance, respostas_campos_data)
+            self._sincronizar_respostas(submissao, respostas_campos_data)
 
+        sincronizar_submissao_por_registro_legado(instance)
         return instance

@@ -1,18 +1,27 @@
 from django.conf import settings
 from django.core.validators import MaxLengthValidator, MinLengthValidator, MinValueValidator
 from django.db import models
+from django.utils.text import slugify
 
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
-from ..enumerations.status_atracao import StatusAtracao
+from ..enumerations.status_submissao import StatusSubmissao
+from .atracao import Atracao
 from .base import Base
 from .evento import Evento
 from .espaco import Espaco
 from .modalidade import Modalidade
-from django.utils.text import slugify
 
 
-class Atracao(Base):
+class Submissao(Base):
+    registro_legado = models.OneToOneField(
+        Atracao,
+        on_delete=models.CASCADE,
+        related_name="submissao",
+        verbose_name="Registro legado",
+        help_text="Registro atual de submissão ainda armazenado no model Atracao",
+    )
+
     titulo = models.CharField(
         max_length=250,
         verbose_name="Título do Trabalho",
@@ -38,7 +47,7 @@ class Atracao(Base):
     modalidade = models.ForeignKey(
         Modalidade,
         on_delete=models.PROTECT,
-        related_name="atracoes",
+        related_name="submissoes",
         verbose_name="Modalidade",
         null=True,
         blank=True,
@@ -60,7 +69,7 @@ class Atracao(Base):
     orientador = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        related_name="orientacoes",
+        related_name="submissoes_orientadas",
         verbose_name="Orientador(a)",
         null=True,
         blank=True,
@@ -78,29 +87,22 @@ class Atracao(Base):
     evento = models.ForeignKey(
         Evento,
         on_delete=models.PROTECT,
-        related_name="atracoes",
+        related_name="submissoes",
         verbose_name="Evento",
-    )
-    status = models.CharField(
-        choices=StatusAtracao.choices,
-        max_length=30,
-        verbose_name="Status",
-        default=StatusAtracao.PREVISTA,
     )
     sugestao_vagas = models.IntegerField(
         verbose_name="Sugestão para Número de Vagas",
-        help_text="Sugestão opcional de vagas para esta atração",
+        help_text="Sugestão opcional de vagas para esta submissão",
         null=True,
         blank=True,
         validators=[MinValueValidator(1)],
     )
-
     data_hora_inicio = models.DateTimeField(null=True, blank=True)
     data_hora_fim = models.DateTimeField(null=True, blank=True)
     espaco = models.ForeignKey(
         Espaco,
         on_delete=models.SET_NULL,
-        related_name="atracoes",
+        related_name="submissoes",
         verbose_name="Espaço",
         null=True,
         blank=True,
@@ -110,7 +112,7 @@ class Atracao(Base):
         null=True,
         blank=True,
         verbose_name="Local",
-        help_text="Descrição legada do local da atração",
+        help_text="Descrição legada do local da submissão",
     )
 
     slug = models.SlugField(
@@ -119,6 +121,20 @@ class Atracao(Base):
         blank=True,
         null=True,
     )
+    status_submissao = models.CharField(
+        choices=StatusSubmissao.choices,
+        max_length=30,
+        default=StatusSubmissao.SUBMETIDA,
+        verbose_name="Status da Submissão",
+    )
+
+    class Meta(Base.Meta):
+        verbose_name = "Submissão"
+        verbose_name_plural = "Submissões"
+        ordering = ["-id"]
+
+    def __str__(self):
+        return f"Submissão #{self.id} - {self.titulo}"
 
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -141,21 +157,15 @@ class Atracao(Base):
         if errors:
             raise ValidationError(errors)
 
-    class Meta(Base.Meta):
-        verbose_name = "Atração / Submissão"
-        verbose_name_plural = "Atrações / Submissões"
-        ordering = ["-id"]
-        permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
-
     def _gerar_slug_unico(self):
         base_slug = slugify(self.titulo or "")[:100]
         if not base_slug:
-            base_slug = "atracao"
+            base_slug = "submissao"
 
         slug = base_slug
         contador = 1
 
-        while Atracao.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+        while Submissao.objects.filter(slug=slug).exclude(pk=self.pk).exists():
             sufixo = f"-{contador}"
             slug = f"{base_slug[: 100 - len(sufixo)]}{sufixo}"
             contador += 1
@@ -166,6 +176,3 @@ class Atracao(Base):
         if self.slug is None or self.slug == "":
             self.slug = self._gerar_slug_unico()
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.titulo} — {self.evento}"

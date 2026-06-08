@@ -75,6 +75,7 @@ from .views.ordem_apresentacao_atracao_view import (
 )
 from .views.perms_view import PermissaoListView
 from .views.sessao_view import SessaoDetailView, SessaoListView
+from .views.submissao_view import SubmissaoListView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import ServidorListView, UserListView, UserPermissoesView
@@ -154,6 +155,10 @@ urlpatterns = [
     path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
     path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
+    path(
+        "submissoes/",
+        SubmissaoListView.as_view(),
+    ),
 
 
     # avaliacao de submissoes

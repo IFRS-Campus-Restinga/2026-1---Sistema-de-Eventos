@@ -17,4 +17,5 @@ from .ordem_apresentacao_atracao_serializer import *
 from .perms_serializer import *
 from .resposta_serializer import *
 from .sessao_serializer import *
+from .submissao_serializer import *
 from .users_serializer import *

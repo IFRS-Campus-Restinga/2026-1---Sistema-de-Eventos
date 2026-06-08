@@ -7,8 +7,8 @@ from django.utils.translation import gettext_lazy as _
 from decimal import Decimal
 
 from ..enumerations.status_aprovacao import StatusAprovacao
-from .atracao import Atracao
 from .base import Base
+from .submissao import Submissao
 
 
 class AvaliacaoSubmissao(Base):
@@ -24,7 +24,7 @@ class AvaliacaoSubmissao(Base):
     )
 
     submissao = models.ForeignKey(
-        Atracao,
+        Submissao,
         on_delete=models.RESTRICT,
         related_name="avaliacoes",
         verbose_name=_("Submissão"),

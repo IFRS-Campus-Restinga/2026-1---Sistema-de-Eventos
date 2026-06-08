@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
 from ..models.avaliacao_submissao import AvaliacaoSubmissao
-from ..models.atracao import Atracao
 
 User = get_user_model()
 

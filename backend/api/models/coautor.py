@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from .base import Base
-from .atracao import Atracao
+from .submissao import Submissao
 
 
 class FuncaoEquipe(models.TextChoices):
@@ -11,11 +11,11 @@ class FuncaoEquipe(models.TextChoices):
 
 
 class Coautor(Base):
-    atracao = models.ForeignKey(
-        Atracao,
+    submissao = models.ForeignKey(
+        Submissao,
         on_delete=models.CASCADE,
         related_name="equipe",
-        verbose_name=_("Atração"),
+        verbose_name=_("Submissão"),
     )
     nome = models.CharField(max_length=200, verbose_name=_("Nome"))
     instituicao_curso = models.CharField(

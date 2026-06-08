@@ -30,6 +30,7 @@ class AtracaoListView(APIView):
 
     def get(self, request):
         evento_id = request.query_params.get("evento")
+
         if evento_id:
             atracoes = Atracao.objects.filter(
                 evento_id=evento_id

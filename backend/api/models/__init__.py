@@ -21,3 +21,4 @@ from .ordem_apresentacao_atracao import *
 from .perfil import *
 from .resposta import *
 from .sessao import *
+from .submissao import *
