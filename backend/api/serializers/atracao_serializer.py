@@ -462,7 +462,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return retorno
 
     def _sincronizar_respostas(self, submissao, respostas_campos_data):
-        Resposta.objects.filter(atracao=submissao).delete()
+        Resposta.objects.filter(submissao=submissao).delete()
 
         if not isinstance(respostas_campos_data, dict):
             return
@@ -499,7 +499,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
             respostas_para_criar.append(
                 Resposta(
-                    atracao=submissao,
+                    submissao=submissao,
                     campo_formulario_id=campo_id,
                     valor=valor_texto,
                 )
