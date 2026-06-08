@@ -1,7 +1,7 @@
 import json
 import logging
 
-from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from ..models.atracao import Atracao
@@ -10,21 +10,35 @@ from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
 from ..models.espaco import Espaco
 from ..models.resposta import Resposta
+from ..models.submissao import Submissao
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_autoria import TipoAutoria
-from ..services.submissao_service import sincronizar_submissao_por_registro_legado
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
 class AtracaoSerializer(serializers.ModelSerializer):
+    titulo = serializers.CharField(source="submissao.titulo")
+    resumo = serializers.CharField(
+        source="submissao.resumo", required=False, allow_blank=True, allow_null=True
+    )
+    palavras_chave = serializers.CharField(
+        source="submissao.palavras_chave",
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
     equipe = CoautorSerializer(
         source="submissao.equipe", many=True, required=False, read_only=True
     )
-    autorias = AutoriaSerializer(many=True, required=False, read_only=True)
+    autorias = AutoriaSerializer(
+        source="submissao.autorias", many=True, required=False, read_only=True
+    )
     autor_nome = serializers.SerializerMethodField()
     orientador_nome = serializers.SerializerMethodField()
     equipe_nomes = serializers.SerializerMethodField()
@@ -35,9 +49,35 @@ class AtracaoSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    orientador = serializers.PrimaryKeyRelatedField(
+        source="submissao.orientador",
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    sou_orientador = serializers.BooleanField(
+        source="submissao.sou_orientador", required=False
+    )
+    anexo_pdf = serializers.FileField(
+        source="submissao.anexo_pdf", required=False, allow_null=True
+    )
+    acessibilidade = serializers.BooleanField(
+        source="submissao.acessibilidade", required=False
+    )
+    sugestao_vagas = serializers.IntegerField(
+        source="submissao.sugestao_vagas", required=False, allow_null=True
+    )
+    slug = serializers.CharField(source="submissao.slug", read_only=True)
     # Sobrescreve o ChoiceField automático do model para aceitar CSV/lista.
     nivel_ensino = serializers.CharField(
+        source="submissao.nivel_ensino",
         required=False, allow_blank=True, allow_null=True
+    )
+    area_conhecimento = serializers.CharField(
+        source="submissao.area_conhecimento",
+        required=False,
+        allow_blank=True,
+        allow_null=True,
     )
     nivel_ensino_display = serializers.SerializerMethodField()
 
@@ -81,6 +121,26 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "respostas_campos",
             "respostas_campos_json",
         ]
+
+    CAMPOS_SUBMISSAO = (
+        "titulo",
+        "resumo",
+        "palavras_chave",
+        "modalidade",
+        "nivel_ensino",
+        "area_conhecimento",
+        "orientador",
+        "sou_orientador",
+        "anexo_pdf",
+        "acessibilidade",
+        "evento",
+        "sugestao_vagas",
+        "data_hora_inicio",
+        "data_hora_fim",
+        "espaco",
+        "local_atracao",
+        "slug",
+    )
 
     # aq a gnt pega e resolve os nomes pra apresentar na tela de inscrição em atrações
     def _resolver_nome_usuario(self, usuario):
@@ -144,23 +204,16 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return [membro.nome for membro in membros if getattr(membro, "nome", "")]
 
     def validate(self, data):
-        """
-        Executa a validação completa do modelo, incluindo o método clean().
-        """
-        # Removemos campos que não existem no modelo (campos exclusivos do Serializer)
-        model_data = data.copy()
-        model_data.pop("equipe_json", None)
-        model_data.pop("autoria_json", None)
-        model_data.pop("respostas_campos_json", None)
-
-        espaco = model_data.get("espaco")
+        submissao_data = data.get("submissao", {})
+        espaco = data.get("espaco")
         if espaco:
-            model_data["local_atracao"] = str(espaco)
+            data["local_atracao"] = str(espaco)
+            submissao_data["local_atracao"] = str(espaco)
 
-        modalidade = model_data.get("modalidade") or getattr(
+        modalidade = data.get("modalidade") or getattr(
             self.instance, "modalidade", None
         )
-        sugestao_vagas = model_data.get("sugestao_vagas")
+        sugestao_vagas = submissao_data.get("sugestao_vagas")
         limite_modalidade = None
         if modalidade:
             limite_modalidade = getattr(
@@ -184,14 +237,17 @@ class AtracaoSerializer(serializers.ModelSerializer):
                     }
                 )
 
-        # nivel_ensino aceita múltiplos valores no formato CSV neste fluxo.
-        # slug é gerado automaticamente no save().
-        # Excluímos ambos do full_clean para evitar validações indevidas neste ponto.
-        instance = Atracao(**model_data)
-        try:
-            instance.full_clean(exclude=["nivel_ensino", "slug"])
-        except ValidationError as e:
-            raise serializers.ValidationError(e.message_dict)
+        evento = data.get("evento") or getattr(self.instance, "evento", None)
+        if espaco and evento:
+            espaco_local_id = getattr(espaco, "local_id", None)
+            evento_local_id = getattr(evento, "local_id", None)
+            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+                raise serializers.ValidationError(
+                    {
+                        "espaco": "O espaço selecionado precisa pertencer ao mesmo local do evento."
+                    }
+                )
+
         return data
 
     def validate_nivel_ensino(self, value):
@@ -244,7 +300,8 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return ",".join(itens)
 
     def get_nivel_ensino_display(self, obj):
-        valor = getattr(obj, "nivel_ensino", None)
+        submissao = getattr(obj, "submissao", None)
+        valor = getattr(submissao, "nivel_ensino", None) if submissao else None
         if not valor:
             return ""
 
@@ -490,11 +547,28 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
         return membros_normalizados
 
+    def _extrair_dados_submissao(self, dados_atracao, dados_submissao):
+        return {
+            campo: dados_submissao.get(campo, dados_atracao.get(campo))
+            for campo in self.CAMPOS_SUBMISSAO
+        }
+
+    def _atualizar_submissao(self, submissao, dados_submissao):
+        campos_para_atualizar = []
+        for campo, valor in dados_submissao.items():
+            if getattr(submissao, campo) != valor:
+                setattr(submissao, campo, valor)
+                campos_para_atualizar.append(campo)
+
+        if campos_para_atualizar:
+            submissao.save(update_fields=campos_para_atualizar)
+
     def create(self, validated_data):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
         equipe_data = validated_data.pop("equipe_json", [])
         autoria_data = validated_data.pop("autoria_json", [])
         respostas_campos_data = validated_data.pop("respostas_campos_json", {})
+        submissao_payload = validated_data.pop("submissao", {})
 
         espaco = validated_data.get("espaco")
         if espaco:
@@ -503,8 +577,12 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if not isinstance(equipe_data, list):
             equipe_data = []
 
-        atracao = Atracao.objects.create(**validated_data)
-        submissao = sincronizar_submissao_por_registro_legado(atracao)
+        dados_submissao = self._extrair_dados_submissao(validated_data, submissao_payload)
+        submissao = Submissao.objects.create(
+            status_submissao=StatusSubmissao.SUBMETIDA,
+            **dados_submissao,
+        )
+        atracao = Atracao.objects.create(submissao=submissao, **validated_data)
 
         equipe_legacy_normalizada = self._normalizar_coautores_legacy(equipe_data)
         for membro in equipe_legacy_normalizada:
@@ -524,6 +602,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         equipe_data = validated_data.pop("equipe_json", None)
         autoria_data = validated_data.pop("autoria_json", None)
         respostas_campos_data = validated_data.pop("respostas_campos_json", None)
+        submissao_payload = validated_data.pop("submissao", {})
 
         espaco = validated_data.get("espaco")
         if espaco:
@@ -533,7 +612,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        submissao = sincronizar_submissao_por_registro_legado(instance)
+        submissao = instance.submissao
+        dados_submissao = self._extrair_dados_submissao(validated_data, submissao_payload)
+        self._atualizar_submissao(submissao, dados_submissao)
 
         if equipe_data and isinstance(equipe_data, list):
             submissao.equipe.all().delete()
@@ -552,6 +633,4 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
         if isinstance(respostas_campos_data, dict):
             self._sincronizar_respostas(submissao, respostas_campos_data)
-
-        sincronizar_submissao_por_registro_legado(instance)
         return instance

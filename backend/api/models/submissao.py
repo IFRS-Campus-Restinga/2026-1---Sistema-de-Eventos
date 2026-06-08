@@ -6,7 +6,6 @@ from django.utils.text import slugify
 from ..enumerations.area_conhecimento_escolha import AreaConhecimentoEscolha
 from ..enumerations.nivel_ensino import NivelEnsino
 from ..enumerations.status_submissao import StatusSubmissao
-from .atracao import Atracao
 from .base import Base
 from .evento import Evento
 from .espaco import Espaco
@@ -14,14 +13,6 @@ from .modalidade import Modalidade
 
 
 class Submissao(Base):
-    registro_legado = models.OneToOneField(
-        Atracao,
-        on_delete=models.CASCADE,
-        related_name="submissao",
-        verbose_name="Registro legado",
-        help_text="Registro atual de submissão ainda armazenado no model Atracao",
-    )
-
     titulo = models.CharField(
         max_length=250,
         verbose_name="Título do Trabalho",
