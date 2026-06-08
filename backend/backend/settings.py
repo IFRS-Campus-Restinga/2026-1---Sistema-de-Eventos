@@ -174,12 +174,12 @@ AUTH_USER_MODEL = "eventos_session.Usuario"
 BASE_SYSTEM_URL = "http://localhost:8000"
 
 # System ID e API Key para autenticação entre sistemas
-'''SYSTEM_ID = "4b055e06-b02a-4fc7-abe5-3d8d5dd81006"
-API_KEY = "567c11e97215f381de0fe08e362743373ca4c67fd17c86bbdb57cc3dca088292"'''
-
-# System ID e API Key para testes locais (desenvolvimento)
 SYSTEM_ID = "4b055e06-b02a-4fc7-abe5-3d8d5dd81006"
 API_KEY = "567c11e97215f381de0fe08e362743373ca4c67fd17c86bbdb57cc3dca088292"
+
+# System ID e API Key para testes locais (desenvolvimento)
+# SYSTEM_ID = "4b055e06-b02a-4fc7-abe5-3d8d5dd81006"
+# API_KEY = "567c11e97215f381de0fe08e362743373ca4c67fd17c86bbdb57cc3dca088292"
 
 JWT_SECRET_KEY = SECRET_KEY
 JWT_ALGORITHM = "HS256"
