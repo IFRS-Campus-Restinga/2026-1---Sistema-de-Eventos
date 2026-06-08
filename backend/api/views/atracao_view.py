@@ -28,15 +28,23 @@ class AtracaoListView(APIView):
 
     permission_classes = [AllowAny]
 
+    def _base_queryset(self):
+        return Atracao.objects.select_related(
+            "submissao",
+            "submissao__modalidade",
+            "submissao__evento",
+            "espaco",
+        )
+
     def get(self, request):
         evento_id = request.query_params.get("evento")
 
         if evento_id:
-            atracoes = Atracao.objects.filter(
-                evento_id=evento_id
+            atracoes = self._base_queryset().filter(
+                submissao__evento_id=evento_id
             )  # atrações de um evento específico
         else:
-            atracoes = Atracao.objects.all()  # retorna todas as atrações
+            atracoes = self._base_queryset()  # retorna todas as atrações
 
         serializer = AtracaoSerializer(atracoes, many=True)
         return Response(serializer.data)
@@ -54,9 +62,17 @@ class AtracaoDetailView(APIView):
 
     permission_classes = [AllowAny]
 
+    def _base_queryset(self):
+        return Atracao.objects.select_related(
+            "submissao",
+            "submissao__modalidade",
+            "submissao__evento",
+            "espaco",
+        )
+
     def get_object(self, pk):
         try:
-            return Atracao.objects.get(pk=pk)
+            return self._base_queryset().get(pk=pk)
         except Atracao.DoesNotExist:
             return None
 
@@ -101,8 +117,9 @@ class AtracaoAvaliadorView(APIView):
             atracao = Atracao.objects.get(pk=pk)
         except Atracao.DoesNotExist:
             return Response({"erro": "Atração não encontrada"}, status=404)
+        modalidade = getattr(getattr(atracao, "submissao", None), "modalidade", None)
         # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
-        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+        if not modalidade or not modalidade.requer_avaliacao:
             return Response(
                 {"erro": "Modalidade da atração não requer avaliação"}, status=400
             )
@@ -140,6 +157,7 @@ class AtracaoAvaliadorView(APIView):
             atracao = Atracao.objects.get(pk=pk)
         except Atracao.DoesNotExist:
             return Response({"erro": "Atração não encontrada"}, status=404)
+        modalidade = getattr(getattr(atracao, "submissao", None), "modalidade", None)
 
         perfil_id = request.data.get("perfil_id")
 
@@ -153,14 +171,14 @@ class AtracaoAvaliadorView(APIView):
             return Response({"erro": "Perfil não encontrado"}, status=404)
 
         # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
-        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+        if not modalidade or not modalidade.requer_avaliacao:
             return Response(
                 {"erro": "Modalidade da atração não requer avaliação"}, status=400
             )
 
         # verifica limite de avaliadores definido pela modalidade
-        if atracao.modalidade:
-            limite = atracao.modalidade.limite_avaliadores or 0
+        if modalidade:
+            limite = modalidade.limite_avaliadores or 0
             atuais = get_users_with_perms(
                 atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
             )
@@ -180,7 +198,9 @@ class AtracaoAvaliadorView(APIView):
 
         # garantir que usuário receba permissão de avaliador no nível do evento
         try:
-            assign_perm("api.avaliador_evento", usuario, atracao.evento)
+            evento = getattr(getattr(atracao, "submissao", None), "evento", None)
+            if evento is not None:
+                assign_perm("api.avaliador_evento", usuario, evento)
         except Exception:
             pass
         avaliadores = get_users_with_perms(
@@ -244,14 +264,16 @@ class AtracaoAvaliadorView(APIView):
         # se o usuário não tiver mais permissões de avaliar atrações neste evento
         # e não tiver avaliações neste evento, remover a permissão de avaliador no nível do evento
         try:
-            evento = atracao.evento
+            evento = getattr(getattr(atracao, "submissao", None), "evento", None)
+            if evento is None:
+                raise ValueError("Atração sem evento associado na submissão")
             # verificar se existem outras atrações do mesmo evento com perm de avaliar
             atracoes_com_perm = get_objects_for_user(
                 usuario, "api.avaliar_atracao", klass=Atracao
-            ).filter(evento=evento)
+            ).filter(submissao__evento=evento)
 
             avaliacoes_no_evento = AvaliacaoAtracao.objects.filter(
-                avaliador=usuario, atracao__evento=evento
+                avaliador=usuario, atracao__submissao__evento=evento
             ).exists()
 
             if not atracoes_com_perm.exists() and not avaliacoes_no_evento:
@@ -309,11 +331,20 @@ class MinhasAtracoesAvaliadorView(APIView):
         # atrações do evento para as quais o usuário tem permissão obj-level
         atracoes_perm = get_objects_for_user(
             user, "api.avaliar_atracao", klass=Atracao
-        ).filter(evento_id=evento_id)
+        ).filter(submissao__evento_id=evento_id).select_related(
+            "submissao",
+            "submissao__modalidade",
+            "submissao__evento",
+            "espaco",
+        )
 
         # avaliações já realizadas pelo usuário
         avaliacoes = AvaliacaoAtracao.objects.filter(avaliador=user).select_related(
-            "atracao"
+            "atracao",
+            "atracao__submissao",
+            "atracao__submissao__modalidade",
+            "atracao__submissao__evento",
+            "atracao__espaco",
         )
         avaliadas_ids = {a.atracao_id: a for a in avaliacoes}
 
@@ -359,7 +390,11 @@ class MinhasAtracoesAvaliadorView(APIView):
             if av.atracao_id in atracoes_perm_ids:
                 continue
             # somente considerar avaliações cuja atração pertence ao evento requisitado
-            if not av.atracao or getattr(av.atracao, "evento_id", None) != evento.id:
+            if (
+                not av.atracao
+                or getattr(getattr(av.atracao, "submissao", None), "evento_id", None)
+                != evento.id
+            ):
                 continue
             atr = av.atracao
             data = AtracaoSerializer(atr).data

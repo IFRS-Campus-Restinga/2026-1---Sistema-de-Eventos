@@ -8,7 +8,6 @@ from ..enumerations.nivel_ensino import NivelEnsino
 from ..enumerations.status_submissao import StatusSubmissao
 from .base import Base
 from .evento import Evento
-from .espaco import Espaco
 from .modalidade import Modalidade
 
 
@@ -88,23 +87,6 @@ class Submissao(Base):
         blank=True,
         validators=[MinValueValidator(1)],
     )
-    data_hora_inicio = models.DateTimeField(null=True, blank=True)
-    data_hora_fim = models.DateTimeField(null=True, blank=True)
-    espaco = models.ForeignKey(
-        Espaco,
-        on_delete=models.SET_NULL,
-        related_name="submissoes",
-        verbose_name="Espaço",
-        null=True,
-        blank=True,
-    )
-    local_atracao = models.CharField(
-        max_length=200,
-        null=True,
-        blank=True,
-        verbose_name="Local",
-        help_text="Descrição legada do local da submissão",
-    )
 
     slug = models.SlugField(
         max_length=100,
@@ -131,19 +113,6 @@ class Submissao(Base):
         from django.core.exceptions import ValidationError
 
         errors = {}
-
-        if self.espaco_id and self.evento_id:
-            espaco_local_id = getattr(self.espaco, "local_id", None)
-            evento_local_id = getattr(self.evento, "local_id", None)
-
-            if (
-                espaco_local_id
-                and evento_local_id
-                and espaco_local_id != evento_local_id
-            ):
-                errors["espaco"] = (
-                    "O espaço selecionado precisa pertencer ao mesmo local do evento."
-                )
 
         if errors:
             raise ValidationError(errors)

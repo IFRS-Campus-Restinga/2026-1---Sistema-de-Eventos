@@ -31,7 +31,8 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
         evento = attrs.get("evento") or getattr(self.instance, "evento", None)
 
         if atracao:
-            evento_da_atracao = getattr(atracao, "evento", None)
+            submissao = getattr(atracao, "submissao", None)
+            evento_da_atracao = getattr(submissao, "evento", None)
 
             if evento is not None and evento_da_atracao is not None:
                 if evento.id != evento_da_atracao.id:
@@ -61,7 +62,7 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
                 )
 
         # Somente permitir inscrição em atracoes do tipo 'oficina'
-        modalidade = getattr(atracao, "modalidade", None)
+        modalidade = getattr(getattr(atracao, "submissao", None), "modalidade", None)
         modalidade_nome = (
             getattr(modalidade, "nome", "") if modalidade is not None else ""
         )

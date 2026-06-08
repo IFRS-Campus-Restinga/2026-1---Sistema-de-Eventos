@@ -73,8 +73,9 @@ class InscricaoAtracao(Base):
 
         if self.atracao_id:
             atracao = getattr(self, "atracao", None)
+            submissao = getattr(atracao, "submissao", None) if atracao is not None else None
             evento_obj = getattr(self, "evento", None) or (
-                getattr(atracao, "evento", None) if atracao is not None else None
+                getattr(submissao, "evento", None) if submissao is not None else None
             )
 
             etapa = None

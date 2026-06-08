@@ -2,9 +2,7 @@ from django.db import models
 
 from ..enumerations.status_atracao import StatusAtracao
 from .base import Base
-from .evento import Evento
 from .espaco import Espaco
-from .modalidade import Modalidade
 from .submissao import Submissao
 
 
@@ -18,20 +16,6 @@ class Atracao(Base):
         blank=True,
     )
 
-    modalidade = models.ForeignKey(
-        Modalidade,
-        on_delete=models.PROTECT,
-        related_name="atracoes",
-        verbose_name="Modalidade",
-        null=True,
-        blank=True,
-    )
-    evento = models.ForeignKey(
-        Evento,
-        on_delete=models.PROTECT,
-        related_name="atracoes",
-        verbose_name="Evento",
-    )
     status = models.CharField(
         choices=StatusAtracao.choices,
         max_length=30,
@@ -61,9 +45,11 @@ class Atracao(Base):
 
         errors = {}
 
-        if self.espaco_id and self.evento_id:
+        evento = getattr(self.submissao, "evento", None) if self.submissao_id else None
+
+        if self.espaco_id and evento is not None:
             espaco_local_id = getattr(self.espaco, "local_id", None)
-            evento_local_id = getattr(self.evento, "local_id", None)
+            evento_local_id = getattr(evento, "local_id", None)
 
             if (
                 espaco_local_id
@@ -85,4 +71,5 @@ class Atracao(Base):
 
     def __str__(self):
         titulo = getattr(self.submissao, "titulo", "") if self.submissao_id else ""
-        return f"{titulo} — {self.evento}"
+        evento = getattr(self.submissao, "evento", None) if self.submissao_id else None
+        return f"{titulo} — {evento}"

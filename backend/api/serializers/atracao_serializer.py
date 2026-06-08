@@ -9,6 +9,8 @@ from ..models.autoria import Autoria
 from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
 from ..models.espaco import Espaco
+from ..models.evento import Evento
+from ..models.modalidade import Modalidade
 from ..models.resposta import Resposta
 from ..models.submissao import Submissao
 from ..enumerations.nivel_ensino import NivelEnsino
@@ -42,7 +44,19 @@ class AtracaoSerializer(serializers.ModelSerializer):
     autor_nome = serializers.SerializerMethodField()
     orientador_nome = serializers.SerializerMethodField()
     equipe_nomes = serializers.SerializerMethodField()
-    tipo = serializers.ReadOnlyField(source="modalidade.nome")
+    modalidade = serializers.PrimaryKeyRelatedField(
+        source="submissao.modalidade",
+        queryset=Modalidade.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    tipo = serializers.ReadOnlyField(source="submissao.modalidade.nome")
+    evento = serializers.PrimaryKeyRelatedField(
+        source="submissao.evento",
+        queryset=Evento.objects.all(),
+        required=False,
+        allow_null=False,
+    )
     espaco_detalhe = EspacoSerializer(source="espaco", read_only=True)
     espaco = serializers.PrimaryKeyRelatedField(
         queryset=Espaco.objects.all(),
@@ -135,11 +149,6 @@ class AtracaoSerializer(serializers.ModelSerializer):
         "acessibilidade",
         "evento",
         "sugestao_vagas",
-        "data_hora_inicio",
-        "data_hora_fim",
-        "espaco",
-        "local_atracao",
-        "slug",
     )
 
     # aq a gnt pega e resolve os nomes pra apresentar na tela de inscrição em atrações
@@ -208,10 +217,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
         espaco = data.get("espaco")
         if espaco:
             data["local_atracao"] = str(espaco)
-            submissao_data["local_atracao"] = str(espaco)
 
         modalidade = data.get("modalidade") or getattr(
-            self.instance, "modalidade", None
+            getattr(self.instance, "submissao", None), "modalidade", None
         )
         sugestao_vagas = submissao_data.get("sugestao_vagas")
         limite_modalidade = None
@@ -237,7 +245,9 @@ class AtracaoSerializer(serializers.ModelSerializer):
                     }
                 )
 
-        evento = data.get("evento") or getattr(self.instance, "evento", None)
+        evento = data.get("evento") or getattr(
+            getattr(self.instance, "submissao", None), "evento", None
+        )
         if espaco and evento:
             espaco_local_id = getattr(espaco, "local_id", None)
             evento_local_id = getattr(evento, "local_id", None)

@@ -4,7 +4,6 @@ from ..enumerations.nivel_ensino import NivelEnsino
 from ..models.submissao import Submissao
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
-from .espaco_serializer import EspacoSerializer
 
 
 class SubmissaoSerializer(serializers.ModelSerializer):
@@ -14,7 +13,6 @@ class SubmissaoSerializer(serializers.ModelSerializer):
     orientador_nome = serializers.SerializerMethodField()
     equipe_nomes = serializers.SerializerMethodField()
     tipo = serializers.ReadOnlyField(source="modalidade.nome")
-    espaco_detalhe = EspacoSerializer(source="espaco", read_only=True)
     nivel_ensino_display = serializers.SerializerMethodField()
     respostas_campos = serializers.SerializerMethodField(read_only=True)
 
@@ -41,11 +39,6 @@ class SubmissaoSerializer(serializers.ModelSerializer):
             "equipe",
             "autorias",
             "equipe_nomes",
-            "data_hora_inicio",
-            "data_hora_fim",
-            "espaco",
-            "espaco_detalhe",
-            "local_atracao",
             "respostas_campos",
             "slug",
             "status_submissao",
