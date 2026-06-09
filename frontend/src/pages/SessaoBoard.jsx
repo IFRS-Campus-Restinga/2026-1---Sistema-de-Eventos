@@ -866,17 +866,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     <div style={{ fontWeight: 500 }}>
                         {atracao.titulo || atracao.atracao?.titulo}
                     </div>
-
+                    <small className="text-muted" style={{ fontSize: '10px' }}>
+                        #{atracao.tipo || atracao.atracao?.tipo}:{' '}
+                    </small>
                     <small style={{ fontSize: '10px' }}>
                         {nomesAutores.join(', ') ||
                             atracao.autor ||
                             atracao.atracao?.autor ||
                             'Autor não informado'}
-                    </small>
-
-                    <small className="text-muted">
-                        #{atracao.tipo || atracao.atracao?.tipo}
-                    </small>
+                    </small>{' '}
                 </div>
             </div>
         );
