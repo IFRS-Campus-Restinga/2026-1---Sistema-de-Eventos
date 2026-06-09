@@ -465,6 +465,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                 sessao.id,
                                 dadosSessao,
                             );
+                            console.log('Sessão editada', sessaoSalva);
                         }
 
                         console.log('Dados enviados', sessaoSalva);
@@ -477,6 +478,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     }
                 }
             }
+            await fetchSessoes(eventoId);
 
             setAlterado(false);
         } catch (erro) {
@@ -1106,6 +1108,10 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                 }
                                                                 sessao={sessao}
                                                                 onEditar={() => {
+                                                                    console.log(
+                                                                        'Editando sessão',
+                                                                        sessao,
+                                                                    );
                                                                     setSessaoEditando(
                                                                         sessao,
                                                                     );
@@ -1113,13 +1119,23 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                         {
                                                                             nome: sessao.nome,
                                                                             data_horario_inicio:
-                                                                                sessao.data_horario_inicio.split(
-                                                                                    'T',
-                                                                                )[1],
+                                                                                sessao.data_horario_inicio
+                                                                                    .split(
+                                                                                        'T',
+                                                                                    )[1]
+                                                                                    .substring(
+                                                                                        0,
+                                                                                        5,
+                                                                                    ),
                                                                             data_horario_fim:
-                                                                                sessao.data_horario_fim.split(
-                                                                                    'T',
-                                                                                )[1],
+                                                                                sessao.data_horario_fim
+                                                                                    .split(
+                                                                                        'T',
+                                                                                    )[1]
+                                                                                    .substring(
+                                                                                        0,
+                                                                                        5,
+                                                                                    ),
                                                                             espaco: espaco.id,
                                                                         },
                                                                     );
