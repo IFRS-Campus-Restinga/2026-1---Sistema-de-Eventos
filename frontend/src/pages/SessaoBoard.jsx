@@ -64,6 +64,9 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const [atracoesNaoAlocadas, setAtracoesNaoAlocadas] = useState([]);
     // data selecionada no dropdown
     const [dataSelecionada, setDataSelecionada] = useState('');
+    // modal informativo/ tutorial de como usar o board
+    const [mostrarTutorial, setMostrarTutorial] = useState(false);
+    const [etapaTutorial, setEtapaTutorial] = useState(0);
     // modal de escolha de espaço
     const [mostrarModalEspacos, setMostrarModalEspacos] = useState(false);
     // modal de inserção / edição de sessão - para quando clicar no card da sessão, ou no botão de adicionar sessão dentro do espaço
@@ -100,6 +103,196 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const [activeItem, setActiveItem] = useState(null);
     // Para armazenar erros de validação
     const [errors, setErrors] = useState({});
+
+    // modal de tutorial: divisão das visualizações em etapas, para mostrar aos poucos as funcionalidades
+    const etapasTutorial = [
+        {
+            titulo: '1. Seleção do dia',
+            conteudo: (
+                <>
+                    <p>A programação é organizada por dia.</p>
+
+                    <p>
+                        No canto superior esquerdo da tela está o seletor de
+                        datas.
+                    </p>
+
+                    <div className="border rounded p-2 bg-light">
+                        <Form.Select disabled>
+                            <option>01/08</option>
+                        </Form.Select>
+                    </div>
+
+                    <p className="mt-2">
+                        Cada data representa um dia do evento. Ao trocar a data,
+                        o quadro de espaços e sessões exibido será atualizado
+                        para aquele dia específico.
+                    </p>
+                </>
+            ),
+        },
+
+        {
+            titulo: '2. Adicionar espaços ao board',
+            conteudo: (
+                <>
+                    <p>
+                        O quadro central da página é composto pelos espaços onde
+                        ocorrerão as atividades do evento.
+                    </p>
+
+                    <p>
+                        Antes de criar sessões, é necessário adicionar pelo
+                        menos um espaço ao quadro.
+                    </p>
+
+                    <p>Clique em:</p>
+                    <div className="text-center my-3">
+                        <Button
+                            className="w-100 mt-2 fw-bold"
+                            style={{
+                                backgroundColor: '#0d6efd',
+                                border: 'none',
+                                fontSize: '14px',
+                            }}
+                        >
+                            + Adicionar Espaço
+                        </Button>
+                    </div>
+
+                    <p className="mt-2">
+                        Será exibida uma lista com todos os espaços disponíveis
+                        do local do evento.
+                    </p>
+
+                    <p>
+                        Ao selecionar um espaço, ele será adicionada uma nova
+                        coluna ao quadro.
+                    </p>
+                </>
+            ),
+        },
+
+        {
+            titulo: '3. Criar sessões',
+            conteudo: (
+                <>
+                    <p>Cada coluna representa um espaço físico do evento.</p>
+                    <p>
+                        Para criar uma sessão, clique no ícone{' '}
+                        <MdAddCircle
+                            color="rgb(120, 142, 238)"
+                            size={20}
+                            title="Adicionar uma sessão"
+                        />{' '}
+                        exibido no cabeçalho da coluna desejada.
+                    </p>
+                    <p>Informe:</p>
+                    <ul>
+                        <li>Nome da sessão</li>
+                        <li>Horário de início</li>
+                        <li>Horário de término</li>
+                    </ul>
+                    <p>
+                        O sistema verifica conflitos de horário automaticamente.
+                    </p>
+                    Observação:
+                    <ul>
+                        <li>
+                            Caso seja necessário alterar informações de uma
+                            sessão já criada, utilize o ícone de edição presente
+                            no canto superior do cartão da sessão{' '}
+                            <MdEdit
+                                size="16"
+                                className="text-secondary cursor-pointer"
+                            />
+                            .
+                        </li>
+                    </ul>
+                </>
+            ),
+        },
+
+        {
+            titulo: '4. Alocar atrações',
+            conteudo: (
+                <>
+                    <p>
+                        Na parte inferior da página está localizada a área{' '}
+                        <b>AGUARDANDO ALOCAÇÃO</b>, onde são exibidas todas as
+                        atrações que ainda não foram distribuídas em sessões.
+                    </p>
+
+                    <p> Para incluir uma atração em uma sessão: </p>
+
+                    <ol>
+                        <li>Clique e arraste a atração.</li>
+                        <li>Solte-a na sessão desejada.</li>
+                    </ol>
+
+                    <p>
+                        Também é possível mover atrações entre sessões já
+                        existentes.
+                    </p>
+                </>
+            ),
+        },
+
+        {
+            titulo: '5. Salvar rascunho',
+            conteudo: (
+                <>
+                    <p>Durante a montagem da programação utilize:</p>
+
+                    <div className="text-center my-3 border rounded p-2 bg-light">
+                        <Button
+                            variant="outline-secondary"
+                            className="fw-bold"
+                            disabled
+                        >
+                            <MdSave className="me-1" />
+                            Salvar rascunho
+                        </Button>
+                    </div>
+
+                    <p className="mt-2">
+                        Isso grava as alterações realizadas sem publicar a
+                        agenda.
+                    </p>
+                    <p>
+                        As informações e criações serão salvar apenas após{' '}
+                        <b>Salvar rascunho</b>.
+                    </p>
+                </>
+            ),
+        },
+
+        {
+            titulo: '6. Publicar programação',
+            conteudo: (
+                <>
+                    <p>Quando a programação estiver pronta clique em:</p>
+
+                    <div className="text-center my-3 border rounded p-2 bg-light">
+                        <Button variant="primary" className="fw-bold">
+                            <MdPublish className="me-1" />
+                            Publicar Agenda
+                        </Button>
+                    </div>
+
+                    <p className="mt-2">
+                        Será necessário informar a data e horário em que a
+                        programação ficará disponível para consulta.
+                    </p>
+
+                    <p>
+                        Após a publicação, a programação ficará disponível para
+                        consulta pelos participantes.
+                    </p>
+                </>
+            ),
+        },
+    ];
 
     const extrairNomesAutores = (atracaoEntrada) => {
         const atracao = atracaoEntrada?.atracao || atracaoEntrada || {};
@@ -195,7 +388,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             }
         }
 
-        if (eventoId && sessoes.length > 0) {
+        if (eventoId) {
             carregarAtracoes();
         }
     }, [eventoId, sessoes]);
@@ -272,6 +465,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                 sessao.id,
                                 dadosSessao,
                             );
+                            console.log('Sessão editada', sessaoSalva);
                         }
 
                         console.log('Dados enviados', sessaoSalva);
@@ -284,6 +478,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     }
                 }
             }
+            await fetchSessoes(eventoId);
 
             setAlterado(false);
         } catch (erro) {
@@ -766,6 +961,12 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                             {/* Botões de ação */}
                             <Col className="d-flex justify-content-end gap-2">
                                 <Button
+                                    variant="outline-info"
+                                    onClick={() => setMostrarTutorial(true)}
+                                >
+                                    Como usar?
+                                </Button>
+                                <Button
                                     variant="outline-secondary"
                                     className="fw-bold"
                                     onClick={() => salvarRascunho()}
@@ -907,6 +1108,10 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                 }
                                                                 sessao={sessao}
                                                                 onEditar={() => {
+                                                                    console.log(
+                                                                        'Editando sessão',
+                                                                        sessao,
+                                                                    );
                                                                     setSessaoEditando(
                                                                         sessao,
                                                                     );
@@ -914,13 +1119,23 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                         {
                                                                             nome: sessao.nome,
                                                                             data_horario_inicio:
-                                                                                sessao.data_horario_inicio.split(
-                                                                                    'T',
-                                                                                )[1],
+                                                                                sessao.data_horario_inicio
+                                                                                    .split(
+                                                                                        'T',
+                                                                                    )[1]
+                                                                                    .substring(
+                                                                                        0,
+                                                                                        5,
+                                                                                    ),
                                                                             data_horario_fim:
-                                                                                sessao.data_horario_fim.split(
-                                                                                    'T',
-                                                                                )[1],
+                                                                                sessao.data_horario_fim
+                                                                                    .split(
+                                                                                        'T',
+                                                                                    )[1]
+                                                                                    .substring(
+                                                                                        0,
+                                                                                        5,
+                                                                                    ),
                                                                             espaco: espaco.id,
                                                                         },
                                                                     );
@@ -1116,6 +1331,48 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     {console.log(dias)}
                 </div>
             )}
+
+            {/* Modal com tutorial de uso */}
+            <ModalPopup
+                show={mostrarTutorial}
+                titulo={etapasTutorial[etapaTutorial].titulo}
+                textoFechar=""
+                onFechar={() => {
+                    setMostrarTutorial(false);
+                    setEtapaTutorial(0);
+                }}
+            >
+                <div
+                    style={{
+                        maxHeight: '60vh',
+                        overflowY: 'auto',
+                    }}
+                >
+                    {etapasTutorial[etapaTutorial].conteudo}
+                </div>
+
+                <div className="d-flex justify-content-between mt-3">
+                    <Button
+                        variant="secondary"
+                        disabled={etapaTutorial === 0}
+                        onClick={() => setEtapaTutorial((prev) => prev - 1)}
+                    >
+                        Voltar
+                    </Button>
+
+                    <span>
+                        {etapaTutorial + 1} de {etapasTutorial.length}
+                    </span>
+
+                    <Button
+                        variant="primary"
+                        disabled={etapaTutorial === etapasTutorial.length - 1}
+                        onClick={() => setEtapaTutorial((prev) => prev + 1)}
+                    >
+                        Próximo
+                    </Button>
+                </div>
+            </ModalPopup>
 
             {/* Modal de escolha de espaço */}
             <ModalPopup

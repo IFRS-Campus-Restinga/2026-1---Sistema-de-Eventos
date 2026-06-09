@@ -17,6 +17,7 @@ class EnviarEmailsView(APIView):
     def post(self, request, evento_id):
         assunto = request.data.get("assunto")
         mensagem_texto = request.data.get("mensagem")
+        atracoes_ids = request.data.get("atracoes_ids", [])
 
         if not assunto or not mensagem_texto:
             return Response(
@@ -24,8 +25,19 @@ class EnviarEmailsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if not atracoes_ids:
+            return Response(
+                {"detail": "É necessário selecionar pelo menos uma atração."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
-            enviar_comunicado_geral(assunto=assunto, mensagem_texto=mensagem_texto)
+            enviar_comunicado_geral(
+                evento_id=evento_id,
+                atracoes_ids=atracoes_ids,
+                assunto=assunto,
+                mensagem_texto=mensagem_texto,
+            )
 
             return Response(
                 {"mensagem": "Comunicado encaminhado para a fila de processamento."},

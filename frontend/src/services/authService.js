@@ -111,6 +111,17 @@ export async function checkSession() {
     }
 }
 
+export async function logoutLocal() {
+    try {
+        await fetch(`${BACKEND_BASE_URL}/session/logout/`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+    } catch {
+        // Ignora erro de rede no logout local.
+    }
+}
+
 export async function logout() {
     try {
         await Promise.allSettled([

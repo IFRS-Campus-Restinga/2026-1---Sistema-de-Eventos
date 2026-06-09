@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { handleAuthCallback } from '../services/authService';
+import {
+    checkSession,
+    handleAuthCallback,
+    logoutLocal,
+} from '../services/authService';
 
 export default function SessionTokenCallback() {
     const navigate = useNavigate();
@@ -17,6 +21,19 @@ export default function SessionTokenCallback() {
             }
 
             try {
+                const session = await checkSession();
+                const currentUserId =
+                    session?.user?.id != null ? String(session.user.id) : null;
+
+                if (
+                    session?.authenticated &&
+                    currentUserId &&
+                    currentUserId !== String(userId)
+                ) {
+                    setStatus('Sessão anterior detectada. Encerrando...');
+                    await logoutLocal();
+                }
+
                 const data = await handleAuthCallback(userId);
                 const foiCadastro =
                     data.created === true ||
