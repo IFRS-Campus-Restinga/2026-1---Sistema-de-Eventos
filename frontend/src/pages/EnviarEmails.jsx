@@ -71,6 +71,7 @@ export default function EnviarEmails({ campus = 'Campus Restinga' }) {
                 {
                     text: '-- Selecione um template para preencher a mensagem --',
                     value: '',
+                    disabled: true,
                 },
                 ...templates
                     .filter((t) => t.tipo === 'sistema')
@@ -103,8 +104,7 @@ export default function EnviarEmails({ campus = 'Campus Restinga' }) {
         },
     ];
 
-    // Função de renderização modular para os turnos com mensagem genérica
-    const renderTurno = (turno, titulo) => {
+    const selecaoAtracoes = (turno, titulo) => {
         const atracoesDoTurno = atracoes.filter((a) => a.turno === turno);
 
         return (
@@ -146,7 +146,8 @@ export default function EnviarEmails({ campus = 'Campus Restinga' }) {
 
             <main className="flex-grow-1 py-4">
                 <Container>
-                    <h2 className="mb-4">Gerenciar E-mails - {nomeEvento}</h2>
+                    <h1>Envio de E-mails </h1>
+                    <h3> {nomeEvento} </h3>
 
                     <Form onSubmit={(e) => handleSubmit(e, csrfToken)}>
                         <Row>
@@ -190,9 +191,18 @@ export default function EnviarEmails({ campus = 'Campus Restinga' }) {
                                                     paddingRight: '5px',
                                                 }}
                                             >
-                                                {renderTurno('manha', 'Manhã')}
-                                                {renderTurno('tarde', 'Tarde')}
-                                                {renderTurno('noite', 'Noite')}
+                                                {selecaoAtracoes(
+                                                    'manha',
+                                                    'Manhã',
+                                                )}
+                                                {selecaoAtracoes(
+                                                    'tarde',
+                                                    'Tarde',
+                                                )}
+                                                {selecaoAtracoes(
+                                                    'noite',
+                                                    'Noite',
+                                                )}
                                             </div>
                                         </>
                                     ) : (
