@@ -7,7 +7,6 @@ from ..enumerations.status_inscricao import StatusInscricao
 from ..enumerations.tipo_etapa import TipoEtapa
 from .atracao import Atracao
 from .base import Base
-from .evento import Evento
 from .perfil import Perfil
 
 
@@ -33,12 +32,9 @@ class InscricaoAtracao(Base):
         related_name="inscricoes",
     )
 
-    evento = models.ForeignKey(
-        Evento,
-        on_delete=models.RESTRICT,
-        null=True,
-        blank=True,
-    )
+    @property
+    def evento(self):
+        return getattr(getattr(self, "atracao", None), "evento", None)
 
     presente = models.BooleanField(
         verbose_name=_("Presente"),
