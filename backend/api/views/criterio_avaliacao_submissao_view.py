@@ -1,16 +1,16 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.criterio_avaliacao_submissao import CriterioAvaliacaoSubmissao
 from ..serializers import CriterioAvaliacaoSubmissaoSerializer
+from .perms_generic_view import PodeGerenciarCriterioAvaliacaoSubmissao
 
 
 class CriterioAvaliacaoSubmissaoListView(APIView):
     queryset = CriterioAvaliacaoSubmissao.objects.all()
     serializer_class = CriterioAvaliacaoSubmissaoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarCriterioAvaliacaoSubmissao]
 
     def get_serializer(self, *args, **kwargs):
         return CriterioAvaliacaoSubmissaoSerializer(*args, **kwargs)
@@ -30,7 +30,7 @@ class CriterioAvaliacaoSubmissaoListView(APIView):
 
 
 class CriterioAvaliacaoSubmissaoDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarCriterioAvaliacaoSubmissao]
 
     def get_object(self, pk):
         try:

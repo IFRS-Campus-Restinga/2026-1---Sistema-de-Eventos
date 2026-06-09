@@ -12,7 +12,11 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
 from eventos_session.permissions import HasValidSessionToken
-from eventos_session.services.token_service import TokenService, TokenValidationError
+from eventos_session.services.token_service import (
+    TokenService,
+    TokenValidationError,
+    get_token_cookie_name,
+)
 
 User = get_user_model()
 
@@ -47,7 +51,7 @@ def obter_tokens(request):
         # [TEMP-FALLBACK] Emitir tokens como cookies HttpOnly para novo fluxo de auth
         response = Response(user_data, status=status.HTTP_200_OK)
         response.set_cookie(
-            "access_token",
+            get_token_cookie_name("access_token"),
             access_token,
             httponly=True,
             samesite="Lax",
@@ -55,7 +59,7 @@ def obter_tokens(request):
             path="/",
         )
         response.set_cookie(
-            "refresh_token",
+            get_token_cookie_name("refresh_token"),
             refresh_token,
             httponly=True,
             samesite="Lax",
@@ -81,7 +85,7 @@ def obter_tokens(request):
 @throttle_classes([AnonRateThrottle])
 def renovar_token(request):
     # Fluxo atual: somente refresh_token em cookie HttpOnly.
-    refresh_token = request.COOKIES.get("refresh_token")
+    refresh_token = request.COOKIES.get(get_token_cookie_name("refresh_token"))
 
     # [TEMP-FALLBACK REMOVIDO] Fallback para Bearer header e request.data desativado.
     # if not refresh_token:
@@ -105,7 +109,7 @@ def renovar_token(request):
             {"message": "Token renovado com sucesso"}, status=status.HTTP_200_OK
         )
         response.set_cookie(
-            "access_token",
+            get_token_cookie_name("access_token"),
             access_token,
             httponly=True,
             samesite="Lax",

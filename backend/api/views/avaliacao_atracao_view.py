@@ -1,6 +1,5 @@
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,17 +8,21 @@ from ..models.atracao import Atracao
 from ..models.avaliacao_atracao import AvaliacaoAtracao
 from ..models.etapa_evento import EtapaEvento
 from ..serializers import AvaliacaoAtracaoSerializer
+from .perms_generic_view import PodeVerAvaliacaoAtracao
 
 
 class AvaliacaoAtracaoListView(APIView):
     queryset = AvaliacaoAtracao.objects.all()
     serializer_class = AvaliacaoAtracaoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeVerAvaliacaoAtracao]
 
     def get_serializer(self, *args, **kwargs):
         return AvaliacaoAtracaoSerializer(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
+        # checar permissão geral (autenticação)
+        self.check_permissions(request)
+
         criterios = AvaliacaoAtracao.objects.all()
         atracao_id = request.query_params.get("atracao")
         mine = request.query_params.get("mine")
@@ -31,6 +34,21 @@ class AvaliacaoAtracaoListView(APIView):
             if not request.user or not request.user.is_authenticated:
                 return Response({"erro": "Autenticação requerida"}, status=401)
             criterios = criterios.filter(avaliador=request.user)
+
+        else:
+            # avaliadores vejam apenas suas próprias avaliações; coordenador/administrador veem todas
+            user = request.user
+            if not (user and user.is_authenticated):
+                return Response({"erro": "Autenticação requerida"}, status=401)
+
+            is_admin_or_coordenador = (
+                user.is_superuser
+                or user.groups.filter(
+                    name__in=["Administrador", "Coordenador"]
+                ).exists()
+            )
+            if not is_admin_or_coordenador:
+                criterios = criterios.filter(avaliador=user)
 
         serializer = AvaliacaoAtracaoSerializer(criterios, many=True)
         return Response(serializer.data)
@@ -80,7 +98,7 @@ class AvaliacaoAtracaoListView(APIView):
 
 
 class AvaliacaoAtracaoDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeVerAvaliacaoAtracao]
 
     def get_object(self, pk):
         try:
@@ -96,6 +114,9 @@ class AvaliacaoAtracaoDetailView(APIView):
                 status=404,
             )
 
+        # checar permissão de objeto (vai permitir admin/coordenador ou avaliador dono)
+        self.check_object_permissions(request, criterio)
+
         serializer = AvaliacaoAtracaoSerializer(criterio)
         return Response(serializer.data)
 
@@ -110,6 +131,9 @@ class AvaliacaoAtracaoDetailView(APIView):
         # exige usuário autenticado e permissão para avaliar a atração
         if not request.user or not request.user.is_authenticated:
             return Response({"erro": "Autenticação requerida"}, status=401)
+
+        # checar permissão de objeto (admin/coordenador ou avaliador dono) antes de permitir edição
+        self.check_object_permissions(request, criterio)
 
         if not request.user.has_perm("api.avaliar_atracao", criterio.atracao):
             return Response(
@@ -147,6 +171,9 @@ class AvaliacaoAtracaoDetailView(APIView):
                 {"erro": "AvaliacaoAtracao não encontrado"},
                 status=404,
             )
+
+        # checar permissão de objeto antes de deletar
+        self.check_object_permissions(request, criterio)
 
         criterio.delete()
         return Response({"msg": "Deletado com sucesso"}, status=204)

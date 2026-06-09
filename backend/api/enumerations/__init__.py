@@ -7,4 +7,5 @@ from .status_atracao import *
 from .status_evento import *
 from .status_inscricao import *
 from .tipo_campo import *
+from .tipo_autoria import *
 from .tipo_etapa import *

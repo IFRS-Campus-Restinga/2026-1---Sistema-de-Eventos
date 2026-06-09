@@ -27,6 +27,7 @@ import {
     clearSelectedEventoId,
     getSelectedEventoId,
     setSelectedEventoId,
+    adicionarEventoRecenteAdminId,
 } from '../utils/selectedEvento';
 import { getDashboardEvento } from '../services/dashboardService';
 
@@ -91,6 +92,7 @@ export default function Dashboard() {
 
             // Define o ID ativo apenas se ele veio na URL
             setSelectedEventoId(eventoId);
+            adicionarEventoRecenteAdminId(eventoId);
             setLoading(true);
             setErro('');
 
@@ -133,7 +135,13 @@ export default function Dashboard() {
                     <Container>
                         <Row>
                             <Col>
-                                <Row className="rounded-4 bg-success p-3">
+                                <Row
+                                    className="rounded-4 bg-success p-3"
+                                    style={{
+                                        backgroundImage:
+                                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                                    }}
+                                >
                                     <Col
                                         sm={1}
                                         className="d-flex flex-column flex-md-row"
@@ -415,9 +423,7 @@ export default function Dashboard() {
                                             >
                                                 <Link
                                                     className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        '/listar_inscritos_evento'
-                                                    }
+                                                    to={`/listar_inscritos_evento?eventoId=${eventoId}`}
                                                 >
                                                     <HiOutlineClipboardList
                                                         size={20}
@@ -653,7 +659,7 @@ export default function Dashboard() {
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
                                                 to={
                                                     eventoId
-                                                        ? `/dashboard/${eventoId}/enviaremails`
+                                                        ? `/dashboard/${eventoId}/enviar_emails`
                                                         : '#'
                                                 }
                                             >

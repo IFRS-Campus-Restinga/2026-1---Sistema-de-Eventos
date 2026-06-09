@@ -9,15 +9,13 @@ const CAMPOS_ATRACAO = [
     'modalidade',
     'nivel_ensino',
     'area_conhecimento',
-    'orientador',
-    'sou_orientador',
     'anexo_pdf',
     'acessibilidade',
     'evento',
     'status',
+    'sugestao_vagas',
     'data_hora_inicio',
     'data_hora_fim',
-    'espaco',
     'local_atracao',
     'equipe',
     'respostas_campos',
@@ -55,7 +53,27 @@ const montarPayloadAtracao = (dados) => {
         }
 
         if (key === 'equipe') {
-            payload.append('equipe_json', JSON.stringify(dados[key]));
+            const equipeNormalizada = Array.isArray(dados[key])
+                ? dados[key].map((membro, index) => ({
+                      user_id: membro?.user_id || null,
+                      nome: membro?.nome || '',
+                      instituicao_curso: membro?.instituicao_curso || '',
+                      funcao: membro?.funcao || '',
+                      ordem: index + 1,
+                  }))
+                : [];
+
+            payload.append('equipe_json', JSON.stringify(equipeNormalizada));
+
+            const autoriaNormalizada = equipeNormalizada
+                .filter((membro) => String(membro?.user_id || '').trim() !== '')
+                .map((membro) => ({
+                    usuario: Number(membro.user_id),
+                    tipo: membro.funcao,
+                    ordem: membro.ordem,
+                }));
+
+            payload.append('autoria_json', JSON.stringify(autoriaNormalizada));
             return;
         }
 
@@ -72,6 +90,27 @@ const montarPayloadAtracao = (dados) => {
             if (arquivo instanceof File || arquivo instanceof Blob) {
                 payload.append(key, arquivo);
             }
+            return;
+        }
+
+        if (key === 'nivel_ensino') {
+            const niveis = Array.isArray(dados[key])
+                ? dados[key].filter((item) => String(item || '').trim() !== '')
+                : String(dados[key] || '')
+                      .split(',')
+                      .map((item) => item.trim())
+                      .filter((item) => item !== '');
+
+            payload.append(key, niveis.join(','));
+            return;
+        }
+
+        if (key === 'sugestao_vagas') {
+            const valor = dados[key];
+            if (valor === '' || valor === null || valor === undefined) {
+                return;
+            }
+            payload.append(key, Number(valor));
             return;
         }
 
@@ -174,5 +213,52 @@ export const buscarUsuarios = async (q) => {
         params: q ? { q } : {},
         withCredentials: true,
     });
+    return response.data;
+};
+
+export const listarEquipeAtracao = async (atracaoId) => {
+    if (!atracaoId) return { equipe: [] };
+
+    const response = await axios.get(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
+        withCredentials: true,
+    });
+
+    return response.data;
+};
+
+export const definirMembroEquipeAtracao = async (atracaoId, { user_id, funcao, instituicao_curso = '' }) => {
+    if (!atracaoId || !user_id || !funcao) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.patch(
+        `${API_URL}/api/atracoes/${atracaoId}/equipe/`,
+        { user_id, funcao, instituicao_curso },
+        {
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const removerMembroEquipeAtracao = async (atracaoId, userId) => {
+    if (!atracaoId || !userId) return null;
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.delete(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
+        data: { user_id: userId },
+        headers: {
+            'X-CSRFToken': csrfToken,
+        },
+        withCredentials: true,
+    });
+
     return response.data;
 };

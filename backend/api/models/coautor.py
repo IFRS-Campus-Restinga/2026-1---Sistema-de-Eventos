@@ -7,7 +7,7 @@ from .atracao import Atracao
 class FuncaoEquipe(models.TextChoices):
     AUTOR = "AUTOR", _("Autor")
     COAUTOR = "COAUTOR", _("Coautor")
-    COLABORADOR = "COLABORADOR", _("Colaborador")
+    ORIENTADOR = "ORIENTADOR", _("Orientador")
 
 
 class Coautor(Base):

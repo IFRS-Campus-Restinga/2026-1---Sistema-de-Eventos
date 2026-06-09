@@ -17,6 +17,7 @@ export const criarCriterioAvaliacaoSubmissao = async (dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
     return response.data;
@@ -32,6 +33,7 @@ export const atualizarCriterioAvaliacaoSubmissao = async (id, dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 
@@ -47,6 +49,7 @@ export const deletarCriterioAvaliacaoSubmissao = async (id) => {
         `${API_URL}/api/criterio_avaliacao_submissao/${id}/`,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
 

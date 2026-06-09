@@ -14,6 +14,7 @@ export default function ModalDetalhesAvaliacao({
     avaliacaoModal,
     criteriosMap,
     onFechar,
+    modalidadesMap,
 }) {
     return (
         <ModalPopup
@@ -38,6 +39,30 @@ export default function ModalDetalhesAvaliacao({
                     <Col>
                         <span className="fw-bold">Trabalho:</span>{' '}
                         <span>{avaliacaoModal.atracao?.titulo || '-'}</span>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <span className="fw-bold">Tipo:</span>{' '}
+                        <span>
+                            {(() => {
+                                const mod =
+                                    typeof avaliacaoModal.atracao
+                                        ?.modalidade === 'object' &&
+                                    avaliacaoModal.atracao?.modalidade
+                                        ? avaliacaoModal.atracao.modalidade
+                                        : modalidadesMap?.[
+                                              avaliacaoModal.atracao?.modalidade
+                                          ];
+                                return (
+                                    mod?.nome ||
+                                    mod?.titulo ||
+                                    mod?.descricao ||
+                                    avaliacaoModal.atracao?.modalidade ||
+                                    '-'
+                                );
+                            })()}
+                        </span>
                     </Col>
                 </Row>
                 <hr />

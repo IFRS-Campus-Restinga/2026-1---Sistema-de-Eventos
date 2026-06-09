@@ -1,16 +1,16 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.campo_formulario import CampoFormulario
 from ..serializers import CampoFormularioSerializer
+from .perms_generic_view import PodeGerenciarCampoFormulario
 
 
 class CampoFormularioListView(APIView):
     queryset = CampoFormulario.objects.all()
     serializer_class = CampoFormularioSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarCampoFormulario]
 
     def get_serializer(self, *args, **kwargs):
         return CampoFormularioSerializer(*args, **kwargs)
@@ -30,7 +30,7 @@ class CampoFormularioListView(APIView):
 
 
 class CampoFormularioDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeGerenciarCampoFormulario]
 
     def get_object(self, pk):
         try:

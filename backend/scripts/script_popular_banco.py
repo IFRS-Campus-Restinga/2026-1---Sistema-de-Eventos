@@ -1,3 +1,4 @@
+import datetime
 import os
 import platform
 import subprocess
@@ -129,6 +130,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Oficina",
@@ -137,6 +139,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Pôster",
@@ -145,6 +148,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Mesa-redonda",
@@ -153,6 +157,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
 ]
 
@@ -248,13 +253,13 @@ ETAPAS_DATA = [
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2026-04-01 08:00:00",
-        "data_fim": "2026-06-15 23:59:59",
+        "data_fim": "2026-06-06 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "REALIZACAO_EVENTO",
-        "data_inicio": "2025-10-20 08:00:00",
-        "data_fim": "2025-10-22 18:00:00",
+        "data_inicio": "2026-06-07 08:00:00",
+        "data_fim": "2026-06-10 18:00:00",
     },
     {
         "evento_nome": "Mostra de Extensão",
@@ -722,6 +727,31 @@ def seed_etapas():
     print("Seed de etapas finalizada.")
     print(f"Criadas: {created_count} | Já existiam/Atualizadas: {existing_count}")
 
+    # Garantir ao menos uma etapa de REALIZACAO_EVENTO relativa a hoje -> +3 dias
+    try:
+        evento_base_nome = EVENTOS_DATA[0]["nome"]
+    except Exception:
+        evento_base_nome = None
+
+    if evento_base_nome:
+        evento_base = Evento.objects.filter(nome__iexact=evento_base_nome).first()
+        if evento_base:
+            agora = timezone.now()
+            fim = agora + datetime.timedelta(days=3)
+            etapa, created = EtapaEvento.objects.get_or_create(
+                evento=evento_base,
+                tipo_etapa="REALIZACAO_EVENTO",
+                defaults={"data_inicio": agora, "data_fim": fim},
+            )
+            if created:
+                print(
+                    f"Etapa de REALIZACAO_EVENTO criada para '{evento_base.nome}' ({agora} -> {fim})."
+                )
+            else:
+                print(
+                    f"Etapa de REALIZACAO_EVENTO já existe para '{evento_base.nome}'; não foi alterada."
+                )
+
 
 def seed_arquivos():
     from api.models.arquivo import Arquivo
@@ -757,6 +787,122 @@ def seed_arquivos():
     print("Seed de arquivos finalizada.")
     print(f"Criados: {created if created else 'nenhum'}")
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
+
+
+def seed_campos_formulario():
+    from api.enumerations.tipo_campo import TipoCampo
+    from api.models.campo_formulario import CampoFormulario
+    from api.models.modalidade import Modalidade
+
+    created = []
+    existing = []
+
+    campos = [
+        {
+            "modalidade": "Palestra",
+            "nome": "Necessita acessibilidade",
+            "tipo": TipoCampo.BOOLEANO,
+            "obrigatorio": False,
+        },
+        {
+            "modalidade": "Palestra",
+            "nome": "Apresentação em PDF",
+            "tipo": TipoCampo.ARQUIVO,
+            "obrigatorio": True,
+        },
+        {
+            "modalidade": "Oficina",
+            "nome": "Necessita projetor",
+            "tipo": TipoCampo.BOOLEANO,
+            "obrigatorio": True,
+        },
+        {
+            "modalidade": "Oficina",
+            "nome": "Necessita computador",
+            "tipo": TipoCampo.BOOLEANO,
+            "obrigatorio": True,
+        },
+        {
+            "modalidade": "Pôster",
+            "nome": "Observações",
+            "tipo": TipoCampo.TEXTO,
+            "obrigatorio": False,
+        },
+    ]
+
+    for item in campos:
+        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade"]).first()
+        if not modalidade:
+            print(
+                f"Aviso: Modalidade '{item['modalidade']}' não encontrada. Pulando campo '{item['nome']}'."
+            )
+            continue
+
+        campo = CampoFormulario.objects.filter(
+            nome__iexact=item["nome"], modalidade=modalidade
+        ).first()
+        if campo:
+            existing.append(f"{campo.nome} ({modalidade.nome})")
+            continue
+
+        campo = CampoFormulario(
+            nome=item["nome"],
+            tipo_dado=item["tipo"],
+            obrigatorio=item["obrigatorio"],
+            ativo=True,
+            modalidade=modalidade,
+        )
+        campo.full_clean()
+        campo.save()
+        created.append(f"{campo.nome} ({modalidade.nome})")
+
+    print("Seed de campos de formulário finalizada.")
+    print(f"Criados: {created if created else 'nenhum'}")
+    print(f"Ja existiam: {existing if existing else 'nenhum'}")
+
+
+def seed_criterios():
+    from api.models.criterio_avaliacao_atracao import CriterioAvaliacaoAtracao
+    from api.models.criterio_avaliacao_submissao import CriterioAvaliacaoSubmissao
+    from api.models.modalidade import Modalidade
+
+    # Para modalidades que requerem avaliacao (atracao)
+    criterios_padrao_atracao = [
+        ("Clareza da apresentação", "A clareza e estrutura da apresentação."),
+        ("Originalidade", "Nível de novidade e contribuição do trabalho."),
+        ("Relevância", "Relevância para a área e público alvo."),
+    ]
+
+    # Para modalidades que requerem avaliacao de submissao
+    criterios_padrao_submissao = [
+        ("Qualidade técnica", "Rigor metodológico e qualidade técnica."),
+        ("Impacto", "Potencial impacto e aplicabilidade."),
+        ("Adequação ao tema", "Compatibilidade com o tema do evento."),
+    ]
+
+    modalidades_avaliacao = Modalidade.objects.filter(requer_avaliacao=True)
+    for mod in modalidades_avaliacao:
+        for nome, descricao in criterios_padrao_atracao:
+            obj, created = CriterioAvaliacaoAtracao.objects.get_or_create(
+                modalidade=mod,
+                nome=nome,
+                defaults={"descricao": descricao, "ativo": True},
+            )
+            if created:
+                print(f"Criterio de atracao criado: {nome} ({mod.nome})")
+
+    modalidades_submissao = Modalidade.objects.filter(requer_avaliacao_submissao=True)
+    for mod in modalidades_submissao:
+        for nome, descricao in criterios_padrao_submissao:
+            obj, created = CriterioAvaliacaoSubmissao.objects.get_or_create(
+                modalidade=mod,
+                nome=nome,
+                defaults={"descricao": descricao, "ativo": True},
+            )
+            if created:
+                print(f"Criterio de submissao criado: {nome} ({mod.nome})")
+
+    print("Seed de critérios finalizada.")
 
 
 def seed_admin_user():
@@ -820,6 +966,9 @@ if __name__ == "__main__":
     seed_locais()
     seed_espacos()
     seed_modalidades()
+    # Campos de formulário e critérios dependem de Modalidade
+    seed_campos_formulario()
+    seed_criterios()
     seed_areas()
     seed_eventos()
     seed_atracoes()

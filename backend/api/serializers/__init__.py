@@ -1,6 +1,7 @@
 # ruff: noqa: F403
 from .avaliacao_atracao_serializer import *
 from .avaliacao_submissao_serializer import *
+from .autoria_serializer import *
 from .campo_formulario_serializer import *
 from .criterio_avaliacao_atracao_serializer import *
 from .criterio_avaliacao_submissao_serializer import *

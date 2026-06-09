@@ -1,6 +1,10 @@
 from rest_framework.permissions import BasePermission
 
-from eventos_session.services.token_service import TokenService, TokenValidationError
+from eventos_session.services.token_service import (
+    TokenService,
+    TokenValidationError,
+    get_token_cookie_name,
+)
 
 
 class HasValidSessionToken(BasePermission):
@@ -10,7 +14,7 @@ class HasValidSessionToken(BasePermission):
 
     def has_permission(self, request, view):
         # Fluxo atual: somente cookie HttpOnly.
-        token = request.COOKIES.get("access_token")
+        token = request.COOKIES.get(get_token_cookie_name("access_token"))
 
         if not token:
             return False

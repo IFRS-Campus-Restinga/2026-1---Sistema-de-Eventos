@@ -43,3 +43,47 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
 }
+
+/* Gestão dropdown: white caret and white menu */
+.nav-gestao-dropdown .dropdown-toggle::after {
+    border-top-color: #fff !important;
+}
+
+.nav-gestao-dropdown .dropdown-menu {
+    background-color: #fff !important;
+    color: #000 !important;
+    color: #000 !important;
+}
+
+.nav-gestao-dropdown .dropdown-item:hover,
+.nav-gestao-dropdown .dropdown-item:focus {
+    background-color: #f8f9fa !important;
+}
+
+.nav-gestao-dropdown .dropdown-divider {
+    border-top: 1px solid #e9ecef !important;
+}
+
+/* Caret para itens que têm submenu - colore em preto */
+.nav-gestao-dropdown .dropdown-submenu > .dropdown-item.dropdown-toggle::after {
+    border-top-color: #000 !important;
+}
+
+/* Submenus */
+.nav-gestao-dropdown .dropdown-submenu {
+    position: relative;
+}
+
+.nav-gestao-dropdown .dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -1px;
+}
+
+.nav-gestao-dropdown .dropdown-submenu:hover > .dropdown-menu {
+    display: block;
+}
+
+.nav-gestao-dropdown .nav-item.dropdown:hover > .dropdown-menu {
+    display: block;
+}

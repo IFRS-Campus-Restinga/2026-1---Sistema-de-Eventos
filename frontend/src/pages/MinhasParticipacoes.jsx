@@ -112,8 +112,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
     ]);
 
     const atracoesInscritas = useMemo(() => {
-        if (!inscricaoEvento || !usuarioLogado?.perfil_id) return [];
+        if (!eventoSelecionadoId || !usuarioLogado?.perfil_id) return [];
 
+        // ids de atrações em que o usuário está inscrito
         const idsInscritos = new Set(
             inscricoes
                 .filter(
@@ -126,9 +127,109 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 .map((inscricao) => Number(inscricao.atracao_id)),
         );
 
-        return atracoes.filter((atracao) =>
-            idsInscritos.has(Number(atracao.id)),
-        );
+        // ids de atrações em que o usuário é autor ou membro da equipe
+        const idsAutorOuEquipe = new Set();
+        atracoes.forEach((atracao) => {
+            const autorias = Array.isArray(atracao.autorias)
+                ? atracao.autorias
+                : [];
+
+            const pertenceComoAutoria = autorias.some((a) => {
+                if (!a) return false;
+                // normal match by local user id (when available)
+                if (typeof a.usuario !== 'undefined' && usuarioLogado?.id) {
+                    if (Number(a.usuario) === Number(usuarioLogado.id))
+                        return true;
+                }
+
+                // fallback: compare by name/username using usuario_nome
+                const usuarioNome = String(a.usuario_nome || '')
+                    .trim()
+                    .toLowerCase();
+                const display = String(usuarioLogado?.display_name || '')
+                    .trim()
+                    .toLowerCase();
+                const perfilNome = String(usuarioLogado?.nome || '')
+                    .trim()
+                    .toLowerCase();
+                const username = String(usuarioLogado?.username || '')
+                    .trim()
+                    .toLowerCase();
+
+                return (
+                    (usuarioNome && display && usuarioNome === display) ||
+                    (usuarioNome && perfilNome && usuarioNome === perfilNome) ||
+                    (usuarioNome && username && usuarioNome === username)
+                );
+            });
+
+            let pertenceComoEquipe = false;
+            if (Array.isArray(atracao.equipe_nomes) && usuarioLogado) {
+                const nomePerfil = String(usuarioLogado.nome || '').trim();
+                const username = String(usuarioLogado.username || '').trim();
+                pertenceComoEquipe = atracao.equipe_nomes.some((n) => {
+                    if (!n) return false;
+                    const s = String(n).trim();
+                    return (
+                        (nomePerfil && s === nomePerfil) ||
+                        (username && s === username)
+                    );
+                });
+            }
+
+            if (pertenceComoAutoria || pertenceComoEquipe) {
+                idsAutorOuEquipe.add(Number(atracao.id));
+            }
+        });
+
+        // combinação: inscrito OU autor/equipe
+        const idsCombinados = new Set([
+            ...Array.from(idsInscritos),
+            ...Array.from(idsAutorOuEquipe),
+        ]);
+
+        const minhas = atracoes
+            .filter((atracao) => idsCombinados.has(Number(atracao.id)))
+            .map((atracao) => {
+                const autorias = Array.isArray(atracao.autorias)
+                    ? atracao.autorias
+                    : [];
+
+                const isAutor = autorias.some((a) => {
+                    if (!a) return false;
+                    if (String(a.tipo).toUpperCase() !== 'AUTOR') return false;
+
+                    if (typeof a.usuario !== 'undefined' && usuarioLogado?.id) {
+                        if (Number(a.usuario) === Number(usuarioLogado.id))
+                            return true;
+                    }
+
+                    const usuarioNome = String(a.usuario_nome || '')
+                        .trim()
+                        .toLowerCase();
+                    const display = String(usuarioLogado?.display_name || '')
+                        .trim()
+                        .toLowerCase();
+                    const perfilNome = String(usuarioLogado?.nome || '')
+                        .trim()
+                        .toLowerCase();
+                    const username = String(usuarioLogado?.username || '')
+                        .trim()
+                        .toLowerCase();
+
+                    return (
+                        (usuarioNome && display && usuarioNome === display) ||
+                        (usuarioNome &&
+                            perfilNome &&
+                            usuarioNome === perfilNome) ||
+                        (usuarioNome && username && usuarioNome === username)
+                    );
+                });
+
+                return { ...atracao, isAutor };
+            });
+
+        return minhas;
     }, [
         atracoes,
         inscricoes,
@@ -136,6 +237,11 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         inscricaoEvento,
         usuarioLogado,
     ]);
+
+    const atracoesQueSouAutor = useMemo(
+        () => atracoesInscritas.filter((a) => a.isAutor),
+        [atracoesInscritas],
+    );
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -189,11 +295,24 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                             className="py-3"
                                                         >
                                                             <div className="d-flex flex-column gap-1">
-                                                                <h3>
-                                                                    {
-                                                                        atracao.titulo
-                                                                    }
-                                                                </h3>
+                                                                <div className="d-flex justify-content-between align-items-start">
+                                                                    <h3 className="mb-1">
+                                                                        {
+                                                                            atracao.titulo
+                                                                        }
+                                                                    </h3>
+                                                                    <div>
+                                                                        {atracao.isAutor ? (
+                                                                            <span className="badge bg-success ms-2">
+                                                                                Autor
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="badge bg-secondary ms-2">
+                                                                                Participante
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                                 <span className="text-muted">
                                                                     Tipo:{' '}
                                                                     {atracao.tipo ||
@@ -205,10 +324,30 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                                         'Sem descrição.'}
                                                                 </span>
                                                                 <span className="text-muted">
-                                                                    Autor/Oficineiro:{' '}
-                                                                    {atracao.orientador_nome ||
-                                                                        'Sem descrição.'}
+                                                                    Autor:{' '}
+                                                                    {atracao.autor_nome ||
+                                                                        (Array.isArray(
+                                                                            atracao.autorias,
+                                                                        ) &&
+                                                                            atracao
+                                                                                .autorias[0]
+                                                                                ?.usuario_nome) ||
+                                                                        '—'}
                                                                 </span>
+                                                                <span className="text-muted">
+                                                                    Orientador:{' '}
+                                                                    {atracao.orientador_nome ||
+                                                                        '—'}
+                                                                </span>
+                                                                {atracao.isAutor && (
+                                                                    <Button
+                                                                        className="w-25 mt-3"
+                                                                        size="sm"
+                                                                        variant="success"
+                                                                    >
+                                                                        Inscritos
+                                                                    </Button>
+                                                                )}
                                                             </div>
                                                         </ListGroup.Item>
                                                     ),

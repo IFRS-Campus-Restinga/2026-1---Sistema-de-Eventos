@@ -21,6 +21,7 @@ export default function TabelaAtracoes({
             cabecarios={[
                 'Qtd. avaliadores',
                 'Trabalho/Autores',
+                'Tipo',
                 'Área',
                 'Avaliadores',
                 'Média',
@@ -35,21 +36,28 @@ export default function TabelaAtracoes({
                             typeof a.modalidade === 'object' && a.modalidade
                                 ? a.modalidade
                                 : modalidadesMap[a.modalidade];
-                        const limite = Number(
+                        const limiteRaw =
                             modalidadeObj?.limite_avaliadores ??
-                                a.limite_avaliadores ??
-                                a.modalidade_limite ??
-                                0,
-                        );
+                            a.limite_avaliadores ??
+                            a.modalidade_limite ??
+                            null;
+                        const limite =
+                            limiteRaw != null && limiteRaw !== ''
+                                ? Number(limiteRaw)
+                                : null;
                         const cor = (() => {
                             if (num === 0) return 'red';
-                            if (limite > 0 && num >= limite) return 'green';
+                            if (
+                                Number.isFinite(limite) &&
+                                limite > 0 &&
+                                num >= limite
+                            )
+                                return 'green';
                             return '#FFC107';
                         })();
-                        const texto =
-                            limite > 0
-                                ? `${num}/${limite} avaliadores`
-                                : `${num}/— avaliadores`;
+                        const texto = Number.isFinite(limite)
+                            ? `${num}/${limite} avaliadores`
+                            : `${num}/— avaliadores`;
 
                         return (
                             <div className="d-inline-flex align-items-center gap-2">
@@ -74,6 +82,22 @@ export default function TabelaAtracoes({
                             <span>{a.autores_text}</span>
                         </div>
                     ),
+                    style: { verticalAlign: 'middle' },
+                },
+                {
+                    value: (() => {
+                        const modalidadeObj =
+                            typeof a.modalidade === 'object' && a.modalidade
+                                ? a.modalidade
+                                : modalidadesMap[a.modalidade];
+                        const tipoTexto =
+                            modalidadeObj?.nome ||
+                            modalidadeObj?.titulo ||
+                            modalidadeObj?.descricao ||
+                            a.modalidade ||
+                            '—';
+                        return <span>{tipoTexto}</span>;
+                    })(),
                     style: { verticalAlign: 'middle' },
                 },
                 {
@@ -129,18 +153,29 @@ export default function TabelaAtracoes({
                 {
                     value: (
                         <div className="d-flex gap-3">
-                            <button
-                                className="btn btn-outline-primary"
-                                onClick={() => onAtribuir(a)}
-                                disabled={!eventosMap?.[a.evento]}
-                                title={
-                                    !eventosMap?.[a.evento]
-                                        ? 'Etapa de realização/avaliação não está aberta para este evento'
-                                        : 'Atribuir avaliadores'
-                                }
-                            >
-                                Atribuir
-                            </button>
+                            {eventosMap?.[a.evento] ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={() => onAtribuir(a)}
+                                >
+                                    Atribuir
+                                </button>
+                            ) : (
+                                <span
+                                    className="d-inline-block"
+                                    title="Não é possível atribuir avaliadores porque a etapa de realização deste evento já encerrou."
+                                >
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-primary"
+                                        onClick={() => onAtribuir(a)}
+                                        disabled
+                                    >
+                                        Atribuir
+                                    </button>
+                                </span>
+                            )}
                         </div>
                     ),
                     style: { verticalAlign: 'middle' },

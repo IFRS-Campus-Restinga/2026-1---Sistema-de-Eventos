@@ -84,7 +84,11 @@ export default function DetalheEvento() {
             <main className="flex-fill">
                 {/* HERO SECTION - Fundo Verde sólido como no Figma */}
                 <section
-                    style={{ backgroundColor: verdeIFRS, color: 'white' }}
+                    style={{
+                        backgroundImage:
+                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                        color: 'white',
+                    }}
                     className="py-5 text-center shadow-sm"
                 >
                     <Container>
@@ -121,20 +125,18 @@ export default function DetalheEvento() {
                             >
                                 <MdSend className="me-2" /> Submeter Trabalho
                             </Button>
-                            {estaInscritoEvento && (
-                                <Button
-                                    variant="outline-light"
-                                    as={Link}
-                                    to={`/inscrever_atracoes/${evento.id}`}
-                                    onClick={() =>
-                                        setSelectedEventoId(evento.id)
-                                    }
-                                    className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
-                                >
-                                    <MdFactCheck className="me-2" /> Inscrever
-                                    em Atrações
-                                </Button>
-                            )}
+
+                            <Button
+                                variant="outline-light"
+                                as={Link}
+                                to={`/inscrever_atracoes/${evento.id}`}
+                                onClick={() => setSelectedEventoId(evento.id)}
+                                className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
+                            >
+                                <MdFactCheck className="me-2" /> Inscrever em
+                                Atrações
+                            </Button>
+
                             <Button
                                 variant="outline-light"
                                 className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"

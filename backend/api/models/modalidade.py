@@ -33,11 +33,33 @@ class Modalidade(Base):
         help_text=_("Informe se a Modalidade emite certificado"),
     )
 
+    permite_submissao = models.BooleanField(
+        verbose_name=_("Permite Submissão"),
+        help_text=_("Informe se a Modalidade permite submissão"),
+        default=False,
+    )
+
+    requer_controle_vagas = models.BooleanField(
+        verbose_name=_("Requer Controle de Vagas"),
+        help_text=_("Informe se a Modalidade requer controle de vagas"),
+        default=False,
+    )
+
+    limite_maximo_vagas = models.IntegerField(
+        verbose_name=_("Número máximo de vagas"),
+        help_text=_("Informe um limite máximo de vagas"),
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+    )
+
     limite_vagas = models.IntegerField(
         verbose_name=_("Número de vagas"),
         help_text=_("Informe se há um limite de vagas"),
-        validators=[MinValueValidator(0)],
-        default=0,
+        null=True,
+        blank=True,
+        default=None,
     )
 
     limite_avaliadores = models.IntegerField(
@@ -56,11 +78,41 @@ class Modalidade(Base):
     def clean(self):
         errors = {}
 
+        #  avaliação de submissão só é possível se submissão for permitida
+        if self.requer_avaliacao_submissao and not self.permite_submissao:
+            errors["requer_avaliacao_submissao"] = _(
+                "Não é possível requerer avaliação de submissão se a modalidade não permite submissão."
+            )
+
         if ((not self.requer_avaliacao) and (not self.requer_avaliacao_submissao)) and (
             self.limite_avaliadores and self.limite_avaliadores > 0
         ):
             errors["limite_avaliadores"] = _(
                 "Não pode haver limite de avaliadores se não há avaliação."
+            )
+
+        # limite_vagas só é válido quando requer_controle_vagas é True
+        if (
+            (not self.requer_controle_vagas)
+            and (self.limite_vagas is not None)
+            and (self.limite_vagas > 0)
+        ):
+            errors["limite_vagas"] = _(
+                "Não pode haver limite de vagas se não há controle de vagas."
+            )
+
+        if (not self.requer_controle_vagas) and (self.limite_maximo_vagas is not None):
+            errors["limite_maximo_vagas"] = _(
+                "Só é possível informar o limite máximo de vagas se houver controle de vagas."
+            )
+
+        # validar valor não-negativo quando informado
+        if self.limite_vagas is not None and self.limite_vagas < 0:
+            errors["limite_vagas"] = _("O número de vagas deve ser maior ou igual a 0.")
+
+        if self.limite_maximo_vagas is not None and self.limite_maximo_vagas < 0:
+            errors["limite_maximo_vagas"] = _(
+                "O número máximo de vagas deve ser maior ou igual a 0."
             )
 
         if len(self.nome.strip()) < 3:

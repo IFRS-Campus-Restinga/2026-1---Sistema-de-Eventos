@@ -111,12 +111,29 @@ export async function checkSession() {
     }
 }
 
-export async function logout() {
+export async function logoutLocal() {
     try {
         await fetch(`${BACKEND_BASE_URL}/session/logout/`, {
             method: 'POST',
-            credentials: 'include',  // Permite enviar cookies e receber delete-cookie
+            credentials: 'include',
         });
+    } catch {
+        // Ignora erro de rede no logout local.
+    }
+}
+
+export async function logout() {
+    try {
+        await Promise.allSettled([
+            fetch(`${BACKEND_BASE_URL}/session/logout/`, {
+                method: 'POST',
+                credentials: 'include',  // Permite enviar cookies e receber delete-cookie
+            }),
+            fetch(`${HUB_BASE_URL}/session/logout/`, {
+                method: 'POST',
+                credentials: 'include',  // Permite enviar cookies e receber delete-cookie
+            }),
+        ]);
     } catch {
         // Ignora erro de rede no logout porque os cookies já serão deletados pelo servidor
     }

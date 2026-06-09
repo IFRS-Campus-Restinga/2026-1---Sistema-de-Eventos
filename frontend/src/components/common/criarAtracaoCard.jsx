@@ -17,15 +17,20 @@ export default function CriarAtracaoCard({
     eventos,
     eventoSelecionadoDetalhe,
     modalidadeSelecionadaDetalhe,
-    espacosDisponiveis = [],
     camposModalidade = [],
     usuarios,
+    usuarioLogado,
     isLoading = false,
     handleSalvarRascunho,
     handleSubmeter,
 }) {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [habilitarSugestaoVagas, setHabilitarSugestaoVagas] = useState(
+        formState.sugestao_vagas !== '' &&
+        formState.sugestao_vagas !== null &&
+        formState.sugestao_vagas !== undefined,
+    );
 
     const countWords = (text) =>
         text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
@@ -90,13 +95,12 @@ export default function CriarAtracaoCard({
                 if (!value) return 'Selecione uma modalidade';
                 break;
             case 'nivel_ensino':
-                if (!value) return 'Selecione um nível de ensino';
+                if (!String(value || '').trim()) {
+                    return 'Selecione um nível de ensino';
+                }
                 break;
             case 'area_conhecimento':
                 if (!value) return 'Selecione uma área de conhecimento';
-                break;
-            case 'espaco':
-                if (!value) return 'Selecione um espaço';
                 break;
             default:
                 break;
@@ -117,6 +121,10 @@ export default function CriarAtracaoCard({
             const error = validateField(fieldName, value);
             setErrors({ ...errors, [fieldName]: error });
         }
+    };
+
+    const selecionarNivelEnsino = (nivelValue) => {
+        handleChange('nivel_ensino', nivelValue);
     };
 
     const campoKey = (campoId) => `campo_${campoId}`;
@@ -182,7 +190,7 @@ export default function CriarAtracaoCard({
     };
 
     const handleAddMembro = () => {
-        const novaEquipe = [...formState.equipe, { nome: '', instituicao_curso: '', funcao: 'COAUTOR' }];
+        const novaEquipe = [...formState.equipe, { user_id: '', nome: '', instituicao_curso: '', funcao: 'COAUTOR' }];
         setFormState({ ...formState, equipe: novaEquipe });
     };
 
@@ -193,12 +201,29 @@ export default function CriarAtracaoCard({
 
     const handleMembroChange = (index, field, value) => {
         const novaEquipe = [...formState.equipe];
-        novaEquipe[index][field] = value;
+
+        if (field === 'user_id') {
+            const usuarioSelecionado = (usuarios || []).find(
+                (usuario) => String(usuario.id) === String(value),
+            );
+
+            novaEquipe[index] = {
+                ...novaEquipe[index],
+                user_id: value,
+                nome: usuarioSelecionado ? getNomeUsuario(usuarioSelecionado) : '',
+                instituicao_curso: usuarioSelecionado
+                    ? (usuarioSelecionado.nivel_ensino_display || usuarioSelecionado.nivel_ensino || '')
+                    : '',
+            };
+        } else {
+            novaEquipe[index][field] = value;
+        }
+
         setFormState({ ...formState, equipe: novaEquipe });
     };
 
     const validateAll = () => {
-        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento', 'espaco'];
+        const fields = ['titulo', 'resumo', 'palavras_chave', 'modalidade', 'nivel_ensino', 'area_conhecimento'];
         let newErrors = {};
         let isValid = true;
         
@@ -322,6 +347,57 @@ export default function CriarAtracaoCard({
         usuario?.username ||
         `Usuário ${usuario?.id}`;
 
+    const getNivelEnsinoUsuario = (nomeMembro) => {
+        const nomeNormalizado = (nomeMembro || '').trim().toLowerCase();
+        if (!nomeNormalizado) return '';
+
+        const usuarioEncontrado = (usuarios || []).find(
+            (usuario) => getNomeUsuario(usuario).trim().toLowerCase() === nomeNormalizado,
+        );
+
+        return (
+            usuarioEncontrado?.nivel_ensino_display ||
+            usuarioEncontrado?.nivel_ensino ||
+            ''
+        );
+    };
+
+    const getNivelEnsinoMembro = (membro) => {
+        if (membro?.user_id) {
+            const usuarioPorId = (usuarios || []).find(
+                (usuario) => String(usuario.id) === String(membro.user_id),
+            );
+
+            return (
+                usuarioPorId?.nivel_ensino_display ||
+                usuarioPorId?.nivel_ensino ||
+                membro?.instituicao_curso ||
+                ''
+            );
+        }
+
+        return getNivelEnsinoUsuario(membro?.nome) || membro?.instituicao_curso || '';
+    };
+
+    const usuarioLogadoId = usuarioLogado?.id;
+
+    const getUsuariosDisponiveisParaLinha = (index) => {
+        const idsSelecionadosEmOutrasLinhas = new Set(
+            (formState.equipe || [])
+                .filter((_, i) => i !== index)
+                .map((membro) => String(membro?.user_id || '').trim())
+                .filter((id) => id !== ''),
+        );
+
+        return (usuarios || []).filter((usuario) => {
+            const idUsuario = String(usuario.id);
+            if (String(usuarioLogadoId || '') === idUsuario) {
+                return false;
+            }
+            return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
+        });
+    };
+
     return (
         <Container className="py-2">
             <Form>
@@ -349,43 +425,80 @@ export default function CriarAtracaoCard({
                                 )}
                             </Form.Group>
                             {modalidadeSelecionadaDetalhe && (
-                                <div className="mt-2 p-3 rounded border bg-white small">
-                                    <div className="fw-bold mb-1" style={{ color: '#00A44B' }}>
-                                        {modalidadeSelecionadaDetalhe.nome}
-                                    </div>
-                                    <div className="text-muted">
-                                        <div>
-                                            <strong>Número de vagas:</strong>{' '}
-                                            {modalidadeSelecionadaDetalhe.limite_vagas > 0
-                                                ? modalidadeSelecionadaDetalhe.limite_vagas
-                                                : 'Sem limite definido'}
-                                        </div>
-                                        <div>
-                                            <strong>Campos customizados:</strong>{' '}
-                                            {Array.isArray(modalidadeSelecionadaDetalhe.campos)
-                                                ? modalidadeSelecionadaDetalhe.campos.length
-                                                : 0}
-                                        </div>
-                                    </div>
-                                </div>
+                                <Form.Group className="mt-2">
+                                    <Form.Check
+                                        type="checkbox"
+                                        id="habilitar-sugestao-vagas"
+                                        label="Habilitar sugestão para número de vagas"
+                                        checked={habilitarSugestaoVagas}
+                                        onChange={(e) => {
+                                            const habilitado = e.target.checked;
+                                            setHabilitarSugestaoVagas(habilitado);
+                                            if (!habilitado) {
+                                                handleChange('sugestao_vagas', '');
+                                            }
+                                        }}
+                                        className="mb-2"
+                                    />
+
+                                    {habilitarSugestaoVagas && (
+                                        <>
+                                            <Form.Label style={labelStyle}>Sugestão para Número de Vagas</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                min={1}
+                                                max={
+                                                    (modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                                        modalidadeSelecionadaDetalhe.limite_vagas) > 0
+                                                        ? (modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                                          modalidadeSelecionadaDetalhe.limite_vagas)
+                                                        : undefined
+                                                }
+                                                value={formState.sugestao_vagas ?? ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    handleChange('sugestao_vagas', val === '' ? '' : Number(val));
+                                                }}
+                                                placeholder="Ex: 30"
+                                                style={{ backgroundColor: '#eeeeee' }}
+                                            />
+                                        </>
+                                    )}
+
+                                    <Form.Text className="text-muted">
+                                        {(modalidadeSelecionadaDetalhe.limite_maximo_vagas ??
+                                            modalidadeSelecionadaDetalhe.limite_vagas) > 0
+                                            ? `Limite definido para esta modalidade: ${modalidadeSelecionadaDetalhe.limite_maximo_vagas ?? modalidadeSelecionadaDetalhe.limite_vagas} vagas.`
+                                            : 'Esta modalidade não possui limite de vagas definido.'}
+                                    </Form.Text>
+                                </Form.Group>
                             )}
                         </Col>
                         <Col md={4}>
                             <Form.Group className="mb-3">
                                 <Form.Label style={labelStyle}>Nível de Ensino *</Form.Label>
-                                <Form.Select
-                                    value={formState.nivel_ensino}
-                                    onChange={(e) => handleChange('nivel_ensino', e.target.value)}
-                                    onBlur={() => handleBlur('nivel_ensino')}
-                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('nivel_ensino') }}
-                                    isValid={touched.nivel_ensino && !errors.nivel_ensino}
-                                    isInvalid={touched.nivel_ensino && errors.nivel_ensino}
+                                <div
+                                    style={{
+                                        backgroundColor: '#eeeeee',
+                                        borderRadius: '0.375rem',
+                                        padding: '0.75rem',
+                                        ...getFieldStyle('nivel_ensino'),
+                                    }}
                                 >
-                                    <option value="">Selecione o Nível de Ensino</option>
                                     {opcoes.niveis_ensino?.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        <Form.Check
+                                            key={opt.value}
+                                            type="radio"
+                                            name="nivel_ensino"
+                                            id={`nivel-${opt.value}`}
+                                            label={opt.label}
+                                            checked={String(formState.nivel_ensino || '') === String(opt.value)}
+                                            onChange={() => selecionarNivelEnsino(opt.value)}
+                                            onBlur={() => handleBlur('nivel_ensino')}
+                                            className="mb-1"
+                                        />
                                     ))}
-                                </Form.Select>
+                                </div>
                                 {touched.nivel_ensino && errors.nivel_ensino && (
                                     <Form.Text className="text-danger">{errors.nivel_ensino}</Form.Text>
                                 )}
@@ -505,40 +618,6 @@ export default function CriarAtracaoCard({
                         </Form.Control.Feedback>
                     </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}>Espaço *</Form.Label>
-                        <Form.Select
-                            value={formState.espaco}
-                            onChange={(e) => handleChange('espaco', e.target.value)}
-                            onBlur={() => handleBlur('espaco')}
-                            style={{ backgroundColor: '#eeeeee', ...getFieldStyle('espaco') }}
-                            isValid={touched.espaco && !errors.espaco}
-                            isInvalid={touched.espaco && errors.espaco}
-                            disabled={!formState.evento || espacosDisponiveis.length === 0}
-                        >
-                            <option value="">
-                                {formState.evento
-                                    ? (espacosDisponiveis.length > 0
-                                        ? 'Selecione um Espaço'
-                                        : 'Evento sem espaços configurados')
-                                    : 'Selecione primeiro um evento'}
-                            </option>
-                            {espacosDisponiveis?.map((espaco) => (
-                                <option key={espaco.id} value={espaco.id}>
-                                    {espaco.nome} - {espaco.predio_bloco}
-                                </option>
-                            ))}
-                        </Form.Select>
-                        {touched.espaco && errors.espaco && (
-                            <Form.Text className="text-danger">{errors.espaco}</Form.Text>
-                        )}
-                        {formState.evento && espacosDisponiveis.length > 0 && (
-                            <Form.Text className="text-muted">
-                                Esses espaços pertencem ao local do evento selecionado.
-                            </Form.Text>
-                        )}
-                    </Form.Group>
-
                 </SecaoFormulario>
 
                 {(camposModalidade || []).length > 0 && (
@@ -566,54 +645,13 @@ export default function CriarAtracaoCard({
 
                 {/* SEÇÃO 3: EQUIPE */}
                 <SecaoFormulario icone={FaUsers} titulo="Equipe">
-                    <div className="mb-4">
-                        <div className="d-flex align-items-center gap-4 mb-3">
-                            <Form.Label style={labelStyle} className="mb-0">Orientador(a) *</Form.Label>
-                            <Form.Check
-                                type="checkbox"
-                                label="Sou o Orientador"
-                                id="check-orientador"
-                                className="fw-normal"
-                                style={{ color: '#333' }}
-                                checked={formState.sou_orientador}
-                                onChange={(e) => setFormState({ ...formState, sou_orientador: e.target.checked })}
-                            />
-                        </div>
-
-                        {!formState.sou_orientador && (
-                            <div className="mb-3">
-                                <Form.Select
-                                    value={formState.orientador || ''}
-                                    onChange={(e) =>
-                                        setFormState({
-                                            ...formState,
-                                            orientador: e.target.value ? Number(e.target.value) : null,
-                                        })
-                                    }
-                                    style={{ backgroundColor: '#fff', border: '1px solid #ddd' }}
-                                    className="py-2"
-                                >
-                                    <option value="">Selecione o orientador</option>
-                                    {usuarios?.map((usuario) => (
-                                        <option key={usuario.id} value={usuario.id}>
-                                            {getNomeUsuario(usuario)}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                                <div className="mt-2" style={{ fontSize: '0.95rem', color: '#333' }}>
-                                    O orientador receberá um e-mail para validar este trabalho.
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     <div className="mt-4">
                         <h6 className="fw-bold mb-3" style={{ color: '#00A44B' }}>Membros da Equipe</h6>
                         <Table hover className="mt-3 align-middle" style={{ border: '1px solid #dee2e6', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #dee2e6' }}>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nome Completo</th>
-                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Curso/Instituição</th>
+                                    <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '35%' }}>Nível de Ensino</th>
                                     <th className="py-2 px-3 fw-bold text-dark" style={{ background: '#F8F9FA', borderRight: '1px solid #dee2e6', width: '20%' }}>Papel</th>
                                     <th className="py-2 px-3 fw-bold text-dark text-center" style={{ background: '#F8F9FA', width: '10%' }}>Ação</th>
                                 </tr>
@@ -622,39 +660,54 @@ export default function CriarAtracaoCard({
                                 {formState.equipe.map((membro, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Control
-                                                value={membro.nome}
-                                                onChange={(e) => handleMembroChange(index, 'nome', e.target.value)}
-                                                placeholder="Nome"
+                                            {(() => {
+                                                const usuariosDisponiveis = getUsuariosDisponiveisParaLinha(index);
+                                                return (
+                                            <Form.Select
+                                                value={membro.user_id || ''}
+                                                onChange={(e) => handleMembroChange(index, 'user_id', e.target.value)}
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
                                                 className="bg-white"
-                                            />
+                                            >
+                                                <option value="">Selecione o autor</option>
+                                                {usuariosDisponiveis.map((usuario) => (
+                                                    <option key={usuario.id} value={usuario.id}>
+                                                        {getNomeUsuario(usuario)}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
-                                            <Form.Select
-                                                value={membro.instituicao_curso}
-                                                onChange={(e) => handleMembroChange(index, 'instituicao_curso', e.target.value)}
-                                                disabled={true}
+                                            <Form.Control
+                                                value={getNivelEnsinoMembro(membro)}
+                                                placeholder="Nível de ensino (auto-preenchido)"
+                                                disabled
                                                 style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: '#e9ecef' }}
                                                 className="bg-disabled"
-                                            >
-                                                <option value="">Curso/Instituição (auto-preenchido)</option>
-                                                <option value="Sistemas de Informação">Sistemas de Informação</option>
-                                                <option value="Administração">Administração</option>
-                                                <option value="Eletrônica">Eletrônica</option>
-                                            </Form.Select>
+                                            />
                                         </td>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
                                             <Form.Select
                                                 value={membro.funcao || ''}
                                                 onChange={(e) => handleMembroChange(index, 'funcao', e.target.value)}
-                                                disabled={!membro.nome}
-                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.nome ? '#e9ecef' : '#fff' }}
+                                                disabled={!membro.user_id}
+                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem', backgroundColor: !membro.user_id ? '#e9ecef' : '#fff' }}
                                             >
                                                 <option value="">Selecione um papel</option>
+                                                <option
+                                                    value="AUTOR"
+                                                    disabled={
+                                                        (formState.equipe || []).some(
+                                                            (item, i) => i !== index && item?.funcao === 'AUTOR',
+                                                        )
+                                                    }
+                                                >
+                                                    Autor
+                                                </option>
                                                 <option value="COAUTOR">Co-autor</option>
-                                                <option value="APRESENTADOR">Apresentador</option>
-                                                <option value="REVISOR">Revisor</option>
+                                                <option value="ORIENTADOR">Orientador</option>
                                             </Form.Select>
                                         </td>
                                         <td className="text-center py-2">
