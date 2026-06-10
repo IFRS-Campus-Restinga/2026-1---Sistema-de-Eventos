@@ -205,7 +205,7 @@ def sincronizar_respostas(submissao, respostas_campos_data):
 def _sincronizar_dados_submissao(submissao, dados_submissao, equipe_data, autoria_data, respostas_campos_data):
     atualizar_submissao(submissao, dados_submissao)
 
-    if isinstance(equipe_data, list) and equipe_data:
+    if isinstance(equipe_data, list):
         submissao.equipe.all().delete()
         equipe_legacy_normalizada = normalizar_coautores_legacy(equipe_data)
         for membro in equipe_legacy_normalizada:

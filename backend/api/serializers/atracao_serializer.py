@@ -216,7 +216,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if espaco:
             data["local_atracao"] = str(espaco)
 
-        modalidade = data.get("modalidade") or getattr(
+        modalidade = submissao_data.get("modalidade") or getattr(
             getattr(self.instance, "submissao", None), "modalidade", None
         )
         sugestao_vagas = submissao_data.get("sugestao_vagas")
@@ -243,7 +243,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
                     }
                 )
 
-        evento = data.get("evento") or getattr(
+        evento = submissao_data.get("evento") or getattr(
             getattr(self.instance, "submissao", None), "evento", None
         )
         if espaco and evento:
