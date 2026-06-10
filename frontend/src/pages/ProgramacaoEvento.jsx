@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
     Container,
     Row,
@@ -24,6 +24,15 @@ import ModalPopup from '../components/common/ModalPopup';
 // Hooks e Utilitários do ecossistema do seu app
 import useSessoes from '../hooks/useSessoes';
 import { obterCorPorTag } from '../utils/themeTags';
+import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
+
+import {
+    criarInscricaoEvento,
+    listarMinhasInscricoesEventos,
+} from '../services/inscricaoEventoService';
+
+import { getSelectedEventoId } from '../utils/selectedEvento';
+import { buscarEventoPorId } from '../services/eventoService';
 
 const extrairNomesAutores = (atracao) => {
     const fonte = atracao || {};
@@ -75,8 +84,23 @@ export default function ProgramacaoEvento() {
     const [atracaoResumo, setAtracaoResumo] = useState(null);
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
 
+    const [alerta, setAlerta] = useState({
+        mensagem: '',
+        variacao: 'danger',
+        reacao: 0,
+    });
+
     const { sessoes, dias, loading, error, carregarEvento, fetchSessoes } =
         useSessoes();
+
+    const {
+        criarInscricao,
+        usuarioLogado,
+        carregandoUsuario,
+        obterStatusInscricao,
+        estaInscritoEmAtracao,
+        loading: carregandoInscricao,
+    } = useInscricoesAtracao();
 
     useEffect(() => {
         if (eventoId) {
@@ -160,12 +184,18 @@ export default function ProgramacaoEvento() {
                     }
 
                     return {
+                        id: atracao.id,
+                        evento: atracao.evento,
                         hora: horaInicioLimpa,
                         titulo: atracao.titulo || 'Atração Sem Título',
                         descricao:
                             atracao.resumo ||
                             'Nenhum resumo disponível para esta atração.',
                         autores: listaAutores,
+                        autorias: Array.isArray(atracao.autorias)
+                            ? atracao.autorias
+                            : [],
+                        sugestao_vagas: atracao.sugestao_vagas,
                         local:
                             sessaoBanco.espaco_display?.nome ||
                             `Espaço #${sessaoBanco.espaco}`,
@@ -209,6 +239,120 @@ export default function ProgramacaoEvento() {
 
         setSessoesFiltradas(resultadoFinal);
     }, [sessoes, dataSelecionada, termoBusca, turnoAtivo]);
+
+    const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
+        setAlerta((prev) => ({
+            ...prev,
+            mensagem,
+            variacao,
+            reacao: (prev.reacao || 0) + 1,
+        }));
+    }, []);
+
+    const usuarioEhAutorDaAtracao = (ativ) => {
+        const userId = Number(
+            usuarioLogado?.perfil_id ||
+                usuarioLogado?.usuario_id ||
+                usuarioLogado?.id,
+        );
+
+        if (!userId) return false;
+
+        const autorias = Array.isArray(ativ?.autorias) ? ativ.autorias : [];
+
+        return autorias.some((a) => {
+            const tipo = String(a?.tipo || a?.tipo_display || '').toUpperCase();
+
+            const usuarioId =
+                Number(a?.usuario) ||
+                Number(a?.usuario_id) ||
+                Number(a?.perfil_id);
+
+            return tipo === 'AUTOR' && usuarioId === userId;
+        });
+    };
+
+    const handleInscrever = async (ativ) => {
+        if (!usuarioLogado) {
+            mostrarAlerta('Faça login antes de se inscrever.', 'danger');
+            return;
+        }
+
+        // if (!ativ?.id) {
+        //     mostrarAlerta('Erro: ID da atração não encontrado.', 'danger');
+        //     return;
+        // }
+
+        const isAutor = usuarioEhAutorDaAtracao(ativ);
+
+        if (isAutor) {
+            mostrarAlerta(
+                'Você é autor desta atração e não pode se inscrever nela.',
+                'warning',
+            );
+            return;
+        }
+
+        // if (usuarioEstaNaEquipeDaAtracao(ativ)) {
+        //     mostrarAlerta(
+        //         'Você faz parte da equipe desta atração e não pode se inscrever nela.',
+        //         'warning',
+        //     );
+        //     return;
+        // }
+
+        if (estaInscritoEmAtracao(ativ.id)) {
+            mostrarAlerta('Você já está inscrito nessa atração.', 'warning');
+            return;
+        }
+
+        try {
+            const perfilIdSessao = Number(
+                usuarioLogado?.perfil_id ||
+                    usuarioLogado?.id ||
+                    usuarioLogado?.usuario_id,
+            );
+            const eventoIdDaAtracao = Number(ativ.evento || eventoId);
+
+            const inscricoesEvento = await listarMinhasInscricoesEventos();
+            const jaInscritoNoEvento = Array.isArray(inscricoesEvento)
+                ? inscricoesEvento.some(
+                      (inscricao) =>
+                          Number(inscricao.evento_id) === eventoIdDaAtracao &&
+                          Number(inscricao.perfil_id) ===
+                              Number(perfilIdSessao),
+                  )
+                : false;
+
+            if (!jaInscritoNoEvento && eventoIdDaAtracao) {
+                await criarInscricaoEvento({
+                    perfil_id: perfilIdSessao,
+                    evento_id: eventoIdDaAtracao,
+                });
+            }
+
+            try {
+                await criarInscricao({
+                    perfil_id: perfilIdSessao,
+                    atracao_id: ativ.id,
+                });
+
+                // console.log('SUCESSO');
+            } catch (e) {
+                console.error('ERRO COMPLETO:', e);
+            }
+
+            mostrarAlerta('Inscrição realizada com sucesso.', 'success');
+            await fetchSessoes(eventoId);
+        } catch (erro) {
+            const msg =
+                erro?.response?.data?.mensagem ||
+                erro?.response?.data ||
+                erro?.message ||
+                'Erro ao inscrever.';
+            mostrarAlerta(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-white">
@@ -296,7 +440,7 @@ export default function ProgramacaoEvento() {
                                 key={turno}
                                 variant={
                                     turnoAtivo === turno
-                                        ? 'dark'
+                                        ? 'success'
                                         : 'outline-secondary'
                                 }
                                 className="rounded-pill px-4 fw-bold text-uppercase"
@@ -305,7 +449,6 @@ export default function ProgramacaoEvento() {
                                     turnoAtivo === turno
                                         ? {
                                               backgroundColor: `${verdeIFRS}`,
-                                              borderColor: '#111827',
                                           }
                                         : {}
                                 }
@@ -360,14 +503,32 @@ export default function ProgramacaoEvento() {
                                         </div>
 
                                         <div className="card-body p-0">
-                                            {sessaoGlobal.atividades.map(
-                                                (ativ, ativIdx) => (
+                                            {(
+                                                sessaoGlobal.atividades || []
+                                            ).map((ativ, ativIdx) => {
+                                                const isInscrito =
+                                                    typeof estaInscritoEmAtracao ===
+                                                    'function'
+                                                        ? estaInscritoEmAtracao(
+                                                              ativ?.id,
+                                                          )
+                                                        : false;
+
+                                                const isAutor =
+                                                    typeof usuarioEhAutorDaAtracao ===
+                                                    'function'
+                                                        ? usuarioEhAutorDaAtracao(
+                                                              ativ,
+                                                          )
+                                                        : false;
+
+                                                return (
                                                     <div
                                                         key={ativIdx}
                                                         className="p-4 border-bottom last-border-0 d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-3 bg-white"
                                                         style={{
                                                             borderLeft: `6px solid ${obterCorPorTag(
-                                                                ativ.tags[0]
+                                                                ativ.tags?.[0]
                                                                     ?.texto ||
                                                                     '',
                                                             )}`,
@@ -439,26 +600,50 @@ export default function ProgramacaoEvento() {
                                                             >
                                                                 Ver Resumo
                                                             </Button>
-                                                            <Button
-                                                                variant={
-                                                                    ativ.inscrito
-                                                                        ? 'success'
-                                                                        : 'primary'
-                                                                }
-                                                                size="sm"
-                                                                className="rounded-pill px-3"
-                                                                disabled={
-                                                                    ativ.inscrito
-                                                                }
-                                                            >
-                                                                {ativ.inscrito
-                                                                    ? 'Inscrito'
-                                                                    : 'Inscrever-se'}
-                                                            </Button>
+                                                            {Number(
+                                                                ativ.sugestao_vagas,
+                                                            ) > 0 && (
+                                                                <Button
+                                                                    variant={
+                                                                        ativ.inscrito
+                                                                            ? 'primary'
+                                                                            : 'primary'
+                                                                    }
+                                                                    size="sm"
+                                                                    className="rounded-pill px-3"
+                                                                    disabled={
+                                                                        isInscrito ||
+                                                                        usuarioEhAutorDaAtracao(
+                                                                            ativ,
+                                                                        )
+                                                                    }
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            usuarioEhAutorDaAtracao(
+                                                                                ativ,
+                                                                            )
+                                                                        ) {
+                                                                            mostrarAlerta(
+                                                                                'Você é autor desta atração e não pode se inscrever nela.',
+                                                                                'warning',
+                                                                            );
+                                                                            return;
+                                                                        }
+
+                                                                        handleInscrever(
+                                                                            ativ,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    {ativ.inscrito
+                                                                        ? 'Inscrito'
+                                                                        : 'Inscrever-se'}
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                ),
-                                            )}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))
