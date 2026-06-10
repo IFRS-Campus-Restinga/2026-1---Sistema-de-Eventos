@@ -26,6 +26,8 @@ from .models import (
 )
 from .models.area_conhecimento import AreaConhecimentoAdmin
 from .models.arquivo import ArquivoAdmin
+from .models.autoria import Autoria
+from .models.coautor import Coautor
 from .models.evento import EventoAdmin
 from .models.local import LocalAdmin
 
@@ -35,7 +37,6 @@ class SubmissaoAdmin(admin.ModelAdmin):
     list_display = ("id", "titulo", "evento", "status_submissao")
     search_fields = ("titulo", "evento__titulo")
     list_filter = ("status_submissao", "evento")
-
 
 @admin.register(Autoria)
 class AutoriaAdmin(admin.ModelAdmin):

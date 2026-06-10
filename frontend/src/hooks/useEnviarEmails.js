@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { enviarEmailsService } from '../services/enviarEmailsService';
+import { getDashboardEvento } from '../services/dashboardService';
 
 export function useEnviarEmails(eventoId) {
     // Estados
     const [nomeEvento, setNomeEvento] = useState('');
+
     const [atracoes, setAtracoes] = useState([]);
     const [carregando, setCarregando] = useState(false);
     const [notificacao, setNotificacao] = useState({
@@ -26,19 +28,25 @@ export function useEnviarEmails(eventoId) {
         return 'noite';
     };
 
-    // Busca as atrações do evento no Backend TODO: Refatorar para usar o service só percebi no final kk
     useEffect(() => {
         if (!eventoId) return;
 
-        const buscarAtracoes = async () => {
+        const buscarDadosEAtraacoes = async () => {
             setCarregando(true);
 
             try {
-                const resposta =
-                    await enviarEmailsService.buscarAtracoesPorEvento(eventoId);
+                // Executa as duas requisições em paralelo para maior velocidade
+                const [dadosAtracoes, dadosDashboard] = await Promise.all([
+                    enviarEmailsService.buscarAtracoesPorEvento(eventoId),
+                    getDashboardEvento(eventoId), // Função que você já tem pronta no sistema
+                ]);
 
-                const listaAtracoes = resposta.results || resposta;
-                setNomeEvento(listaAtracoes[0].titulo);
+                if (dadosDashboard?.evento?.nome) {
+                    setNomeEvento(dadosDashboard.evento.nome);
+                }
+
+                // 2. Processa a lista de atrações exatamente como antes
+                const listaAtracoes = dadosAtracoes.results || dadosAtracoes;
 
                 const atracoesComTurno = listaAtracoes.map((atracao) => ({
                     ...atracao,
@@ -48,13 +56,13 @@ export function useEnviarEmails(eventoId) {
                 setAtracoes(atracoesComTurno);
                 setAtracoesSelecionadas(atracoesComTurno.map((a) => a.id));
             } catch (erro) {
-                console.error(erro);
+                console.error('Erro ao carregar dados da página:', erro);
             } finally {
                 setCarregando(false);
             }
         };
 
-        buscarAtracoes();
+        buscarDadosEAtraacoes();
     }, [eventoId]);
 
     useEffect(() => {
@@ -135,12 +143,14 @@ export function useEnviarEmails(eventoId) {
     const handleSubmit = async (e, csrfToken) => {
         if (e) e.preventDefault();
 
+        setNotificacao(null);
+        setEnviando(true);
+
         if (atracoesSelecionadas.length === 0) {
             alert('Selecione pelo menos uma atração.');
             return;
         }
 
-        setEnviando(true);
         const payload = {
             atracoes_ids: atracoesSelecionadas,
             assunto,
@@ -156,13 +166,9 @@ export function useEnviarEmails(eventoId) {
 
             setNotificacao({
                 mensagem:
-                    dadosResposta.detail || 'E-mails enviados com sucesso!',
+                    dadosResposta?.detail || 'E-mails enviados com sucesso!', // <-- Adicionado o "?" aqui
                 variacao: 'success',
             });
-
-            setAssunto('');
-            setMensagem('');
-            setAtracoesSelecionadas([]);
         } catch (erro) {
             console.error('Erro detalhado do servidor:', erro.response?.data);
 

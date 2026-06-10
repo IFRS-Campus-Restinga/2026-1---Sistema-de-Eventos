@@ -63,9 +63,7 @@ export default function HomeCard({
                             >
                                 {etapaLabel}
                             </span>
-                            <span className={MUTED_BADGE_STYLE}>
-                                Mais recente
-                            </span>
+                            <span className={MUTED_BADGE_STYLE}>Destaque</span>
                             {evento.setor ? (
                                 <span className={GHOST_BADGE_STYLE}>
                                     {evento.setor}
@@ -196,6 +194,12 @@ export default function HomeCard({
                             <MdCalendarToday aria-hidden="true" />
                             {formatarData(evento)}
                         </span>
+                        {evento.tema ? (
+                            <span className="d-inline-flex align-items-center gap-2">
+                                <MdOutlineLocalOffer aria-hidden="true" />
+                                {evento.tema}
+                            </span>
+                        ) : null}
                     </div>
 
                     <div className="mt-auto pt-3 border-top d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-3">

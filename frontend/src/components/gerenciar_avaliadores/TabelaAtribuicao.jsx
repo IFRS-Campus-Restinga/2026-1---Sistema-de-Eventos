@@ -4,8 +4,8 @@ import formatAreaConhecimento from '../../utils/formatAreaConhecimento';
 import { obterCorPorTag } from '../../utils/themeTags';
 import AvaliadorChip from './AvaliadorChip';
 
-export default function TabelaAtracoes({
-    atracoes,
+export default function TabelaAtibuicao({
+    trabalhos,
     modalidadesMap,
     avaliacoesMap,
     destaquesMap,
@@ -13,6 +13,7 @@ export default function TabelaAtracoes({
     onAbrirAvaliacao,
     onRemoverAvaliador,
     onAtribuir,
+    homologar = false,
 }) {
     return (
         <Tabela
@@ -26,9 +27,9 @@ export default function TabelaAtracoes({
                 'Avaliadores',
                 'Média',
                 'Destaque',
-                'Ações',
+                { label: 'Ações', colSpan: 2 },
             ]}
-            dados={(atracoes || []).map((a) => [
+            dados={(trabalhos || []).map((a) => [
                 {
                     value: (() => {
                         const num = (a.avaliadores || []).length || 0;
@@ -180,6 +181,36 @@ export default function TabelaAtracoes({
                     ),
                     style: { verticalAlign: 'middle' },
                 },
+                homologar
+                    ? {
+                          value: (
+                              <div className="d-flex gap-3">
+                                  {eventosMap?.[a.evento] ? (
+                                      <button
+                                          type="button"
+                                          className="btn btn-outline-primary"
+                                      >
+                                          Homologar
+                                      </button>
+                                  ) : (
+                                      <span
+                                          className="d-inline-block"
+                                          title="Indisponivel"
+                                      >
+                                          <button
+                                              type="button"
+                                              className="btn btn-outline-primary"
+                                              disabled
+                                          >
+                                              Atribuir
+                                          </button>
+                                      </span>
+                                  )}
+                              </div>
+                          ),
+                          style: { verticalAlign: 'middle' },
+                      }
+                    : null,
             ])}
         />
     );

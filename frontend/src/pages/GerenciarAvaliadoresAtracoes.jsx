@@ -4,7 +4,7 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Alerta from '../components/common/Alerta';
 import FiltroAvaliadores from '../components/gerenciar_avaliadores/FiltroAvaliadores';
-import TabelaAtracoes from '../components/gerenciar_avaliadores/TabelaAtracoes';
+import TabelaAtibuicao from '../components/gerenciar_avaliadores/TabelaAtribuicao';
 import ModalAtribuicao from '../components/gerenciar_avaliadores/ModalAtribuicao';
 import ModalDetalhesAvaliacao from '../components/gerenciar_avaliadores/ModalDetalhesAvaliacao';
 import useGerenciarAvaliadoresAtracoes from '../hooks/useGerenciarAvaliadoresAtracoes';
@@ -51,21 +51,45 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         avaliacaoModal,
         eventosMap,
     } = useGerenciarAvaliadoresAtracoes(eventoId);
+
+    // console.log(JSON.stringify(atracoes))
+    console.log(JSON.stringify(eventosMap));
+    console.log(modalidadesMap);
+    console.log(avaliacoesMap);
+    console.log(destaquesMap);
+
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
-            <main className=" py-4 ">
+            <main className=" ">
                 <Container
                     fluid
-                    className="d-md-flex flex-md-column align-items-md-center gap-3"
+                    className="d-md-flex flex-md-column align-items-md-center gap-3 p-0"
                 >
-                    <Row>
-                        <Col>
-                            <h1 className="fw-bold">Painel do Organizador</h1>
-                            <span>
-                                Gerencie trabalhos submetidos e distribua
-                                avaliadores
+                    <Row
+                        className="w-100 p-0"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">Gerenciar Avaliadores</h1>
+                            <span
+                                className="align-items-center gap-2 rounded-pill fw-bold text-uppercase my-2"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: 'rgba(255, 255, 255, 0.76)',
+                                    fontSize: '0.74rem',
+                                    letterSpacing: '0.18em',
+                                    padding: '0.45rem 0.85rem',
+                                }}
+                            >
+                                AtraçÕes
+                            </span>
+                            <span className="fs-5">
+                                Gerencie AtraçÕes e distribua avaliadores
                             </span>
                         </Col>
                     </Row>
@@ -100,11 +124,11 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                             !isMobile
                                 ? 'w-75 overflow-auto'
                                 : 'w-100 overflow-auto'
-                        }`}
+                        } pb-5`}
                     >
                         <Col>
-                            <TabelaAtracoes
-                                atracoes={atracoes}
+                            <TabelaAtibuicao
+                                trabalhos={atracoes}
                                 modalidadesMap={modalidadesMap}
                                 avaliacoesMap={avaliacoesMap}
                                 destaquesMap={destaquesMap}

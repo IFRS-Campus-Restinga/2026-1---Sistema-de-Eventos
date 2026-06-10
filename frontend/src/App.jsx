@@ -38,6 +38,7 @@ import ListarInscritosEvento from './pages/ListarInscritosEvento';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
 import AvaliarAtracao from './pages/AvaliarAtracao';
 import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
+import GerenciarAvaliadoresSubmissoes from './pages/GerenciarAvaliadoresSubmissoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
 
@@ -119,6 +120,7 @@ function App() {
 
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/gerenciar_avaliadores_submissoes" element={protegido(<GerenciarAvaliadoresSubmissoes />, ADMIN_GROUPS)} />
                 <Route path="/meus_eventos_avaliador"  element={protegidoComAvaliador(<MeusEventosAvaliador />, ADMIN_GROUPS)}/>
                 <Route path="/avaliar_submissao" element={protegidoComAvaliador(<AvaliarSubmissao />, ADMIN_GROUPS)} />
                 <Route path="/minhas_avaliacoes" element={protegidoComAvaliador(<MinhasAvaliacoes />, ADMIN_GROUPS)} />

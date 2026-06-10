@@ -572,7 +572,11 @@ export default function Dashboard() {
                                         >
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={'#'}
+                                                to={
+                                                    eventoId
+                                                        ? `/gerenciar_avaliadores_submissoes?evento_id=${eventoId}`
+                                                        : '#'
+                                                }
                                             >
                                                 <BsPersonFillCheck
                                                     size={25}

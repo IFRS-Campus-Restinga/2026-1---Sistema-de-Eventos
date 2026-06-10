@@ -35,6 +35,11 @@ export function normalizarStatusCadastro(statusEvento) {
         return 'ENCERRADO';
     }
 
+    // Reconhece status relacionados a inscrições abertas (ex.: "INSCRICOES_ABERTAS", "INSCRICOES_ABERTA", "ABERTAS")
+    if (valor.includes('INSCR') || valor.includes('ABERT')) {
+        return 'INSCRICOES_ABERTAS';
+    }
+
     if (
         valor.includes('ANDAM') ||
         valor.includes('ABERTO') ||

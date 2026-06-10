@@ -31,21 +31,77 @@ export default function Tabela({
         <div>
             <Table hover className={className} style={style}>
                 <thead>
-                    {titulo && (
-                        <tr>
-                            <th colSpan={cabecarios.length}>{titulo}</th>
-                        </tr>
-                    )}
-                    <tr>
-                        {cabecarios.map((c, index) => (
-                            <th
-                                key={`header-${index}`}
-                                style={{ background: cabecarioCor }}
-                            >
-                                {c}
-                            </th>
-                        ))}
-                    </tr>
+                    {(() => {
+                        // calcula o total de colunas levando em conta possíveis colSpan
+                        const totalColunas = Array.isArray(cabecarios)
+                            ? cabecarios.reduce((sum, h) => {
+                                  if (h && typeof h === 'object' && h.colSpan) {
+                                      const cs = Number(h.colSpan) || 0;
+                                      return sum + (cs > 0 ? cs : 1);
+                                  }
+                                  return sum + 1;
+                              }, 0)
+                            : 0;
+
+                        return (
+                            <>
+                                {titulo && (
+                                    <tr>
+                                        <th
+                                            colSpan={totalColunas}
+                                            style={{ textAlign: 'center' }}
+                                        >
+                                            {titulo}
+                                        </th>
+                                    </tr>
+                                )}
+                                <tr>
+                                    {cabecarios.map((c, index) => {
+                                        const isObj =
+                                            c && typeof c === 'object';
+                                        const colSpan =
+                                            isObj && c.colSpan
+                                                ? c.colSpan
+                                                : undefined;
+                                        const rowSpan =
+                                            isObj && c.rowSpan
+                                                ? c.rowSpan
+                                                : undefined;
+                                        const className =
+                                            isObj && c.className
+                                                ? c.className
+                                                : undefined;
+                                        const headerStyle = {
+                                            background: cabecarioCor,
+                                            ...(isObj && c.style
+                                                ? c.style
+                                                : {}),
+                                            ...(isObj &&
+                                            c.style &&
+                                            c.style.textAlign
+                                                ? {}
+                                                : { textAlign: 'center' }),
+                                        };
+                                        const content = isObj
+                                            ? c.value ?? c.label ?? ''
+                                            : c;
+
+                                        return (
+                                            <th
+                                                key={`header-${index}`}
+                                                style={headerStyle}
+                                                colSpan={colSpan}
+                                                rowSpan={rowSpan}
+                                                className={className}
+                                            >
+                                                {content}
+                                            </th>
+                                        );
+                                    })}
+                                </tr>
+                            </>
+                        );
+                    })()}
                 </thead>
                 <tbody>
                     {dadosPaginados.map((d, rowIndex) => (
