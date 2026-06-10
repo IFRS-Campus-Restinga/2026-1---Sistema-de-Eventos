@@ -79,6 +79,7 @@ MODALIDADES_DATA = [
         "nome": "Palestra",
         "requer_avaliacao": False,
         "requer_avaliacao_submissao": False,
+        "permite_submissao": False,
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
@@ -87,6 +88,7 @@ MODALIDADES_DATA = [
         "nome": "Oficina",
         "requer_avaliacao": True,
         "requer_avaliacao_submissao": True,
+        "permite_submissao": True,
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
@@ -95,6 +97,7 @@ MODALIDADES_DATA = [
         "nome": "Pôster",
         "requer_avaliacao": True,
         "requer_avaliacao_submissao": True,
+        "permite_submissao": True,
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
@@ -103,6 +106,7 @@ MODALIDADES_DATA = [
         "nome": "Mesa-redonda",
         "requer_avaliacao": False,
         "requer_avaliacao_submissao": False,
+        "permite_submissao": False,
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
@@ -462,6 +466,7 @@ def seed_atracoes():
     from api.models.atracao import Atracao
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
+    from api.models.submissao import Submissao
 
     created = []
     existing = []
@@ -480,26 +485,33 @@ def seed_atracoes():
         # Converte o nome amigável para a chave de choice correspondente (ex: "CIENCIAS_EXATAS_E_DA_TERRA")
         chave_area = MAPA_AREAS_CHOICES.get(item["area_conhecimento"], item["area_conhecimento"])
 
-        atracao = Atracao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
-        if atracao:
-            existing.append(atracao.titulo)
+        submissao = Submissao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
+        if submissao and Atracao.objects.filter(submissao=submissao).exists():
+            existing.append(submissao.titulo)
             continue
 
+        if submissao is None:
+            submissao = Submissao(
+                titulo=item["titulo"],
+                resumo=item["resumo"],
+                palavras_chave=item["palavras_chave"],
+                modalidade=modalidade,
+                nivel_ensino=item["nivel_ensino"],
+                area_conhecimento=chave_area,
+                evento=evento,
+                sou_orientador=False,
+                acessibilidade=False,
+            )
+            submissao.full_clean()
+            submissao.save()
+
         atracao = Atracao(
-            titulo=item["titulo"],
-            resumo=item["resumo"],
-            palavras_chave=item["palavras_chave"],
-            modalidade=modalidade,
-            nivel_ensino=item["nivel_ensino"],
-            area_conhecimento=chave_area, 
-            evento=evento,
+            submissao=submissao,
             status=item["status"],
-            sou_orientador=False,
-            acessibilidade=False,
         )
         atracao.full_clean()
         atracao.save()
-        created.append(atracao.titulo)
+        created.append(submissao.titulo)
 
     print("Seed de atracoes finalizada.")
     print(f"Criadas: {created if created else 'nenhuma'}")

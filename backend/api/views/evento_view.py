@@ -64,12 +64,14 @@ class MeusEventosAvaliadorView(APIView):
         atracoes_com_perm = get_objects_for_user(
             user, "api.avaliar_atracao", klass=Atracao
         )
-        eventos_vinculados = set(atracoes_com_perm.values_list("evento_id", flat=True))
+        eventos_vinculados = set(
+            atracoes_com_perm.values_list("submissao__evento_id", flat=True)
+        )
 
         # eventos onde o usuário já fez avaliações
         eventos_por_avaliacao = set(
             Evento.objects.filter(
-                atracoes__avaliacaoatracao__avaliador=user
+                submissoes__atracao__avaliacaoatracao__avaliador=user
             ).values_list("pk", flat=True)
         )
 
