@@ -4,6 +4,7 @@ from ..enumerations.status_atracao import StatusAtracao
 from .base import Base
 from .espaco import Espaco
 from .submissao import Submissao
+from .evento import Evento
 
 
 class Atracao(Base):
@@ -38,6 +39,14 @@ class Atracao(Base):
         blank=True,
         verbose_name="Local",
         help_text="Descrição legada do local da atração",
+    )
+
+    evento = models.ForeignKey(
+        Evento, 
+        on_delete=models.CASCADE, 
+        related_name="atracoes",
+        null=True,  
+        blank=True
     )
 
     def clean(self):
