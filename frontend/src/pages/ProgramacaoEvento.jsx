@@ -1,106 +1,29 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import {
-    Container,
-    Row,
-    Col,
-    Form,
-    Button,
-    InputGroup,
-    Spinner,
-    Alert,
-} from 'react-bootstrap';
-import {
-    MdSearch,
-    MdCalendarToday,
-    MdPlace,
-    MdPeople,
-    MdEvent,
-} from 'react-icons/md';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Form, Button, InputGroup, Spinner, Alert } from 'react-bootstrap';
+import { MdSearch, MdCalendarToday, MdPlace, MdPeople, MdEvent, MdClose, MdInfoOutline } from 'react-icons/md';
 import { useParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import ModalPopup from '../components/common/ModalPopup';
 
 // Hooks e Utilitários do ecossistema do seu app
 import useSessoes from '../hooks/useSessoes';
 import { obterCorPorTag } from '../utils/themeTags';
-import useInscricoesAtracao from '../hooks/useInscricoesAtracao';
-
-import {
-    criarInscricaoEvento,
-    listarMinhasInscricoesEventos,
-} from '../services/inscricaoEventoService';
-
-import { getSelectedEventoId } from '../utils/selectedEvento';
-import { buscarEventoPorId } from '../services/eventoService';
-
-const extrairNomesAutores = (atracao) => {
-    const fonte = atracao || {};
-
-    if (Array.isArray(fonte.autorias) && fonte.autorias.length > 0) {
-        const nomesAutoria = fonte.autorias
-            .map((item) => item?.nome || item?.usuario_nome || item?.autor)
-            .filter((nome) => String(nome || '').trim() !== '');
-
-        if (nomesAutoria.length > 0) {
-            return nomesAutoria;
-        }
-    }
-
-    if (fonte.equipe_json) {
-        try {
-            const equipe =
-                typeof fonte.equipe_json === 'string'
-                    ? JSON.parse(fonte.equipe_json)
-                    : fonte.equipe_json;
-
-            const nomesEquipe = (Array.isArray(equipe) ? equipe : [])
-                .map((membro) => membro?.nome || membro?.autor)
-                .filter((nome) => String(nome || '').trim() !== '');
-
-            if (nomesEquipe.length > 0) {
-                return nomesEquipe;
-            }
-        } catch (e) {
-            // Ignora erro de parsing e tenta próximos fallbacks.
-        }
-    }
-
-    if (fonte.autor) {
-        return [fonte.autor];
-    }
-
-    return ['Autor Não Informado'];
-};
 
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
-    const verdeIFRS = '#00A44B';
-
+    const verdeIFRS = "#00A44B";
+    
+    // Estados de controle local
     const [termoBusca, setTermoBusca] = useState('');
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [dataSelecionada, setDataSelecionada] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [atracaoResumo, setAtracaoResumo] = useState(null);
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
+    
+    // ✅ Estado para controlar qual trabalho está selecionado no painel lateral
+    const [trabalhoSelecionado, setTrabalhoSelecionado] = useState(null);
 
-    const [alerta, setAlerta] = useState({
-        mensagem: '',
-        variacao: 'danger',
-        reacao: 0,
-    });
-
-    const { sessoes, dias, loading, error, carregarEvento, fetchSessoes } =
-        useSessoes();
-
-    const {
-        criarInscricao,
-        usuarioLogado,
-        carregandoUsuario,
-        obterStatusInscricao,
-        estaInscritoEmAtracao,
-        loading: carregandoInscricao,
-    } = useInscricoesAtracao();
+    // Consumindo a estrutura completa de sessões do seu banco de dados via hook
+    const { sessoes, dias, loading, error, carregarEvento, fetchSessoes } = useSessoes();
 
     useEffect(() => {
         if (eventoId) {
@@ -109,17 +32,14 @@ export default function ProgramacaoEvento() {
         }
     }, [eventoId]);
 
+    // Define automaticamente a primeira data do evento como ativa ao carregar
     useEffect(() => {
         if (dias && dias.length > 0) {
             setDataSelecionada(formatarDataValue(dias[0]));
         }
     }, [dias]);
 
-    const selecionarAtracaoResumo = (atracao) => {
-        setAtracaoResumo(atracao);
-        setShowModal(true);
-    };
-
+    // Funções auxiliares para formatação das datas
     function formatarDataValue(data) {
         return data.toISOString().split('T')[0];
     }
@@ -131,6 +51,7 @@ export default function ProgramacaoEvento() {
         });
     }
 
+    // Processamento, Filtragem e Agrupamento dos dados reais vindos da API
     useEffect(() => {
         if (!sessoes || sessoes.length === 0) {
             setSessoesFiltradas([]);
@@ -140,17 +61,20 @@ export default function ProgramacaoEvento() {
         const termo = termoBusca.toLowerCase().trim();
         const mapaAgrupamento = {};
 
-        sessoes.forEach((sessaoBanco) => {
+        sessoes.forEach(sessaoBanco => {
+            // Filtro por data
             const dataSessao = sessaoBanco.data_horario_inicio.split('T')[0];
             if (dataSelecionada && dataSessao !== dataSelecionada) return;
-            const stringHorarioInicio =
-                sessaoBanco.data_horario_inicio.split('T')[1] || '';
-            const stringHorarioFim =
-                sessaoBanco.data_horario_fim.split('T')[1] || '';
 
+            // Extração de horários (Padrão ISO)
+            const stringHorarioInicio = sessaoBanco.data_horario_inicio.split('T')[1] || '';
+            const stringHorarioFim = sessaoBanco.data_horario_fim.split('T')[1] || '';
+            
             const horaInicioLimpa = stringHorarioInicio.slice(0, 5);
             const horaFimLimpa = stringHorarioFim.slice(0, 5);
             const chaveBlocoHorario = `${horaInicioLimpa} - ${horaFimLimpa}`;
+
+            // Determina o turno dinamicamente baseado na hora de início
             let turnoCalculado = 'manhã';
             const horaInteira = parseInt(horaInicioLimpa.split(':')[0], 10);
             if (horaInteira >= 12 && horaInteira < 18) {
@@ -161,67 +85,60 @@ export default function ProgramacaoEvento() {
 
             if (turnoCalculado !== turnoAtivo) return;
 
-            const apresentacoesOriginais =
-                sessaoBanco.ordem_apresentacoes_display || [];
+            // Mapeamento das apresentações alocadas nesta sessão
+            const apresentacoesOriginais = sessaoBanco.ordem_apresentacoes_display || [];
+            
             const atividadesFiltradas = apresentacoesOriginais
-                .map((itemOrdem) => {
-                    const atracao =
-                        itemOrdem.atracao_display || itemOrdem.atracao || {};
-
-                    const listaAutores = extrairNomesAutores(atracao);
+                .map(itemOrdem => {
+                    const atracao = itemOrdem.atracao_display || itemOrdem.atracao || {};
+                    
+                    let listaAutores = [];
+                    if (atracao.equipe_json) {
+                        try {
+                            const equipe = typeof atracao.equipe_json === 'string' 
+                                ? JSON.parse(atracao.equipe_json) 
+                                : atracao.equipe_json;
+                            listaAutores = equipe.map(m => m.nome || m.autor);
+                        } catch (e) {
+                            listaAutores = [atracao.autor || 'Autor Não Informado'];
+                        }
+                    } else if (atracao.autor) {
+                        listaAutores = [atracao.autor];
+                    }
 
                     const listaTags = [];
                     if (atracao.tipo) listaTags.push({ texto: atracao.tipo });
                     if (atracao.area_conhecimento?.area_conhecimento_display) {
-                        listaTags.push({
-                            texto: atracao.area_conhecimento
-                                .area_conhecimento_display,
-                        });
+                        listaTags.push({ texto: atracao.area_conhecimento.area_conhecimento_display });
                     } else if (atracao.area_conhecimento) {
-                        listaTags.push({
-                            texto: String(atracao.area_conhecimento),
-                        });
+                        listaTags.push({ texto: String(atracao.area_conhecimento) });
                     }
 
                     return {
-                        id: atracao.id,
-                        evento: atracao.evento,
                         hora: horaInicioLimpa,
                         titulo: atracao.titulo || 'Atração Sem Título',
-                        descricao:
-                            atracao.resumo ||
-                            'Nenhum resumo disponível para esta atração.',
+                        descricao: atracao.resumo || 'Nenhum resumo disponível para esta atração.',
+                        palavrasChave: atracao.palavras_chave || '',
+                        nivelEnsino: atracao.nivel_ensino_display || atracao.nivel_ensino || '',
                         autores: listaAutores,
-                        autorias: Array.isArray(atracao.autorias)
-                            ? atracao.autorias
-                            : [],
-                        sugestao_vagas: atracao.sugestao_vagas,
-                        local:
-                            sessaoBanco.espaco_display?.nome ||
-                            `Espaço #${sessaoBanco.espaco}`,
-                        tags: listaTags.map((t) => ({
+                        local: sessaoBanco.espaco_display?.nome || `Espaço #${sessaoBanco.espaco}`,
+                        tags: listaTags.map(t => ({
                             texto: t.texto,
                             corFundo: obterCorPorTag(t.texto),
-                            corTexto: '#FFFFFF',
+                            corTexto: '#FFFFFF'
                         })),
-                        inscrito: false,
+                        inscrito: false
                     };
                 })
-                .filter((ativ) => {
+                .filter(ativ => {
                     const titulo = ativ.titulo.toLowerCase();
                     const autor = ativ.autores.join(' ').toLowerCase();
-                    const bateuNaTag = ativ.tags.some((tag) =>
-                        tag.texto.toLowerCase().includes(termo),
-                    );
+                    const bateuNaTag = ativ.tags.some(tag => tag.texto.toLowerCase().includes(termo));
 
-                    return (
-                        !termo ||
-                        titulo.includes(termo) ||
-                        autor.includes(termo) ||
-                        bateuNaTag
-                    );
+                    return !termo || titulo.includes(termo) || autor.includes(termo) || bateuNaTag;
                 });
 
+            // Agrupamento por bloco de horário único
             if (atividadesFiltradas.length > 0) {
                 if (!mapaAgrupamento[chaveBlocoHorario]) {
                     mapaAgrupamento[chaveBlocoHorario] = [];
@@ -230,171 +147,35 @@ export default function ProgramacaoEvento() {
             }
         });
 
-        const resultadoFinal = Object.keys(mapaAgrupamento)
-            .map((bloco) => ({
-                blocoHorario: bloco,
-                atividades: mapaAgrupamento[bloco],
-            }))
-            .sort((a, b) => a.blocoHorario.localeCompare(b.blocoHorario));
+        const resultadoFinal = Object.keys(mapaAgrupamento).map(bloco => ({
+            blocoHorario: bloco,
+            atividades: mapaAgrupamento[bloco]
+        })).sort((a, b) => a.blocoHorario.localeCompare(b.blocoHorario));
 
         setSessoesFiltradas(resultadoFinal);
     }, [sessoes, dataSelecionada, termoBusca, turnoAtivo]);
 
-    const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
-        setAlerta((prev) => ({
-            ...prev,
-            mensagem,
-            variacao,
-            reacao: (prev.reacao || 0) + 1,
-        }));
-    }, []);
-
-    const usuarioEhAutorDaAtracao = (ativ) => {
-        const userId = Number(
-            usuarioLogado?.perfil_id ||
-                usuarioLogado?.usuario_id ||
-                usuarioLogado?.id,
-        );
-
-        if (!userId) return false;
-
-        const autorias = Array.isArray(ativ?.autorias) ? ativ.autorias : [];
-
-        return autorias.some((a) => {
-            const tipo = String(a?.tipo || a?.tipo_display || '').toUpperCase();
-
-            const usuarioId =
-                Number(a?.usuario) ||
-                Number(a?.usuario_id) ||
-                Number(a?.perfil_id);
-
-            return tipo === 'AUTOR' && usuarioId === userId;
-        });
-    };
-
-    const handleInscrever = async (ativ) => {
-        if (!usuarioLogado) {
-            mostrarAlerta('Faça login antes de se inscrever.', 'danger');
-            return;
-        }
-
-        // if (!ativ?.id) {
-        //     mostrarAlerta('Erro: ID da atração não encontrado.', 'danger');
-        //     return;
-        // }
-
-        const isAutor = usuarioEhAutorDaAtracao(ativ);
-
-        if (isAutor) {
-            mostrarAlerta(
-                'Você é autor desta atração e não pode se inscrever nela.',
-                'warning',
-            );
-            return;
-        }
-
-        // if (usuarioEstaNaEquipeDaAtracao(ativ)) {
-        //     mostrarAlerta(
-        //         'Você faz parte da equipe desta atração e não pode se inscrever nela.',
-        //         'warning',
-        //     );
-        //     return;
-        // }
-
-        if (estaInscritoEmAtracao(ativ.id)) {
-            mostrarAlerta('Você já está inscrito nessa atração.', 'warning');
-            return;
-        }
-
-        try {
-            const perfilIdSessao = Number(
-                usuarioLogado?.perfil_id ||
-                    usuarioLogado?.id ||
-                    usuarioLogado?.usuario_id,
-            );
-            const eventoIdDaAtracao = Number(ativ.evento || eventoId);
-
-            const inscricoesEvento = await listarMinhasInscricoesEventos();
-            const jaInscritoNoEvento = Array.isArray(inscricoesEvento)
-                ? inscricoesEvento.some(
-                      (inscricao) =>
-                          Number(inscricao.evento_id) === eventoIdDaAtracao &&
-                          Number(inscricao.perfil_id) ===
-                              Number(perfilIdSessao),
-                  )
-                : false;
-
-            if (!jaInscritoNoEvento && eventoIdDaAtracao) {
-                await criarInscricaoEvento({
-                    perfil_id: perfilIdSessao,
-                    evento_id: eventoIdDaAtracao,
-                });
-            }
-
-            try {
-                await criarInscricao({
-                    perfil_id: perfilIdSessao,
-                    atracao_id: ativ.id,
-                });
-
-                // console.log('SUCESSO');
-            } catch (e) {
-                console.error('ERRO COMPLETO:', e);
-            }
-
-            mostrarAlerta('Inscrição realizada com sucesso.', 'success');
-            await fetchSessoes(eventoId);
-        } catch (erro) {
-            const msg =
-                erro?.response?.data?.mensagem ||
-                erro?.response?.data ||
-                erro?.message ||
-                'Erro ao inscrever.';
-            mostrarAlerta(typeof msg === 'string' ? msg : JSON.stringify(msg));
-        }
-    };
-
     return (
-        <div className="d-flex flex-column min-vh-100 bg-white">
+        <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
             <main className="flex-fill">
-                <section
-                    style={{
-                        backgroundImage:
-                            'linear-gradient(to right,#17882c 0,#00510f 100%)',
-                        color: 'white',
-                    }}
-                    className="py-5 text-center shadow-sm"
-                >
+                {/* Hero / Buscador Superior */}
+                <section style={{ backgroundColor: verdeIFRS, color: 'white' }} className="py-5 text-center shadow-sm">
                     <Container>
-                        <h1 className="display-5 fw-bold mb-2">
-                            Programação Oficial
-                        </h1>
-                        <p className="mb-4 opacity-90">
-                            Confira os horários e locais das atividades do
-                            evento
-                        </p>
+                        <h1 className="display-5 fw-bold mb-2">Programação Oficial</h1>
+                        <p className="mb-4 opacity-90">Explore as atividades e confira os detalhes em tempo real</p>
                         <Row className="justify-content-center">
                             <Col md={8} lg={6}>
                                 <InputGroup className="shadow-sm rounded-pill overflow-hidden bg-white p-1">
                                     <Form.Control
                                         placeholder="Pesquise por título, autor ou tag..."
                                         value={termoBusca}
-                                        onChange={(e) =>
-                                            setTermoBusca(e.target.value)
-                                        }
+                                        onChange={(e) => setTermoBusca(e.target.value)} 
                                         className="border-0 px-3 py-2"
-                                        style={{
-                                            outline: 'none',
-                                            boxShadow: 'none',
-                                        }}
+                                        style={{ outline: 'none', boxShadow: 'none' }}
                                     />
-                                    <Button
-                                        variant="dark"
-                                        className="rounded-pill px-4 fw-bold d-flex align-items-center"
-                                    >
-                                        <MdSearch className="me-2" size={18} />{' '}
-                                        Buscar
+                                    <Button variant="dark" className="rounded-pill px-4 fw-bold d-flex align-items-center">
+                                        <MdSearch className="me-2" size={18} /> Buscar
                                     </Button>
                                 </InputGroup>
                             </Col>
@@ -402,30 +183,21 @@ export default function ProgramacaoEvento() {
                     </Container>
                 </section>
 
-                <Container className="py-4 mt-2">
+                <Container fluid="xl" className="py-4">
+                    {/* Controles de Data */}
                     {dias && dias.length > 0 && (
                         <Row className="justify-content-center mb-4">
-                            <Col
-                                xs={12}
-                                md={4}
-                                className="d-flex align-items-center gap-2"
-                            >
+                            <Col xs={12} md={4} className="d-flex align-items-center gap-2">
                                 <MdEvent size={24} className="text-secondary" />
                                 <Form.Group className="w-100 m-0">
                                     <Form.Select
                                         value={dataSelecionada}
-                                        onChange={(e) =>
-                                            setDataSelecionada(e.target.value)
-                                        }
+                                        onChange={(e) => setDataSelecionada(e.target.value)}
                                         className="fw-semibold border-secondary-subtle"
                                     >
                                         {dias.map((dia, index) => (
-                                            <option
-                                                key={index}
-                                                value={formatarDataValue(dia)}
-                                            >
-                                                Dia do Evento:{' '}
-                                                {formatarDataLabel(dia)}
+                                            <option key={index} value={formatarDataValue(dia)}>
+                                                Dia do Evento: {formatarDataLabel(dia)}
                                             </option>
                                         ))}
                                     </Form.Select>
@@ -434,212 +206,82 @@ export default function ProgramacaoEvento() {
                         </Row>
                     )}
 
+                    {/* Filtros de Turnos */}
                     <div className="d-flex justify-content-center gap-3 mb-5">
                         {['manhã', 'tarde', 'noite'].map((turno) => (
-                            <Button
+                            <Button 
                                 key={turno}
-                                variant={
-                                    turnoAtivo === turno
-                                        ? 'success'
-                                        : 'outline-secondary'
-                                }
+                                variant={turnoAtivo === turno ? 'dark' : 'outline-secondary'}
                                 className="rounded-pill px-4 fw-bold text-uppercase"
                                 onClick={() => setTurnoAtivo(turno)}
-                                style={
-                                    turnoAtivo === turno
-                                        ? {
-                                              backgroundColor: `${verdeIFRS}`,
-                                          }
-                                        : {}
-                                }
+                                style={turnoAtivo === turno ? { backgroundColor: `${verdeIFRS}`, borderColor: '#111827' } : {}}
                             >
                                 {turno}
                             </Button>
                         ))}
                     </div>
 
-                    <Row className="justify-content-center">
-                        <Col lg={10}>
+                    {/* ✅ GRID HÍBRIDO SPLIT-SCREEN (Unificação das duas Telas) */}
+                    <Row className="g-4">
+                        {/* COLUNHA DA PROGRAMAÇÃO: Encolhe dinamicamente para lg={7} se houver item aberto */}
+                        <Col lg={trabalhoSelecionado ? 7 : 12} xs={12} style={{ transition: 'all 0.3s ease' }}>
                             {loading ? (
                                 <div className="text-center py-5">
-                                    <Spinner
-                                        animation="border"
-                                        variant="success"
-                                    />
-                                    <p className="text-muted mt-2 small">
-                                        Buscando cronograma no servidor...
-                                    </p>
+                                    <Spinner animation="border" variant="success" />
+                                    <p className="text-muted mt-2 small">Sincronizando cronograma...</p>
                                 </div>
                             ) : error ? (
-                                <Alert variant="danger">
-                                    Não foi possível carregar a programação.
-                                    Erro: {error}
-                                </Alert>
+                                <Alert variant="danger">Erro ao carregar a programação: {error}</Alert>
                             ) : sessoesFiltradas.length > 0 ? (
                                 sessoesFiltradas.map((sessaoGlobal, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="card shadow-sm border-0 mb-4 overflow-hidden"
-                                        style={{ borderRadius: '16px' }}
-                                    >
+                                    <div key={idx} className="card shadow-sm border-0 mb-4 overflow-hidden" style={{ borderRadius: '12px' }}>
                                         <div className="card-header bg-white text-dark py-3 px-4 d-flex align-items-center justify-content-between">
                                             <div className="d-flex align-items-center gap-2 m-0 fw-bold">
-                                                <MdCalendarToday
-                                                    size={20}
-                                                    color={verdeIFRS}
-                                                />
-                                                <span className="fs-5">
-                                                    Sessão:{' '}
-                                                    {sessaoGlobal.blocoHorario}
-                                                </span>
+                                                <MdCalendarToday size={18} color={verdeIFRS} />
+                                                <span>Sessão: {sessaoGlobal.blocoHorario}</span>
                                             </div>
-                                            <span className="badge bg-secondary text-uppercase px-3 py-2 rounded-pill">
-                                                {sessaoGlobal.atividades.length}{' '}
-                                                {sessaoGlobal.atividades
-                                                    .length === 1
-                                                    ? 'Trabalho'
-                                                    : 'Trabalhos'}
+                                            <span className="badge bg-secondary text-uppercase rounded-pill">
+                                                {sessaoGlobal.atividades.length} {sessaoGlobal.atividades.length === 1 ? 'Trabalho' : 'Trabalhos'}
                                             </span>
                                         </div>
-
+                                        
                                         <div className="card-body p-0">
-                                            {(
-                                                sessaoGlobal.atividades || []
-                                            ).map((ativ, ativIdx) => {
-                                                const isInscrito =
-                                                    typeof estaInscritoEmAtracao ===
-                                                    'function'
-                                                        ? estaInscritoEmAtracao(
-                                                              ativ?.id,
-                                                          )
-                                                        : false;
-
-                                                const isAutor =
-                                                    typeof usuarioEhAutorDaAtracao ===
-                                                    'function'
-                                                        ? usuarioEhAutorDaAtracao(
-                                                              ativ,
-                                                          )
-                                                        : false;
-
+                                            {sessaoGlobal.atividades.map((ativ, ativIdx) => {
+                                                const estaAtivo = trabalhoSelecionado?.titulo === ativ.titulo;
                                                 return (
-                                                    <div
-                                                        key={ativIdx}
-                                                        className="p-4 border-bottom last-border-0 d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-3 bg-white"
-                                                        style={{
-                                                            borderLeft: `6px solid ${obterCorPorTag(
-                                                                ativ.tags?.[0]
-                                                                    ?.texto ||
-                                                                    '',
-                                                            )}`,
+                                                    <div 
+                                                        key={ativIdx} 
+                                                        className="p-3 border-bottom last-border-0 d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-2"
+                                                        style={{ 
+                                                            borderLeft: `6px solid ${obterCorPorTag(ativ.tags[0]?.texto || '')}`,
+                                                            backgroundColor: estaAtivo ? '#F0FDF4' : '#FFFFFF',
+                                                            transition: 'background-color 0.2s'
                                                         }}
                                                     >
-                                                        <div className="flex-grow-1">
-                                                            <div className="d-flex flex-wrap gap-2 mb-2">
-                                                                <span className="badge bg-light text-dark border rounded-pill">
-                                                                    Horário:{' '}
-                                                                    {ativ.hora}
-                                                                </span>
-                                                                {ativ.tags.map(
-                                                                    (
-                                                                        t,
-                                                                        tIdx,
-                                                                    ) => (
-                                                                        <span
-                                                                            key={
-                                                                                tIdx
-                                                                            }
-                                                                            className="badge rounded-pill"
-                                                                            style={{
-                                                                                backgroundColor:
-                                                                                    t.corFundo,
-                                                                                color: t.corTexto,
-                                                                            }}
-                                                                        >
-                                                                            {
-                                                                                t.texto
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )}
+                                                        <div className="flex-grow-1" style={{ maxWidth: '80%' }}>
+                                                            <div className="d-flex flex-wrap gap-1 mb-1">
+                                                                <span className="badge bg-light text-dark border rounded-pill small">Horário: {ativ.hora}</span>
+                                                                {ativ.tags.map((t, tIdx) => (
+                                                                    <span key={tIdx} className="badge rounded-pill small" style={{ backgroundColor: t.corFundo, color: t.corTexto }}>
+                                                                        {t.texto}
+                                                                    </span>
+                                                                ))}
                                                             </div>
-                                                            <h4 className="h5 fw-bold text-dark mb-2">
-                                                                {ativ.titulo}
-                                                            </h4>
-                                                            <div className="d-flex flex-wrap gap-3 text-muted small">
-                                                                <span className="d-flex align-items-center gap-1">
-                                                                    <MdPeople
-                                                                        size={
-                                                                            16
-                                                                        }
-                                                                    />{' '}
-                                                                    {ativ.autores.join(
-                                                                        ', ',
-                                                                    )}
-                                                                </span>
-                                                                <span className="d-flex align-items-center gap-1">
-                                                                    <MdPlace
-                                                                        size={
-                                                                            16
-                                                                        }
-                                                                    />{' '}
-                                                                    {ativ.local}
-                                                                </span>
+                                                            <h5 className="fw-bold text-dark text-truncate mb-1" style={{ fontSize: '1rem' }}>{ativ.titulo}</h5>
+                                                            <div className="d-flex flex-wrap gap-2 text-muted small">
+                                                                <span className="text-truncate" style={{ maxWidth: '250px' }}><MdPeople /> {ativ.autores.join(', ')}</span>
+                                                                <span><MdPlace /> {ativ.local}</span>
                                                             </div>
                                                         </div>
                                                         <div className="d-flex gap-2 align-items-center justify-content-md-end">
-                                                            <Button
-                                                                variant="outline-dark"
-                                                                size="sm"
-                                                                className="rounded-pill px-3"
-                                                                onClick={() =>
-                                                                    selecionarAtracaoResumo(
-                                                                        ativ,
-                                                                    )
-                                                                }
+                                                            <Button 
+                                                                variant={estaAtivo ? "dark" : "outline-dark"} 
+                                                                size="sm" 
+                                                                className="rounded-pill text-nowrap px-3" 
+                                                                onClick={() => setTrabalhoSelecionado(ativ)}
                                                             >
-                                                                Ver Resumo
+                                                                Ver Detalhes
                                                             </Button>
-                                                            {Number(
-                                                                ativ.sugestao_vagas,
-                                                            ) > 0 && (
-                                                                <Button
-                                                                    variant={
-                                                                        ativ.inscrito
-                                                                            ? 'primary'
-                                                                            : 'primary'
-                                                                    }
-                                                                    size="sm"
-                                                                    className="rounded-pill px-3"
-                                                                    disabled={
-                                                                        isInscrito ||
-                                                                        usuarioEhAutorDaAtracao(
-                                                                            ativ,
-                                                                        )
-                                                                    }
-                                                                    onClick={() => {
-                                                                        if (
-                                                                            usuarioEhAutorDaAtracao(
-                                                                                ativ,
-                                                                            )
-                                                                        ) {
-                                                                            mostrarAlerta(
-                                                                                'Você é autor desta atração e não pode se inscrever nela.',
-                                                                                'warning',
-                                                                            );
-                                                                            return;
-                                                                        }
-
-                                                                        handleInscrever(
-                                                                            ativ,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    {ativ.inscrito
-                                                                        ? 'Inscrito'
-                                                                        : 'Inscrever-se'}
-                                                                </Button>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -649,30 +291,89 @@ export default function ProgramacaoEvento() {
                                 ))
                             ) : (
                                 <div className="text-center py-5 bg-white rounded shadow-sm border">
-                                    <h5 className="text-muted m-0">
-                                        Nenhuma atividade programada para esta
-                                        data neste turno.
-                                    </h5>
+                                    <h5 className="text-muted m-0">Nenhuma atividade programada para esta data.</h5>
                                 </div>
                             )}
                         </Col>
+
+                        {/* ✅ PAINEL LATERAL: TELA DE DETALHES COMPLETA INTEGRADA DINAMICAMENTE (Apenas renderiza se houver item selecionado) */}
+                        {trabalhoSelecionado && (
+                            <Col lg={5} xs={12} className="position-sticky" style={{ top: '20px', height: 'fit-content' }}>
+                                <div className="card shadow-sm border-0 border-top border-4 overflow-hidden" style={{ borderRadius: '12px', borderColor: verdeIFRS }}>
+                                    <div className="card-header bg-white d-flex justify-content-between align-items-center border-0 pt-3 px-4">
+                                        <span className="text-uppercase fw-bold text-muted small d-flex align-items-center gap-1">
+                                            <MdInfoOutline size={16} /> Ficha Técnica do Trabalho
+                                        </span>
+                                        <Button 
+                                            variant="light" 
+                                            className="rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                            onClick={() => setTrabalhoSelecionado(null)}
+                                        >
+                                            <MdClose size={20} />
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="card-body px-4 pb-4">
+                                        <h3 className="h4 fw-bold text-dark mb-3">{trabalhoSelecionado.titulo}</h3>
+                                        
+                                        <div className="d-flex flex-wrap gap-1 mb-4">
+                                            {trabalhoSelecionado.tags.map((t, idx) => (
+                                                <span key={idx} className="badge rounded-pill px-3 py-1" style={{ backgroundColor: t.corFundo, color: t.corTexto }}>
+                                                    {t.texto}
+                                                </span>
+                                            ))}
+                                            {trabalhoSelecionado.nivelEnsino && (
+                                                <span className="badge bg-secondary rounded-pill px-3 py-1">{trabalhoSelecionado.nivelEnsino}</span>
+                                            )}
+                                        </div>
+
+                                        <div className="mb-3 bg-light p-3 rounded" style={{ borderRadius: '8px' }}>
+                                            <div className="mb-2">
+                                                <strong className="text-secondary small d-block">AUTORES / APRESENTADORES</strong>
+                                                <span className="text-dark fw-medium">{trabalhoSelecionado.autores.join(', ')}</span>
+                                            </div>
+                                            <div className="row g-2 mt-1 border-top pt-2">
+                                                <div className="col-6">
+                                                    <strong className="text-secondary small d-block">HORÁRIO DE INÍCIO</strong>
+                                                    <span className="text-dark fw-medium">{trabalhoSelecionado.hora}</span>
+                                                </div>
+                                                <div className="col-6">
+                                                    <strong className="text-secondary small d-block">ESPAÇO / SALA</strong>
+                                                    <span className="text-dark fw-medium text-truncate d-block">{trabalhoSelecionado.local}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <strong className="text-secondary small d-block mb-1">RESUMO EXPANDIDO</strong>
+                                            <p className="text-dark lh-base style-resumo m-0" style={{ fontSize: '0.95rem', textAlign: 'justify', maxHeight: '30vh', overflowY: 'auto' }}>
+                                                {trabalhoSelecionado.descricao}
+                                            </p>
+                                        </div>
+
+                                        {trabalhoSelecionado.palavrasChave && (
+                                            <div className="mb-4">
+                                                <strong className="text-secondary small d-block mb-1">PALAVRAS-CHAVE</strong>
+                                                <span className="text-muted italic">{trabalhoSelecionado.palavrasChave}</span>
+                                            </div>
+                                        )}
+
+                                        <Button 
+                                            variant={trabalhoSelecionado.inscrito ? "success" : "primary"} 
+                                            className="w-100 py-2 fw-bold rounded-pill shadow-sm"
+                                            disabled={trabalhoSelecionado.inscrito}
+                                            style={!trabalhoSelecionado.inscrito ? { backgroundColor: verdeIFRS, borderColor: verdeIFRS } : {}}
+                                        >
+                                            {trabalhoSelecionado.inscrito ? "Inscrição Confirmada" : "Me Inscrever na Atração"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Col>
+                        )}
                     </Row>
                 </Container>
-
-                {atracaoResumo && (
-                    <ModalPopup
-                        show={showModal}
-                        titulo={atracaoResumo.titulo}
-                        tituloSecundario={`Autores: ${atracaoResumo.autores.join(
-                            ', ',
-                        )}`}
-                        texto={atracaoResumo.descricao}
-                        textoFechar="Voltar"
-                        onFechar={() => setShowModal(false)}
-                    />
-                )}
             </main>
-            <Footer
+            <Footer 
                 telefone="(51) 3333-1234"
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}
