@@ -113,7 +113,7 @@ function App() {
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
-                <Route path="/listar_inscritos_atracao/:atracaoSlug" element={protegido(<ListarInscritosAtracao />)} />
+                <Route path="/listar_inscritos_atracao" element={protegido(<ListarInscritosAtracao />)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
                 <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />

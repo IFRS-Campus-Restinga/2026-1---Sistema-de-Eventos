@@ -533,7 +533,7 @@ export default function InscricaoAtracoes() {
 
                     {inscrito ? (
                         <Button variant="outline-success" disabled>
-                            Inscrito
+                            usuEhAutorDaAtracao
                         </Button>
                     ) : (
                         <Button
@@ -548,7 +548,10 @@ export default function InscricaoAtracoes() {
                                 usuarioEstaNaEquipeDaAtracao()
                             }
                         >
-                            {salvandoEdicao ? 'Inscrevendo...' : 'Inscrever-se'}
+                            {usuarioEstaNaEquipeDaAtracao() ||
+                            usuarioEhAutorDaAtracao()
+                                ? 'Autor'
+                                : 'Inscrever-se'}
                         </Button>
                     )}
                 </Modal.Footer>

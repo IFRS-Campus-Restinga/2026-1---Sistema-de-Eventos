@@ -250,7 +250,7 @@ export default function ListarInscritosEvento() {
                             habilitarPresenca={true}
                             onRegistrarPresenca={registrarPresenca}
                             onRetirarPresenca={retirarPresenca}
-                            // onVoltar={() => navigate(-1)}
+                            // onVoltar={() => navigate(-1)}cer
                             colunasVisiveis={[
                                 'usuario',
                                 'cpf',

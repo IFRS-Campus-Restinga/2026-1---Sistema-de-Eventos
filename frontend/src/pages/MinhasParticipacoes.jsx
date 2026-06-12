@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
     Container,
     Row,
@@ -348,6 +348,10 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                                         className="w-25 mt-3"
                                                                         size="sm"
                                                                         variant="success"
+                                                                        as={
+                                                                            Link
+                                                                        }
+                                                                        to={`/listar_inscritos_atracao?atracaoId=${atracao.id}`}
                                                                     >
                                                                         Inscritos
                                                                     </Button>
