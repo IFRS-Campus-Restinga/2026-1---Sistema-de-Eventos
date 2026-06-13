@@ -278,7 +278,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
             evento={evento}
             destaque={destaque}
             onDetalhes={() => {
-                navigate(`/detalhe_evento/${evento.id}`);
+                navigate(`/programacao_evento/${evento.id}`);
             }}
             onInscrever={() => handleInscrever(evento.id)}
             possuiInscricao={estaInscritoEmEvento(evento.id)}
