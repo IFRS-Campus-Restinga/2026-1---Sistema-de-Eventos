@@ -172,7 +172,7 @@ export default function TabelaAtibuicao({
                                     className="btn btn-outline-primary"
                                     onClick={() => onAtribuir(a)}
                                 >
-                                    <FiUserPlus />
+                                    <FiUserPlus className="me-1" />
                                     Atribuir
                                 </button>
                             ) : (
@@ -203,7 +203,7 @@ export default function TabelaAtibuicao({
                                           type="button"
                                           className="btn btn-success"
                                       >
-                                          <FaCheckCircle />
+                                          <FaCheckCircle className="me-1" />
                                           Homologar
                                       </button>
                                   ) : (
@@ -234,7 +234,7 @@ export default function TabelaAtibuicao({
                                           type="button"
                                           className="btn btn-danger"
                                       >
-                                          <BsTrash />
+                                          <BsTrash className="me-1" />
                                           Cancelar
                                       </button>
                                   ) : (

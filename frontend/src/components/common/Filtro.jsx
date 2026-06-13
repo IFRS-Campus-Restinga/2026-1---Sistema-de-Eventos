@@ -7,6 +7,14 @@ export default function Filtro({
     aoFiltrar,
 }) {
     const filtrosSeguros = Array.isArray(filtros) ? filtros : [];
+    const quantidadeItens = filtrosSeguros.length + 1;
+    const larguraBase = Math.floor(12 / quantidadeItens);
+    const sobra = 12 - larguraBase * quantidadeItens;
+    const largurasFiltros = filtrosSeguros.map(
+        (_filtro, index) => larguraBase + (index < sobra ? 1 : 0),
+    );
+    const larguraBotao =
+        12 - largurasFiltros.reduce((total, largura) => total + largura, 0);
 
     return (
         <Card
@@ -20,7 +28,8 @@ export default function Filtro({
                     {filtrosSeguros.map((filtro, index) => {
                         const chaveFiltro =
                             filtro.nome || filtro.rotulo || `filtro-${index}`;
-                        const tamanhoColuna = filtro.lg ?? 3;
+                        const tamanhoColuna =
+                            filtro.lg ?? largurasFiltros[index];
                         const estiloBase = {
                             height: '52px',
                             borderRadius: '14px',
@@ -72,7 +81,10 @@ export default function Filtro({
                         );
                     })}
 
-                    <Col lg={2} className="d-flex justify-content-end ">
+                    <Col
+                        lg={larguraBotao}
+                        className="d-flex justify-content-end"
+                    >
                         <Button
                             onClick={aoFiltrar}
                             className="bg-success fw-bold w-100"

@@ -264,6 +264,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                     onOrdenacaoChange(e.target.value)
                                 }
                                 aoFiltrar={aoFiltrar}
+                                mostrarBusca={true}
+                                mostrarModalidade={true}
+                                mostrarArea={true}
+                                mostrarOrdenacao={false}
                             />
                         </Col>
                     </Row>

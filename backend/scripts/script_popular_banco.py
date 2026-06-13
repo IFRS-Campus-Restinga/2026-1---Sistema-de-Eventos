@@ -629,7 +629,6 @@ def seed_atracoes():
     from api.models.atracao import Atracao
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
-    from api.models.submissao import Submissao
 
     created = []
     existing = []
@@ -637,47 +636,48 @@ def seed_atracoes():
     for item in ATRACOES_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'."
+            )
             continue
 
-        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade_nome"]).first()
+        modalidade = Modalidade.objects.filter(
+            nome__iexact=item["modalidade_nome"]
+        ).first()
         if not modalidade:
-            print(f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'."
+            )
             continue
 
-        chave_area = MAPA_AREAS_CHOICES.get(item["area_conhecimento"], item["area_conhecimento"])
+        # Converte o nome amigável para a chave de choice correspondente (ex: "CIENCIAS_EXATAS_E_DA_TERRA")
+        chave_area = MAPA_AREAS_CHOICES.get(
+            item["area_conhecimento"], item["area_conhecimento"]
+        )
 
         atracao = Atracao.objects.filter(
-            submissao__titulo__iexact=item["titulo"], 
-            evento=evento
+            titulo__iexact=item["titulo"], evento=evento
         ).first()
-
         if atracao:
-            existing.append(item["titulo"])
+            existing.append(atracao.titulo)
             continue
 
-        submissao_obj, _ = Submissao.objects.get_or_create(
-            titulo=item["titulo"],
-            evento=evento,
-            defaults={
-                "resumo": item["resumo"],
-                "palavras_chave": item["palavras_chave"],
-                "modalidade": modalidade,
-                "area_conhecimento": chave_area,
-                "nivel_ensino": item["nivel_ensino"],
-            }
-        )
-
         atracao = Atracao(
-            submissao=submissao_obj,
+            titulo=item["titulo"],
+            resumo=item["resumo"],
+            palavras_chave=item["palavras_chave"],
+            modalidade=modalidade,
+            nivel_ensino=item["nivel_ensino"],
+            area_conhecimento=chave_area,
             evento=evento,
-            espaco=None,
-            status="PREVISTA",
+            status=item["status"],
+            sou_orientador=False,
+            acessibilidade=False,
+            slug=slugify(item["titulo"]),
         )
-        
         atracao.full_clean()
         atracao.save()
-        created.append(item["titulo"])
+        created.append(atracao.titulo)
 
     print("Seed de atracoes finalizada.")
     print(f"Criadas: {created if created else 'nenhuma'}")
