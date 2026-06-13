@@ -109,8 +109,8 @@ function App() {
                 <Route path="/editar_espaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
 
                 {/* Atracoes & Inscritos */}
-                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
-                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />)} />
+                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />)} />
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />)} />
                 <Route path="/adicionar_submissao" element={protegido(<AdicionarAtracao />)} />
