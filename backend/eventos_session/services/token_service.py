@@ -209,7 +209,7 @@ def build_hub_auth_cookies(request_cookies: dict | None) -> dict:
     api_key do sistema como credencial via cookie 'system', conforme
     suportado pelo Hub para autenticacao server-to-server.
     """
-    allowed = ("access_token", "refresh_token")
+    allowed = ("eventos_access_token", "eventos_refresh_token")
     cookies = {}
 
     if request_cookies:
