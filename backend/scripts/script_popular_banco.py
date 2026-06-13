@@ -629,6 +629,7 @@ def seed_atracoes():
     from api.models.atracao import Atracao
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
+    from api.models.submissao import Submissao
 
     created = []
     existing = []
@@ -655,29 +656,49 @@ def seed_atracoes():
             item["area_conhecimento"], item["area_conhecimento"]
         )
 
-        atracao = Atracao.objects.filter(
+        submissao = Submissao.objects.filter(
             titulo__iexact=item["titulo"], evento=evento
         ).first()
-        if atracao:
-            existing.append(atracao.titulo)
-            continue
 
-        atracao = Atracao(
-            titulo=item["titulo"],
-            resumo=item["resumo"],
-            palavras_chave=item["palavras_chave"],
-            modalidade=modalidade,
-            nivel_ensino=item["nivel_ensino"],
-            area_conhecimento=chave_area,
-            evento=evento,
-            status=item["status"],
-            sou_orientador=False,
-            acessibilidade=False,
-            slug=slugify(item["titulo"]),
+        if not submissao:
+            submissao = Submissao(
+                titulo=item["titulo"],
+                resumo=item["resumo"],
+                palavras_chave=item["palavras_chave"],
+                modalidade=modalidade,
+                nivel_ensino=item["nivel_ensino"],
+                area_conhecimento=chave_area,
+                evento=evento,
+                status_submissao="CONVERTIDA_EM_ATRACAO",
+                sou_orientador=False,
+                acessibilidade=False,
+            )
+            submissao.full_clean()
+            submissao.save()
+
+        atracao, atracao_criada = Atracao.objects.get_or_create(
+            submissao=submissao,
+            defaults={
+                "evento": evento,
+                "status": item["status"],
+            },
         )
-        atracao.full_clean()
-        atracao.save()
-        created.append(atracao.titulo)
+
+        atualizou = False
+        if atracao.evento_id != evento.id:
+            atracao.evento = evento
+            atualizou = True
+        if atracao.status != item["status"]:
+            atracao.status = item["status"]
+            atualizou = True
+        if atualizou:
+            atracao.full_clean()
+            atracao.save(update_fields=["evento", "status"])
+
+        if atracao_criada:
+            created.append(submissao.titulo)
+        else:
+            existing.append(submissao.titulo)
 
     print("Seed de atracoes finalizada.")
     print(f"Criadas: {created if created else 'nenhuma'}")

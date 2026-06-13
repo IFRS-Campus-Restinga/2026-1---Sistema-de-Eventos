@@ -1,5 +1,6 @@
 import json
 
+from guardian.shortcuts import get_objects_for_user
 from rest_framework import serializers
 
 from ..enumerations.status_submissao import StatusSubmissao
@@ -8,6 +9,7 @@ from ..models.atracao import Atracao
 from ..models.autoria import Autoria
 from ..models.campo_formulario import CampoFormulario
 from ..models.coautor import Coautor
+from ..models.evento import Evento
 from ..models.resposta import Resposta
 from ..models.submissao import Submissao
 
@@ -58,7 +60,74 @@ def normalizar_coautores_legacy(equipe_data):
     return membros_normalizados
 
 
-def normalizar_autorias(autoria_data):
+def _validar_autoria_por_perfil(usuario_solicitante, autorias_normalizadas, evento):
+    if usuario_solicitante is None or not autorias_normalizadas:
+        return
+
+    autoria_autor = next(
+        (a for a in autorias_normalizadas if a['tipo'] == TipoAutoria.AUTOR),
+        None,
+    )
+    if autoria_autor is None:
+        return
+
+    autor_id = autoria_autor['usuario_id']
+    eh_admin = usuario_solicitante.is_superuser or usuario_solicitante.groups.filter(
+        name="Administrador"
+    ).exists()
+    eh_coordenador = usuario_solicitante.groups.filter(name="Coordenador").exists()
+
+    if eh_admin:
+        if autor_id == usuario_solicitante.id:
+            raise serializers.ValidationError(
+                {
+                    'autoria_json': (
+                        'Administrador deve informar outro usuário como AUTOR.'
+                    )
+                }
+            )
+        return
+
+    if eh_coordenador:
+        if autor_id == usuario_solicitante.id:
+            if evento is None:
+                raise serializers.ValidationError(
+                    {
+                        'autoria_json': (
+                            'Coordenador só pode se incluir como AUTOR quando estiver '
+                            'coordenando o evento selecionado.'
+                        )
+                    }
+                )
+
+            coordena_evento = get_objects_for_user(
+                usuario_solicitante,
+                'api.coordenar_evento',
+                klass=Evento,
+            ).filter(pk=evento.pk).exists()
+
+            if not coordena_evento:
+                raise serializers.ValidationError(
+                    {
+                        'autoria_json': (
+                            'Coordenador só pode se incluir como AUTOR quando estiver '
+                            'coordenando o evento selecionado.'
+                        )
+                    }
+                )
+        return
+
+    if autor_id != usuario_solicitante.id:
+        raise serializers.ValidationError(
+            {
+                'autoria_json': (
+                    'Para este perfil, o usuário autenticado deve ser o AUTOR da submissão.'
+                )
+            }
+        )
+
+
+def normalizar_autorias(autoria_data, usuario_solicitante=None, evento=None):
     if not isinstance(autoria_data, list):
         return []
 
@@ -136,6 +205,8 @@ def normalizar_autorias(autoria_data):
                 {'autoria_json': 'A submissão deve possuir exatamente 1 AUTOR.'}
             )
 
+    _validar_autoria_por_perfil(usuario_solicitante, autorias_normalizadas, evento)
+
     return autorias_normalizadas
 
 
@@ -202,8 +273,17 @@ def sincronizar_respostas(submissao, respostas_campos_data):
         Resposta.objects.bulk_create(respostas_para_criar)
 
 
-def _sincronizar_dados_submissao(submissao, dados_submissao, equipe_data, autoria_data, respostas_campos_data):
+def _sincronizar_dados_submissao(
+    submissao,
+    dados_submissao,
+    equipe_data,
+    autoria_data,
+    respostas_campos_data,
+    usuario_solicitante=None,
+    evento=None,
+):
     atualizar_submissao(submissao, dados_submissao)
+    evento_referencia = evento or getattr(submissao, 'evento', None)
 
     if isinstance(equipe_data, list):
         submissao.equipe.all().delete()
@@ -213,10 +293,18 @@ def _sincronizar_dados_submissao(submissao, dados_submissao, equipe_data, autori
                 Coautor.objects.create(submissao=submissao, **membro)
 
     if isinstance(autoria_data, list):
-        autorias_normalizadas = normalizar_autorias(autoria_data)
+        autorias_normalizadas = normalizar_autorias(
+            autoria_data,
+            usuario_solicitante=usuario_solicitante,
+            evento=evento_referencia,
+        )
         sincronizar_autorias(submissao, autorias_normalizadas)
     elif isinstance(equipe_data, list):
-        autorias_normalizadas = normalizar_autorias(equipe_data)
+        autorias_normalizadas = normalizar_autorias(
+            equipe_data,
+            usuario_solicitante=usuario_solicitante,
+            evento=evento_referencia,
+        )
         if autorias_normalizadas:
             sincronizar_autorias(submissao, autorias_normalizadas)
 
@@ -224,7 +312,7 @@ def _sincronizar_dados_submissao(submissao, dados_submissao, equipe_data, autori
         sincronizar_respostas(submissao, respostas_campos_data)
 
 
-def criar_atracao_com_submissao(validated_data, campos_submissao):
+def criar_atracao_com_submissao(validated_data, campos_submissao, usuario_solicitante=None):
     equipe_data = validated_data.pop('equipe_json', [])
     autoria_data = validated_data.pop('autoria_json', [])
     respostas_campos_data = validated_data.pop('respostas_campos_json', {})
@@ -236,6 +324,7 @@ def criar_atracao_com_submissao(validated_data, campos_submissao):
 
     dados_submissao = extrair_dados_submissao(validated_data, submissao_payload, campos_submissao)
     submissao = None
+    evento_referencia = dados_submissao.get('evento')
     if any(_valor_esta_preenchido(valor) for valor in dados_submissao.values()):
         submissao = Submissao.objects.create(
             status_submissao=StatusSubmissao.SUBMETIDA,
@@ -251,12 +340,19 @@ def criar_atracao_com_submissao(validated_data, campos_submissao):
             equipe_data,
             autoria_data,
             respostas_campos_data,
+            usuario_solicitante=usuario_solicitante,
+            evento=evento_referencia,
         )
 
     return atracao
 
 
-def atualizar_atracao_com_submissao(instance, validated_data, campos_submissao):
+def atualizar_atracao_com_submissao(
+    instance,
+    validated_data,
+    campos_submissao,
+    usuario_solicitante=None,
+):
     equipe_data = validated_data.pop('equipe_json', None)
     autoria_data = validated_data.pop('autoria_json', None)
     respostas_campos_data = validated_data.pop('respostas_campos_json', None)
@@ -272,6 +368,7 @@ def atualizar_atracao_com_submissao(instance, validated_data, campos_submissao):
 
     dados_submissao = extrair_dados_submissao(validated_data, submissao_payload, campos_submissao)
     submissao = instance.submissao
+    evento_referencia = dados_submissao.get('evento') or getattr(submissao, 'evento', None)
 
     if submissao is None and any(_valor_esta_preenchido(valor) for valor in dados_submissao.values()):
         submissao = Submissao.objects.create(
@@ -288,6 +385,8 @@ def atualizar_atracao_com_submissao(instance, validated_data, campos_submissao):
             equipe_data,
             autoria_data,
             respostas_campos_data,
+            usuario_solicitante=usuario_solicitante,
+            evento=evento_referencia,
         )
     elif submissao is not None:
         if isinstance(equipe_data, list) and equipe_data:
@@ -298,10 +397,18 @@ def atualizar_atracao_com_submissao(instance, validated_data, campos_submissao):
                     Coautor.objects.create(submissao=submissao, **membro)
 
         if isinstance(autoria_data, list):
-            autorias_normalizadas = normalizar_autorias(autoria_data)
+            autorias_normalizadas = normalizar_autorias(
+                autoria_data,
+                usuario_solicitante=usuario_solicitante,
+                evento=evento_referencia,
+            )
             sincronizar_autorias(submissao, autorias_normalizadas)
         elif isinstance(equipe_data, list):
-            autorias_normalizadas = normalizar_autorias(equipe_data)
+            autorias_normalizadas = normalizar_autorias(
+                equipe_data,
+                usuario_solicitante=usuario_solicitante,
+                evento=evento_referencia,
+            )
             if autorias_normalizadas:
                 sincronizar_autorias(submissao, autorias_normalizadas)
 

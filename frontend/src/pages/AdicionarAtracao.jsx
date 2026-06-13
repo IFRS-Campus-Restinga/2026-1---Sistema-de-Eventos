@@ -235,7 +235,7 @@ export default function AdicionarAtracao() {
             await salvarRascunho(dadosRascunho);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_atracoes'), 1500);
+            setTimeout(() => navigate('/listar_submissoes'), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
             const msg =
@@ -289,7 +289,7 @@ export default function AdicionarAtracao() {
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_atracoes'), 1500);
+            setTimeout(() => navigate('/listar_submissoes'), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
             const msg =

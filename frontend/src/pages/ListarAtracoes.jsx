@@ -666,7 +666,7 @@ export default function ListarAtracoes() {
                             <div className="mt-4">
                                 <Button
                                     as={Link}
-                                    to="/adicionar_atracao"
+                                    to="/adicionar_submissao"
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                                     style={{ backgroundColor: '#00A44B', border: 'none' }}

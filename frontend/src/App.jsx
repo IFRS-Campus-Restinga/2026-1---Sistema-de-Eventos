@@ -110,8 +110,10 @@ function App() {
 
                 {/* Atracoes & Inscritos */}
                 <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
-                <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
+                <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />)} />
+                <Route path="/adicionar_submissao" element={protegido(<AdicionarAtracao />)} />
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
                 <Route path="/listar_inscritos_atracao" element={protegido(<ListarInscritosAtracao />)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />

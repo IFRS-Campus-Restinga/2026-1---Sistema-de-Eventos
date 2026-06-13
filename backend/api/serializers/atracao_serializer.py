@@ -389,7 +389,20 @@ class AtracaoSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         logger.info(f"Creating Atracao with validated_data: {validated_data}")
-        return criar_atracao_com_submissao(validated_data, self.CAMPOS_SUBMISSAO)
+        request = self.context.get("request")
+        usuario_solicitante = getattr(request, "user", None) if request else None
+        return criar_atracao_com_submissao(
+            validated_data,
+            self.CAMPOS_SUBMISSAO,
+            usuario_solicitante=usuario_solicitante,
+        )
 
     def update(self, instance, validated_data):
-        return atualizar_atracao_com_submissao(instance, validated_data, self.CAMPOS_SUBMISSAO)
+        request = self.context.get("request")
+        usuario_solicitante = getattr(request, "user", None) if request else None
+        return atualizar_atracao_com_submissao(
+            instance,
+            validated_data,
+            self.CAMPOS_SUBMISSAO,
+            usuario_solicitante=usuario_solicitante,
+        )

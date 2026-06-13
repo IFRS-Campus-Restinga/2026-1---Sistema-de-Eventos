@@ -118,7 +118,7 @@ export default function DetalheEvento() {
                             <Button
                                 variant="light"
                                 as={Link}
-                                to="/adicionar_atracao"
+                                to="/adicionar_submissao"
                                 onClick={() => setSelectedEventoId(id)}
                                 className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm"
                                 style={{ color: verdeIFRS }}

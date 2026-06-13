@@ -78,7 +78,12 @@ from .views.sessao_view import SessaoDetailView, SessaoListView
 from .views.submissao_view import SubmissaoListView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
-from .views.user_view import ServidorListView, UserListView, UserPermissoesView
+from .views.user_view import (
+    ServidorListView,
+    UserListView,
+    UserPermissoesView,
+    UsuarioElegivelListView,
+)
 from .views.visao_geral_view import DashboardView
 
 app_name = "api"
@@ -141,6 +146,7 @@ urlpatterns = [
     # usuarios e permissoes
     path("users/", UserListView.as_view()),
     path("users/servidores/", ServidorListView.as_view()),
+    path("users/elegiveis/", UsuarioElegivelListView.as_view()),
     path("users/<int:pk>/", UserPermissoesView.as_view()),
     path("usuarios/cadastro_complementar/", CadastroComplementarView.as_view(), name="cadastro_complementar"),
     path("permissoes/", PermissaoListView.as_view()),

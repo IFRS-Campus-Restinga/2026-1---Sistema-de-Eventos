@@ -17,6 +17,17 @@ from ..models.avaliacao_atracao import AvaliacaoAtracao
 from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.perfil import Perfil
+from ..services.submissao_atracao_policy import (
+    STATUS_EDICAO_COORDENADOR,
+    STATUS_EDICAO_USUARIO,
+    STATUS_EXCLUSAO_COORDENADOR,
+    STATUS_EXCLUSAO_USUARIO,
+    coordenador_gerencia_evento,
+    is_admin,
+    is_coordenador,
+    possui_status_permitido,
+    usuario_eh_autor,
+)
 from ..serializers.atracao_serializer import AtracaoSerializer
 from .perms_generic_view import PodeGerenciarEquipeEvento
 
@@ -29,7 +40,7 @@ class AtracaoListView(APIView):
     permission_classes = [AllowAny]
 
     def _base_queryset(self):
-        return Atracao.objects.select_related(
+        return Atracao.objects.filter(submissao__isnull=False).select_related(
             "submissao",
             "submissao__modalidade",
             "submissao__evento",
@@ -50,7 +61,7 @@ class AtracaoListView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = AtracaoSerializer(data=request.data)
+        serializer = AtracaoSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -63,7 +74,7 @@ class AtracaoDetailView(APIView):
     permission_classes = [AllowAny]
 
     def _base_queryset(self):
-        return Atracao.objects.select_related(
+        return Atracao.objects.filter(submissao__isnull=False).select_related(
             "submissao",
             "submissao__modalidade",
             "submissao__evento",
@@ -75,6 +86,91 @@ class AtracaoDetailView(APIView):
             return self._base_queryset().get(pk=pk)
         except Atracao.DoesNotExist:
             return None
+
+    def _validar_permissao_edicao(self, request, atracao):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False, "Autenticação obrigatória para editar submissão/atração."
+
+        if is_admin(user):
+            return True, ""
+
+        if is_coordenador(user):
+            tem_escopo = coordenador_gerencia_evento(user, atracao) or usuario_eh_autor(user, atracao)
+            if not tem_escopo:
+                return (
+                    False,
+                    "Coordenador só pode editar submissões/atrações do evento que coordena ou de sua autoria.",
+                )
+
+            if possui_status_permitido(atracao, STATUS_EDICAO_COORDENADOR):
+                return True, ""
+
+            return (
+                False,
+                "Coordenador só pode editar com status PREVISTA, SUBMETIDA, RASCUNHO ou CONFIRMADA.",
+            )
+
+        if not usuario_eh_autor(user, atracao):
+            return False, "Você só pode editar submissões/atrações de sua autoria."
+
+        if possui_status_permitido(atracao, STATUS_EDICAO_USUARIO):
+            return True, ""
+
+        return False, "Aluno/Servidor só pode editar submissão/atração em RASCUNHO."
+
+    @staticmethod
+    def _atracao_esta_programada(atracao):
+        return atracao.ordem_apresentacoes.exists()
+
+    def _validar_permissao_exclusao(self, request, atracao):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False, "Autenticação obrigatória para excluir submissão/atração.", status.HTTP_403_FORBIDDEN
+
+        if is_admin(user):
+            return True, "", status.HTTP_204_NO_CONTENT
+
+        if self._atracao_esta_programada(atracao):
+            return (
+                False,
+                "Não é possível excluir: a submissão/atração já foi programada.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        if is_coordenador(user):
+            tem_escopo = coordenador_gerencia_evento(user, atracao) or usuario_eh_autor(user, atracao)
+            if not tem_escopo:
+                return (
+                    False,
+                    "Coordenador só pode excluir submissões/atrações do evento que coordena ou de sua autoria.",
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+            if possui_status_permitido(atracao, STATUS_EXCLUSAO_COORDENADOR):
+                return True, "", status.HTTP_204_NO_CONTENT
+
+            return (
+                False,
+                "Coordenador só pode excluir com status PREVISTA, SUBMETIDA, RASCUNHO ou CONFIRMADA.",
+                status.HTTP_403_FORBIDDEN,
+            )
+
+        if not usuario_eh_autor(user, atracao):
+            return (
+                False,
+                "Você só pode excluir submissões/atrações de sua autoria.",
+                status.HTTP_403_FORBIDDEN,
+            )
+
+        if possui_status_permitido(atracao, STATUS_EXCLUSAO_USUARIO):
+            return True, "", status.HTTP_204_NO_CONTENT
+
+        return (
+            False,
+            "Aluno/Servidor só pode excluir submissão/atração em SUBMETIDA ou RASCUNHO.",
+            status.HTTP_403_FORBIDDEN,
+        )
 
     def get(self, request, pk):
         atracao = self.get_object(pk)
@@ -91,7 +187,12 @@ class AtracaoDetailView(APIView):
             return Response(
                 {"detail": "Atração não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
-        serializer = AtracaoSerializer(atracao, data=request.data)
+
+        pode_editar, motivo = self._validar_permissao_edicao(request, atracao)
+        if not pode_editar:
+            return Response({"detail": motivo}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AtracaoSerializer(atracao, data=request.data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -103,6 +204,11 @@ class AtracaoDetailView(APIView):
             return Response(
                 {"detail": "Atração não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        pode_excluir, motivo, http_status = self._validar_permissao_exclusao(request, atracao)
+        if not pode_excluir:
+            return Response({"detail": motivo}, status=http_status)
+
         atracao.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
