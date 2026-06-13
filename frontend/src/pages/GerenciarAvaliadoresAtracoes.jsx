@@ -52,12 +52,6 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         eventosMap,
     } = useGerenciarAvaliadoresAtracoes(eventoId);
 
-    // console.log(JSON.stringify(atracoes))
-    console.log(JSON.stringify(eventosMap));
-    console.log(modalidadesMap);
-    console.log(avaliacoesMap);
-    console.log(destaquesMap);
-
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
@@ -136,6 +130,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                 onAbrirAvaliacao={abrirAvaliacao}
                                 onRemoverAvaliador={removerAvaliadorDaTabela}
                                 onAtribuir={abrirModalAtribuicao}
+                                destaque={true}
                             />
                         </Col>
                     </Row>

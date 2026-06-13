@@ -106,15 +106,18 @@ export default function Tabela({
                 <tbody>
                     {dadosPaginados.map((d, rowIndex) => (
                         <tr key={`row-${rowIndex}`} className="">
-                            {d?.map((c, cellIndex) => (
-                                <td
-                                    key={`cell-${rowIndex}-${cellIndex}`}
-                                    style={c?.style}
-                                    className={c?.className}
-                                >
-                                    {c?.value || c}
-                                </td>
-                            ))}
+                            {d?.map(
+                                (c, cellIndex) =>
+                                    c && (
+                                        <td
+                                            key={`cell-${rowIndex}-${cellIndex}`}
+                                            style={c?.style}
+                                            className={c?.className}
+                                        >
+                                            {c?.value || c}
+                                        </td>
+                                    ),
+                            )}
                         </tr>
                     ))}
                 </tbody>

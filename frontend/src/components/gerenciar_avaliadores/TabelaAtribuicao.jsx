@@ -3,6 +3,9 @@ import Tag from '../common/Tag';
 import formatAreaConhecimento from '../../utils/formatAreaConhecimento';
 import { obterCorPorTag } from '../../utils/themeTags';
 import AvaliadorChip from './AvaliadorChip';
+import { BsTrash } from 'react-icons/bs';
+import { FaCheckCircle } from 'react-icons/fa';
+import { FiUserPlus } from 'react-icons/fi';
 
 export default function TabelaAtibuicao({
     trabalhos,
@@ -13,8 +16,11 @@ export default function TabelaAtibuicao({
     onAbrirAvaliacao,
     onRemoverAvaliador,
     onAtribuir,
+    destaque = false,
     homologar = false,
+    cancelar = false,
 }) {
+    const acoes = [homologar, cancelar];
     return (
         <Tabela
             className="rounded-4"
@@ -26,8 +32,11 @@ export default function TabelaAtibuicao({
                 'Área',
                 'Avaliadores',
                 'Média',
-                'Destaque',
-                { label: 'Ações', colSpan: 2 },
+                destaque ? 'Destaque' : null,
+                {
+                    label: 'Ações',
+                    colSpan: acoes.filter((d) => d == true).length + 1,
+                },
             ]}
             dados={(trabalhos || []).map((a) => [
                 {
@@ -70,7 +79,7 @@ export default function TabelaAtibuicao({
                                         backgroundColor: cor,
                                     }}
                                 ></div>
-                                <span className="">{texto}</span>
+                                <span className="text-center">{texto}</span>
                             </div>
                         );
                     })(),
@@ -104,6 +113,7 @@ export default function TabelaAtibuicao({
                 {
                     value: (
                         <Tag
+                            className=""
                             texto={formatAreaConhecimento(
                                 a.area_conhecimento || a.modalidade,
                             )}
@@ -146,11 +156,13 @@ export default function TabelaAtibuicao({
                     className: 'text-end',
                     style: { verticalAlign: 'middle' },
                 },
-                {
-                    value: destaquesMap[a.id] ? 'Sim' : 'Não',
-                    className: 'text-center',
-                    style: { verticalAlign: 'middle' },
-                },
+                destaque
+                    ? {
+                          value: destaquesMap[a.id] ? 'Sim' : 'Não',
+                          className: 'text-center',
+                          style: { verticalAlign: 'middle' },
+                      }
+                    : null,
                 {
                     value: (
                         <div className="d-flex gap-3">
@@ -160,6 +172,7 @@ export default function TabelaAtibuicao({
                                     className="btn btn-outline-primary"
                                     onClick={() => onAtribuir(a)}
                                 >
+                                    <FiUserPlus />
                                     Atribuir
                                 </button>
                             ) : (
@@ -169,7 +182,7 @@ export default function TabelaAtibuicao({
                                 >
                                     <button
                                         type="button"
-                                        className="btn btn-outline-primary"
+                                        className="btn btn-outline-secondary"
                                         onClick={() => onAtribuir(a)}
                                         disabled
                                     >
@@ -188,8 +201,9 @@ export default function TabelaAtibuicao({
                                   {eventosMap?.[a.evento] ? (
                                       <button
                                           type="button"
-                                          className="btn btn-outline-primary"
+                                          className="btn btn-success"
                                       >
+                                          <FaCheckCircle />
                                           Homologar
                                       </button>
                                   ) : (
@@ -199,10 +213,41 @@ export default function TabelaAtibuicao({
                                       >
                                           <button
                                               type="button"
-                                              className="btn btn-outline-primary"
+                                              className="btn btn-outline-secondary"
                                               disabled
                                           >
-                                              Atribuir
+                                              Homologar
+                                          </button>
+                                      </span>
+                                  )}
+                              </div>
+                          ),
+                          style: { verticalAlign: 'middle' },
+                      }
+                    : null,
+                cancelar
+                    ? {
+                          value: (
+                              <div className="d-flex gap-3">
+                                  {eventosMap?.[a.evento] ? (
+                                      <button
+                                          type="button"
+                                          className="btn btn-danger"
+                                      >
+                                          <BsTrash />
+                                          Cancelar
+                                      </button>
+                                  ) : (
+                                      <span
+                                          className="d-inline-block"
+                                          title="Indisponivel"
+                                      >
+                                          <button
+                                              type="button"
+                                              className="btn btn-outline-secondary"
+                                              disabled
+                                          >
+                                              Cancelar
                                           </button>
                                       </span>
                                   )}

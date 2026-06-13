@@ -283,6 +283,7 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                 eventosMap={eventosMap}
                                 onAtribuir={abrirModalAtribuicao}
                                 homologar={true}
+                                cancelar={true}
                             />
                         </Col>
                     </Row>
