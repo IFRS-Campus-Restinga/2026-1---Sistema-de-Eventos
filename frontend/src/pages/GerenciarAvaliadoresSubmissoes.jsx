@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
@@ -7,9 +8,10 @@ import FiltroAvaliadores from '../components/gerenciar_avaliadores/FiltroAvaliad
 import TabelaAtibuicao from '../components/gerenciar_avaliadores/TabelaAtribuicao';
 import ModalAtribuicao from '../components/gerenciar_avaliadores/ModalAtribuicao';
 import ModalDetalhesAvaliacao from '../components/gerenciar_avaliadores/ModalDetalhesAvaliacao';
+import ModalPopup from '../components/common/ModalPopup';
 import useGerenciarAvaliadoresSubmissoes from '../hooks/useGerenciarAvaliadoresSubmissoes';
 
-export default function GerenciarAvaliacoesSubmissoes({}) {
+export default function GerenciarAvaliacoesSubmissoes() {
     const [searchParams] = useSearchParams();
     const eventoId = searchParams.get('evento_id');
 
@@ -49,10 +51,59 @@ export default function GerenciarAvaliacoesSubmissoes({}) {
         fecharAvaliacao,
         removerAvaliadorDaTabela,
         avaliacaoModal,
+        homologarSubmissao,
+        reprovarSubmissao,
     } = useGerenciarAvaliadoresSubmissoes(eventoId);
 
-    const handleHomologarMock = () => {};
-    const handleCancelarMock = () => {};
+    const [modalHomologar, setModalHomologar] = useState({
+        show: false,
+        submissao: null,
+    });
+
+    const abrirModalHomologar = (submissao) => {
+        setModalHomologar({
+            show: true,
+            submissao,
+        });
+    };
+
+    const fecharModalHomologar = () => {
+        setModalHomologar({
+            show: false,
+            submissao: null,
+        });
+    };
+
+    const confirmarHomologar = async () => {
+        if (!modalHomologar.submissao?.id) return;
+        await homologarSubmissao(modalHomologar.submissao);
+        fecharModalHomologar();
+    };
+
+    const [modalReprovar, setModalReprovar] = useState({
+        show: false,
+        submissao: null,
+    });
+
+    const abrirModalReprovar = (submissao) => {
+        setModalReprovar({
+            show: true,
+            submissao,
+        });
+    };
+
+    const fecharModalReprovar = () => {
+        setModalReprovar({
+            show: false,
+            submissao: null,
+        });
+    };
+
+    const confirmarReprovar = async () => {
+        if (!modalReprovar.submissao?.id) return;
+        await reprovarSubmissao(modalReprovar.submissao);
+        fecharModalReprovar();
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -137,8 +188,8 @@ export default function GerenciarAvaliacoesSubmissoes({}) {
                                 onAbrirAvaliacao={abrirAvaliacao}
                                 onRemoverAvaliador={removerAvaliadorDaTabela}
                                 onAtribuir={abrirModalAtribuicao}
-                                onHomologar={handleHomologarMock}
-                                onCancelar={handleCancelarMock}
+                                onHomologar={abrirModalHomologar}
+                                onCancelar={abrirModalReprovar}
                                 homologar={true}
                                 cancelar={true}
                                 destaque={false}
@@ -177,12 +228,46 @@ export default function GerenciarAvaliacoesSubmissoes({}) {
                 modalidadesMap={modalidadesMap}
             />
 
+            <ModalPopup
+                show={modalHomologar.show}
+                onFechar={fecharModalHomologar}
+                titulo="Confirmar homologação"
+                tituloSecundario={
+                    modalHomologar.submissao?.titulo
+                        ? `Submissão: ${modalHomologar.submissao.titulo}`
+                        : 'Deseja homologar esta submissão?'
+                }
+                texto="Ao confirmar, esta submissão será homologada e convertida em Atração."
+                textoFechar="Cancelar"
+                textoAcao="Confirmar"
+                onAcao={confirmarHomologar}
+                variante="success"
+                size="lg"
+            />
+
+            <ModalPopup
+                show={modalReprovar.show}
+                onFechar={fecharModalReprovar}
+                titulo="Confirmar reprovação"
+                tituloSecundario={
+                    modalReprovar.submissao?.titulo
+                        ? `Submissão: ${modalReprovar.submissao.titulo}`
+                        : 'Deseja reprovar esta submissão?'
+                }
+                texto="Ao confirmar, esta submissão será reprovada e não poderá mais ser modificada."
+                textoFechar="Cancelar"
+                textoAcao="Reprovar"
+                onAcao={confirmarReprovar}
+                variante="danger"
+                size="lg"
+            />
+
             {alerta && (
                 <Alerta
-                    key={alerta.reacao || Date.now()}
+                    key={alerta.reacao}
                     mensagem={alerta.mensagem}
                     variacao={alerta.variacao}
-                    reacao={alerta.reacao || Date.now()}
+                    reacao={alerta.reacao}
                 />
             )}
 

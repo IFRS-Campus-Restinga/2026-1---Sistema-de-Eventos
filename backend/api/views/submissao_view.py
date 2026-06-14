@@ -5,13 +5,69 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.status_atracao import StatusAtracao
 from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_etapa import TipoEtapa
+from ..models.atracao import Atracao
 from ..models.avaliacao_submissao import AvaliacaoSubmissao
 from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.submissao import Submissao
 from ..serializers.submissao_serializer import SubmissaoSerializer
+
+
+class SubmissaoHomologarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            submissao = Submissao.objects.get(pk=pk)
+        except Submissao.DoesNotExist:
+            return Response({"erro": "Submissão não encontrada"}, status=404)
+
+        if submissao.status_submissao == StatusSubmissao.REPROVADA:
+            return Response(
+                {"erro": "Submissão reprovada. A homologação não é permitida."},
+                status=403,
+            )
+
+        # Homologar = criar/garantir a relação com Atracao e converter status na submissão
+        atracao = getattr(submissao, "atracao", None)
+        if atracao is None:
+            atracao = Atracao.objects.create(submissao=submissao)
+
+        # Homologar = confirmar a atração
+        atracao.status = StatusAtracao.CONFIRMADA
+        atracao.save(update_fields=["status"])
+
+        # Homologar também converte o status da submissão
+        submissao.status_submissao = StatusSubmissao.CONVERTIDA_EM_ATRACAO
+        submissao.save(update_fields=["status_submissao"])
+
+        serializer = SubmissaoSerializer(submissao, context={"request": request})
+        return Response(serializer.data, status=200)
+
+
+class SubmissaoReprovarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            submissao = Submissao.objects.get(pk=pk)
+        except Submissao.DoesNotExist:
+            return Response({"erro": "Submissão não encontrada"}, status=404)
+
+        if submissao.status_submissao == StatusSubmissao.REPROVADA:
+            return Response(
+                {"erro": "Submissão já reprovada."},
+                status=403,
+            )
+
+        submissao.status_submissao = StatusSubmissao.REPROVADA
+        submissao.save(update_fields=["status_submissao"])
+
+        serializer = SubmissaoSerializer(submissao, context={"request": request})
+        return Response(serializer.data, status=200)
 
 
 class SubmissaoListView(APIView):
@@ -106,9 +162,6 @@ class SubmissaoListView(APIView):
         if evento_id:
             submissoes = submissoes.filter(evento_id=evento_id)
 
-        submissoes = submissoes.exclude(
-            status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO
-        )
         submissoes = self._aplicar_filtros(request, submissoes)
         submissoes = self._aplicar_ordenacao(request, submissoes).distinct()
 

@@ -21,10 +21,6 @@ from .views.avaliacao_submissao_view import (
     AvaliacaoSubmissaoDetailView,
     AvaliacaoSubmissaoListView,
 )
-from .views.item_avaliacao_submissao_view import (
-    ItemAvaliacaoSubmissaoDetailView,
-    ItemAvaliacaoSubmissaoListView,
-)
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
@@ -71,6 +67,10 @@ from .views.item_avaliacao_atracao_view import (
     ItemAvaliaçãoAtracaoDetailView,
     ItemAvaliaçãoAtracaoListView,
 )
+from .views.item_avaliacao_submissao_view import (
+    ItemAvaliacaoSubmissaoDetailView,
+    ItemAvaliacaoSubmissaoListView,
+)
 from .views.local_views import LocalDetailView, LocalListView
 from .views.modalidade_view import ModalidadeDetailView, ModalidadeListView
 from .views.ordem_apresentacao_atracao_view import (
@@ -79,8 +79,13 @@ from .views.ordem_apresentacao_atracao_view import (
 )
 from .views.perms_view import PermissaoListView
 from .views.sessao_view import SessaoDetailView, SessaoListView
-from .views.submissao_view import SubmissaoListView, MinhasSubmissoesAvaliadorView
 from .views.submissao_avaliador_view import SubmissaoAvaliadorView
+from .views.submissao_view import (
+    MinhasSubmissoesAvaliadorView,
+    SubmissaoHomologarView,
+    SubmissaoListView,
+    SubmissaoReprovarView,
+)
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import (
@@ -166,6 +171,8 @@ urlpatterns = [
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
     path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
     path("submissoes/", SubmissaoListView.as_view()),
+    path("submissoes/<int:pk>/homologar/", SubmissaoHomologarView.as_view()),
+    path("submissoes/<int:pk>/reprovar/", SubmissaoReprovarView.as_view()),
     path("submissoes/<int:pk>/avaliador/", SubmissaoAvaliadorView.as_view()),
 
     # avaliacao de submissoes

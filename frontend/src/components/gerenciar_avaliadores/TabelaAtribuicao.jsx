@@ -16,6 +16,8 @@ export default function TabelaAtribuicao({
     onAbrirAvaliacao,
     onRemoverAvaliador,
     onAtribuir,
+    onHomologar,
+    onCancelar,
     destaque = false,
     homologar = false,
     cancelar = false,
@@ -77,6 +79,11 @@ export default function TabelaAtribuicao({
                 const textoContagem = Number.isFinite(limite)
                     ? `${num}/${limite} avaliadores`
                     : `${num}/— avaliadores`;
+
+                const statusSubmissao = a?.status_submissao ?? null;
+                const statusLocked =
+                    statusSubmissao === 'CONVERTIDA_EM_ATRACAO' ||
+                    statusSubmissao === 'REPROVADA';
 
                 // Monta o array da linha mantendo estritamente a ordem das colunas
                 const linha = [
@@ -206,7 +213,10 @@ export default function TabelaAtribuicao({
                                 <button
                                     type="button"
                                     className="btn btn-outline-primary"
-                                    onClick={() => onAtribuir(a)}
+                                    onClick={() => {
+                                        if (!statusLocked) onAtribuir(a);
+                                    }}
+                                    disabled={statusLocked}
                                 >
                                     <FiUserPlus className="me-1" />
                                     Atribuir
@@ -239,6 +249,10 @@ export default function TabelaAtribuicao({
                                     <button
                                         type="button"
                                         className="btn btn-success"
+                                        onClick={() => {
+                                            if (!statusLocked) onHomologar?.(a);
+                                        }}
+                                        disabled={statusLocked}
                                     >
                                         <FaCheckCircle className="me-1" />
                                         Homologar
@@ -272,9 +286,13 @@ export default function TabelaAtribuicao({
                                     <button
                                         type="button"
                                         className="btn btn-danger"
+                                        onClick={() => {
+                                            if (!statusLocked) onCancelar?.(a);
+                                        }}
+                                        disabled={statusLocked}
                                     >
                                         <BsTrash className="me-1" />
-                                        Cancelar
+                                        Reprovar
                                     </button>
                                 ) : (
                                     <span
@@ -286,7 +304,7 @@ export default function TabelaAtribuicao({
                                             className="btn btn-outline-secondary"
                                             disabled
                                         >
-                                            Cancelar
+                                            Reprovar
                                         </button>
                                     </span>
                                 )}

@@ -4,7 +4,7 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Tag from '../components/common/Tag';
 import Alerta from '../components/common/Alerta';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
 import useAvaliarSubmissao from '../hooks/useAvaliarSubmissao';
 import { obterCorPorTag } from '../utils/themeTags';
@@ -33,6 +33,13 @@ export default function AvaliarSubmissao() {
         podeEnviar,
     } = useAvaliarSubmissao({ submissaoId, avaliacaoId: avaliacaoIdParam });
 
+    useEffect(() => {
+        // Impede o usuário de selecionar "Em Avaliação"
+        if (editingAllowed && statusAprovacao === 'EM_AVALIACAO') {
+            setStatusAprovacao('APROVADO');
+        }
+    }, [editingAllowed, statusAprovacao, setStatusAprovacao]);
+
     const onSubmit = async () => {
         if (!submissao) return;
         try {
@@ -59,7 +66,7 @@ export default function AvaliarSubmissao() {
                     reacao: Date.now(),
                 });
             }
-        } catch (err) {
+        } catch {
             setAlerta({
                 mensagem: 'Erro ao enviar avaliação',
                 variacao: 'danger',
@@ -190,13 +197,16 @@ export default function AvaliarSubmissao() {
                                 </Form.Label>
                                 <Form.Select
                                     value={statusAprovacao}
-                                    onChange={(e) =>
-                                        setStatusAprovacao(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        // bloqueia seleção de "Em Avaliação" (segurança extra)
+                                        if (next === 'EM_AVALIACAO') return;
+                                        setStatusAprovacao(next);
+                                    }}
                                     disabled={!editingAllowed}
                                     className="p-2 bg-light fw-semibold"
                                 >
-                                    <option value="EM_AVALIACAO">
+                                    <option value="EM_AVALIACAO" disabled>
                                         Em Avaliação
                                     </option>
                                     <option value="APROVADO">Aprovado</option>

@@ -111,7 +111,10 @@ export default function Tabela({
                                     c && (
                                         <td
                                             key={`cell-${rowIndex}-${cellIndex}`}
-                                            style={c?.style}
+                                            style={{
+                                                textAlign: 'center',
+                                                ...(c?.style || {}),
+                                            }}
                                             className={c?.className}
                                         >
                                             {c?.value || c}

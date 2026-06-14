@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import useSubmissaoAvaliador from './useSubmissaoAvaliador';
 import service from '../services/gerenciarAvaliadoresSubmissaoService';
 import {
+    homologarSubmissao,
+    reprovarSubmissao,
+} from '../services/submissoesService';
+import {
     construirOpcoesModalidade,
     filtrarAtracoes as filtrarSubmissoes,
     ordenarAtracoesPorMedia as ordenarSubmissoesPorMedia,
@@ -18,7 +22,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
     const [carregando, setCarregando] = useState(false);
 
     const [filtroArea, setFiltroArea] = useState('');
-    const [areaOptions, setAreaOptions] = useState([]);
+    const [areaOptions] = useState([]);
 
     const [selecionada, setSelecionada] = useState(null);
     const [usuarios, setUsuarios] = useState([]);
@@ -53,7 +57,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
             const u = Array.isArray(resp) ? resp : [];
             setUsuarios(u);
             return u;
-        } catch (err) {
+        } catch {
             setUsuarios([]);
             return [];
         }
@@ -82,7 +86,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                 map[evt.id] = now >= inicio && now <= fim;
             });
             setEventosMap(map);
-        } catch (e) {
+        } catch {
             setEventosMap({});
         }
     };
@@ -95,7 +99,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                 map[c.id] = c;
             });
             setCriteriosMap(map);
-        } catch (e) {
+        } catch {
             setCriteriosMap({});
         }
     };
@@ -124,6 +128,35 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
             const listaComAvaliadores = await Promise.all(
                 listaFiltrada.map(async (item) => {
                     try {
+                        // Garante que a UI tenha texto dos autores
+                        // (TabelaAtribuicao usa `autores_text`)
+                        const fontesAutoria =
+                            Array.isArray(item?.autorias) &&
+                            item.autorias.length
+                                ? item.autorias
+                                : Array.isArray(item?.equipe) &&
+                                    item.equipe.length
+                                  ? item.equipe
+                                  : [];
+
+                        const nomesAutores = fontesAutoria
+                            .map(
+                                (aut) =>
+                                    aut?.nome ||
+                                    aut?.usuario_nome ||
+                                    aut?.autor ||
+                                    aut?.usuario ||
+                                    '',
+                            )
+                            .map((v) => String(v).trim())
+                            .filter(Boolean);
+
+                        item.autores_text =
+                            item.autores_text ||
+                            (nomesAutores.length
+                                ? nomesAutores.join(', ')
+                                : '—');
+
                         const resp = await service.listarAvaliadoresSubmissao(
                             item.id,
                         );
@@ -134,6 +167,19 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                             await service.listarAvaliacoes({
                                 submissao: item.id,
                             });
+
+                        // Calcula a média final para exibir na coluna "Média"
+                        // (TabelaAtribuicao usa `nota_media`)
+                        const notas = (avaliacoesEnviadas || [])
+                            .map((av) => av.nota_final)
+                            .map((n) => (Number.isFinite(n) ? n : Number(n)))
+                            .filter((n) => Number.isFinite(n));
+
+                        item.nota_media =
+                            notas.length > 0
+                                ? notas.reduce((acc, v) => acc + v, 0) /
+                                  notas.length
+                                : null;
 
                         (avaliacoesEnviadas || []).forEach((av) => {
                             const avaliadorIdReal =
@@ -251,7 +297,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                 avaliacao: found,
                 itens: Array.isArray(itensResp) ? itensResp : [],
             }));
-        } catch (e) {
+        } catch {
             setAvaliacaoModal((prev) => ({ ...prev, loading: false }));
         }
     };
@@ -300,9 +346,53 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                 variacao: 'success',
                 reacao: Date.now(),
             });
-        } catch (e) {
+        } catch {
             setAlerta({
                 mensagem: 'Falha ao atualizar atribuições de avaliadores.',
+                variacao: 'danger',
+                reacao: Date.now(),
+            });
+        }
+    };
+
+    const homologarUmaSubmissao = async (submissao) => {
+        if (!submissao?.id) return;
+
+        setAlerta(null);
+        try {
+            await homologarSubmissao(submissao.id);
+            await carregarLista();
+            window.dispatchEvent(new Event('atualizarEventosAvaliador'));
+            setAlerta({
+                mensagem: 'Submissão homologada com sucesso!',
+                variacao: 'success',
+                reacao: Date.now(),
+            });
+        } catch {
+            setAlerta({
+                mensagem: 'Falha ao homologar a submissão.',
+                variacao: 'danger',
+                reacao: Date.now(),
+            });
+        }
+    };
+
+    const reprovarUmaSubmissao = async (submissao) => {
+        if (!submissao?.id) return;
+
+        setAlerta(null);
+        try {
+            await reprovarSubmissao(submissao.id);
+            await carregarLista();
+            window.dispatchEvent(new Event('atualizarEventosAvaliador'));
+            setAlerta({
+                mensagem: 'Submissão reprovada com sucesso!',
+                variacao: 'success',
+                reacao: Date.now(),
+            });
+        } catch {
+            setAlerta({
+                mensagem: 'Falha ao reprovar a submissão.',
                 variacao: 'danger',
                 reacao: Date.now(),
             });
@@ -324,7 +414,7 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                 variacao: 'success',
                 reacao: Date.now(),
             });
-        } catch (e) {
+        } catch {
             setAlerta({
                 mensagem: 'Não foi possível remover o avaliador selecionado.',
                 variacao: 'danger',
@@ -366,6 +456,8 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
         abrirAvaliacao,
         fecharAvaliacao,
         removerAvaliadorDaTabela,
+        homologarSubmissao: homologarUmaSubmissao,
+        reprovarSubmissao: reprovarUmaSubmissao,
         avaliacoesMap,
         isMobile:
             typeof window !== 'undefined' ? window.innerWidth < 768 : false,

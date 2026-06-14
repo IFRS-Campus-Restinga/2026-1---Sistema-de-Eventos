@@ -57,26 +57,36 @@ export default function MinhasAvaliacoesSubmissoes() {
     }, [eventoId, carregarSubmissoesParaEvento]);
 
     const personalizarInformacoes = (d) => (
-        <div className="d-flex flex-column gap-1">
-            <span className="fw-bold text-dark">{d?.titulo}</span>
-            <span className="text-muted small">
-                {d?.nivel_ensino_display || formatNivelEnsino(d?.nivel_ensino)}
-            </span>
-            <Link
-                className="text-decoration-none d-inline-flex align-items-center text-success small fw-semibold mt-1"
-                to="#"
-            >
-                <BsEyeFill className="me-1" />
-                <span
-                    onClick={() => {
-                        setSelectedSubmissao(d);
-                        setModalAtivo(true);
-                    }}
-                >
-                    Ler resumo completo
-                </span>
-            </Link>
-        </div>
+        <>
+            <Row className="p-0 m-0">
+                <Col className="p-0 m-0 fw-bold">{d?.titulo}</Col>
+            </Row>
+
+            <Row className="p-0 m-0">
+                <Col className="p-0 m-0">
+                    {d?.tipo || d?.modalidade || 'Modalidade'} |{' '}
+                    {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
+                </Col>
+
+                <Col className="p-0 m-0">
+                    <Link
+                        className="text-decoration-none d-flex align-items-center"
+                        to="#"
+                    >
+                        <BsEyeFill />
+                        <span
+                            className="ms-2"
+                            onClick={() => {
+                                setSelectedSubmissao(d);
+                                setModalAtivo(true);
+                            }}
+                        >
+                            Ler resumo completo
+                        </span>
+                    </Link>
+                </Col>
+            </Row>
+        </>
     );
 
     return (
