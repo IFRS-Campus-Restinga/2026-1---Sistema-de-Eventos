@@ -4,6 +4,7 @@ import {
     Button,
     Col,
     Container,
+    Dropdown,
     Form,
     ListGroup,
     Row,
@@ -12,11 +13,14 @@ import {
 import {
     MdAddCircle,
     MdArrowBack,
+    MdCalendarToday,
     MdDelete,
     MdEdit,
     MdEvent,
     MdInfoOutline,
-    MdPlace,
+    MdLocalOffer,
+    MdPerson,
+    MdSchool,
 } from 'react-icons/md';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Alerta from '../components/common/Alerta';
@@ -67,6 +71,9 @@ export default function ListarAtracoes() {
     const [filtroNivel, setFiltroNivel] = useState('');
     const [filtroEvento, setFiltroEvento] = useState('');
     const [ordenacao, setOrdenacao] = useState('criacao');
+    const [paginaAtual, setPaginaAtual] = useState(1);
+
+    const ITENS_POR_PAGINA = 10;
 
     const [formEdicao, setFormEdicao] = useState({
         id: null,
@@ -91,6 +98,14 @@ export default function ListarAtracoes() {
     const [usuarioLogadoEdicao, setUsuarioLogadoEdicao] = useState(null);
 
     const eventoFiltroId = getSelectedEventoId();
+    const gruposUsuarioNormalizados = useMemo(() => {
+        const grupos = Array.isArray(usuarioLogado?.groups) ? usuarioLogado.groups : [];
+        return grupos
+            .map((group) => (typeof group === 'string' ? group : group?.name))
+            .filter(Boolean)
+            .map((group) => String(group).trim().toLowerCase());
+    }, [usuarioLogado]);
+
     const eventoSelecionadoLista = useMemo(() => {
         if (!eventoFiltroId) return null;
 
@@ -255,13 +270,25 @@ export default function ListarAtracoes() {
         const mapa = {
             RASCUNHO: { label: 'RASCUNHO', bg: 'secondary' },
             PREVISTA: { label: 'SUBMETIDA', bg: 'primary' },
-            CONFIRMADA: { label: 'CONFIRMADA', bg: 'success' },
+            SUBMETIDA: { label: 'SUBMETIDA', bg: 'primary' },
+            A_APRESENTAR: { label: 'A APRESENTAR', bg: 'success' },
+            CONFIRMADA: { label: 'A APRESENTAR', bg: 'success' },
             EM_ANDAMENTO: { label: 'EM ANDAMENTO', bg: 'warning' },
             ENCERRADA: { label: 'ENCERRADA', bg: 'dark' },
             CANCELADA: { label: 'CANCELADA', bg: 'danger' },
             EM_AVALIACAO: { label: 'EM AVALIACAO', bg: 'warning' },
-            APROVADA: { label: 'APROVADA', bg: 'success' },
-            REPROVADA: { label: 'REPROVADA', bg: 'danger' },
+            REJEITADO: { label: 'REJEITADA', bg: 'danger' },
+            REPROVADA: { label: 'REJEITADA', bg: 'danger' },
+            REPROVADO: { label: 'REJEITADA', bg: 'danger' },
+            APROVADO_COM_RESSALVAS: {
+                label: 'ACEITO COM RESSALVAS',
+                bg: 'info',
+            },
+            ACEITA: { label: 'ACEITA', bg: 'success' },
+            APROVADA: { label: 'ACEITA', bg: 'success' },
+            APROVADO: { label: 'ACEITA', bg: 'success' },
+            CONVERTIDA_EM_ATRACAO: { label: 'A APRESENTAR', bg: 'success' },
+            FINALIZADA: { label: 'FINALIZADA', bg: 'success' },
         };
 
         return (
@@ -272,22 +299,103 @@ export default function ListarAtracoes() {
         );
     };
 
+    const getStatusBorderColor = (status) => {
+        const statusNormalizado = (status || '').toUpperCase();
+
+        const mapa = {
+            RASCUNHO: '#6c757d',
+            PREVISTA: '#0d6efd',
+            SUBMETIDA: '#0d6efd',
+            A_APRESENTAR: '#198754',
+            CONFIRMADA: '#198754',
+            EM_ANDAMENTO: '#ffc107',
+            ENCERRADA: '#212529',
+            CANCELADA: '#dc3545',
+            EM_AVALIACAO: '#fd7e14',
+            REJEITADO: '#dc3545',
+            REPROVADA: '#dc3545',
+            REPROVADO: '#dc3545',
+            APROVADO_COM_RESSALVAS: '#0dcaf0',
+            ACEITA: '#198754',
+            APROVADA: '#198754',
+            APROVADO: '#198754',
+            CONVERTIDA_EM_ATRACAO: '#198754',
+            FINALIZADA: '#20c997',
+        };
+
+        return mapa[statusNormalizado] || '#6c757d';
+    };
+
     // Função para determinar se usuário é admin
-    const isAdmin = () => usuarioLogado?.groups?.includes('ADMIN') || usuarioLogado?.is_superuser;
+    const isAdmin = () =>
+        Boolean(
+            usuarioLogado?.is_superuser ||
+                usuarioLogado?.is_staff ||
+                ['admin', 'administrador'].includes(
+                    String(usuarioLogado?.group || '').trim().toLowerCase(),
+                ) ||
+                gruposUsuarioNormalizados.includes('admin') ||
+                gruposUsuarioNormalizados.includes('administrador'),
+        );
 
     // Função para determinar se usuário é coordenador
-    const isCoordenador = () => usuarioLogado?.groups?.includes('COORDENADOR');
+    const isCoordenador = () => gruposUsuarioNormalizados.includes('coordenador');
+
+    // Função para determinar se usuário é avaliador
+    const isAvaliador = () => gruposUsuarioNormalizados.includes('avaliador');
+
+    const getMinhaAutoria = (item) => {
+        if (isAdmin()) return null;
+
+        const autorias = Array.isArray(item?.autorias) && item.autorias.length > 0
+            ? item.autorias
+            : (Array.isArray(item?.equipe) ? item.equipe : []);
+
+        const usuarioId = String(usuarioLogado?.id || '').trim();
+        const usuarioNome = String(usuarioLogado?.username || usuarioLogado?.nome || '').trim().toLowerCase();
+
+        const autoriaEncontrada = autorias.find((autoria) => {
+            const idsPossiveis = [autoria?.usuario, autoria?.user_id, autoria?.perfil_usuario]
+                .map((valor) => String(valor || '').trim())
+                .filter(Boolean);
+
+            if (usuarioId && idsPossiveis.includes(usuarioId)) {
+                return true;
+            }
+
+            const nomeAutoria = String(autoria?.nome || '').trim().toLowerCase();
+            return usuarioNome && nomeAutoria === usuarioNome;
+        });
+
+        if (!autoriaEncontrada) return null;
+
+        const tipoAutoria =
+            autoriaEncontrada?.funcao ||
+            autoriaEncontrada?.tipo ||
+            autoriaEncontrada?.papel ||
+            'AUTORIA';
+
+        return String(tipoAutoria).trim().toUpperCase();
+    };
+
+    const getCoresAutoria = (tipoAutoria) => {
+        const tipo = String(tipoAutoria || '').trim().toUpperCase();
+        const mapa = {
+            AUTOR: { fundo: '#1D4ED8', texto: '#FFFFFF' },
+            COAUTOR: { fundo: '#0F766E', texto: '#FFFFFF' },
+            ORIENTADOR: { fundo: '#7C3AED', texto: '#FFFFFF' },
+            AUTORIA: { fundo: '#4B5563', texto: '#FFFFFF' },
+        };
+
+        return mapa[tipo] || mapa.AUTORIA;
+    };
 
     // Função para determinar se usuário é autor do item
     const isAutor = (item) => {
         if (!usuarioLogado) return false;
-        const autorias = item.autorias || item.equipe || [];
-        return autorias.some(
-            (autoria) =>
-                (autoria.usuario === usuarioLogado.id ||
-                    autoria.user_id === usuarioLogado.id ||
-                    autoria.perfil_usuario === usuarioLogado.id)
-        );
+        if (isAdmin()) return true;
+
+        return Boolean(getMinhaAutoria(item));
     };
 
     // Função para determinar se coordenador gerencia o evento
@@ -296,13 +404,17 @@ export default function ListarAtracoes() {
         return usuarioLogado?.eventos_coordenados?.includes(item.evento) || false;
     };
 
+    const normalizarStatusParaPermissao = (status) => {
+        return String(status || '').toUpperCase();
+    };
+
     // Função para validar se pode editar
     const podeEditar = (item) => {
         if (isAdmin()) return true;
 
-        const status = (item.status || '').toUpperCase();
-        const statusPermitidosCoordenador = ['SUBMETIDA', 'CONFIRMADA', 'RASCUNHO'];
-        const statusPermitidosUsuario = ['RASCUNHO'];
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidosCoordenador = ['PREVISTA', 'SUBMETIDA', 'CONFIRMADA', 'A_APRESENTAR', 'RASCUNHO'];
+        const statusPermitidosUsuario = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
 
         if (isCoordenador()) {
             if (!coordenadorGerenciaEvento(item) && !isAutor(item)) return false;
@@ -317,8 +429,8 @@ export default function ListarAtracoes() {
     const podeExcluir = (item) => {
         if (!podeEditar(item)) return false; // Se não pode editar, não pode excluir
         
-        const status = (item.status || '').toUpperCase();
-        const statusPermitidos = ['SUBMETIDA', 'RASCUNHO'];
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
         
         return statusPermitidos.includes(status);
     };
@@ -327,12 +439,8 @@ export default function ListarAtracoes() {
     const obterMotivoBloqueioExclusao = (item) => {
         if (isAdmin()) return null;
 
-        const status = (item.status || '').toUpperCase();
-        const statusPermitidos = ['SUBMETIDA', 'RASCUNHO'];
-
-        if (!podeEditar(item)) {
-            return 'Você não tem permissão para editar este item.';
-        }
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
 
         if (!statusPermitidos.includes(status)) {
             return `Exclusão não permitida para itens com status "${getStatusConfig(status).label}".`;
@@ -372,8 +480,92 @@ export default function ListarAtracoes() {
             .replace(/[\u0300-\u036f]/g, '')
             .toLowerCase();
 
+    const getEventoNome = (eventoId) => {
+        const evento = (eventosEdicao || []).find((item) => String(item.id) === String(eventoId));
+        return evento?.nome || `ID ${eventoId}`;
+    };
+
+    const formatarDataHoraCurta = (valor) => {
+        if (!valor) return '';
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) return '';
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const getTermosDestaque = (item) => {
+        const maxTermos = 4;
+
+        const termosPalavrasChave = String(item?.palavras_chave || '')
+            .split(/[;,]/)
+            .map((termo) => termo.trim())
+            .filter((termo) => termo.length >= 3);
+
+        if (termosPalavrasChave.length > 0) {
+            return [...new Set(termosPalavrasChave)].slice(0, maxTermos);
+        }
+
+        const stopwords = new Set([
+            'para', 'como', 'entre', 'sobre', 'com', 'sem', 'dos', 'das', 'que',
+            'uma', 'um', 'nos', 'nas', 'por', 'ser', 'sao', 'são', 'seu', 'sua',
+            'seus', 'suas', 'tambem', 'também', 'mais', 'menos', 'muito', 'muita',
+        ]);
+
+        const termosResumo = String(item?.resumo || '')
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .split(/\s+/)
+            .map((termo) => termo.trim())
+            .filter((termo) => termo.length >= 5 && !stopwords.has(termo));
+
+        return [...new Set(termosResumo)].slice(0, maxTermos);
+    };
+
+    const STATUS_SUBMISSOES = new Set([
+        'RASCUNHO',
+        'PREVISTA',
+        'SUBMETIDA',
+        'EM_AVALIACAO',
+        'REJEITADO',
+        'REPROVADA',
+        'REPROVADO',
+        'APROVADO_COM_RESSALVAS',
+        'ACEITA',
+        'APROVADA',
+        'APROVADO',
+        'CANCELADA',
+    ]);
+
+    const STATUS_ATRACOES = new Set([
+        'A_APRESENTAR',
+        'CONFIRMADA',
+        'EM_ANDAMENTO',
+        'ENCERRADA',
+        'CANCELADA',
+        'EM_AVALIACAO',
+        'FINALIZADA',
+        'CONVERTIDA_EM_ATRACAO',
+    ]);
+
     const atracoesFiltradas = useMemo(() => {
-        let resultado = [...atracoes];
+        let resultado = [...atracoes].filter((item) => {
+            const statusBruto = (item.status || '').toUpperCase();
+
+            if (ehSubmissoes) {
+                return STATUS_SUBMISSOES.has(statusBruto);
+            }
+
+            if (ehAtracoes) {
+                return STATUS_ATRACOES.has(statusBruto);
+            }
+
+            return true;
+        });
 
         // Aplicar filtro de busca
         const termo = normalizarTexto(termoBusca.trim());
@@ -412,9 +604,28 @@ export default function ListarAtracoes() {
 
         // Aplicar filtro de modalidade
         if (filtroModalidade) {
-            resultado = resultado.filter(
-                (item) => item.modalidade === filtroModalidade
+            const modalidadeSelecionada = (opcoesEdicao.modalidades || []).find(
+                (modalidade) =>
+                    String(modalidade?.value ?? modalidade?.id ?? '') === String(filtroModalidade),
             );
+
+            const termoModalidadeSelecionada = normalizarTexto(
+                modalidadeSelecionada?.label || modalidadeSelecionada?.nome || '',
+            );
+
+            resultado = resultado.filter((item) => {
+                const modalidadeItem = String(item?.modalidade ?? item?.modalidade_id ?? '');
+                const modalidadePorNome = normalizarTexto(
+                    item?.tipo || item?.modalidade_display || item?.modalidade_nome || '',
+                );
+
+                const batePorId = modalidadeItem !== '' && modalidadeItem === String(filtroModalidade);
+                const batePorNome =
+                    termoModalidadeSelecionada !== '' &&
+                    modalidadePorNome.includes(termoModalidadeSelecionada);
+
+                return batePorId || batePorNome;
+            });
         }
 
         // Aplicar filtro de nível
@@ -425,8 +636,8 @@ export default function ListarAtracoes() {
             });
         }
 
-        // Aplicar filtro de evento (apenas para admin)
-        if (filtroEvento && isAdmin()) {
+        // Aplicar filtro de evento
+        if (filtroEvento) {
             resultado = resultado.filter(
                 (item) => item.evento === parseInt(filtroEvento, 10)
             );
@@ -465,7 +676,31 @@ export default function ListarAtracoes() {
         }
 
         return resultado;
-    }, [atracoes, termoBusca, filtroStatus, filtroAutor, filtroModalidade, filtroNivel, filtroEvento, ordenacao]);
+    }, [
+        atracoes,
+        ehSubmissoes,
+        ehAtracoes,
+        termoBusca,
+        filtroStatus,
+        filtroAutor,
+        filtroModalidade,
+        filtroNivel,
+        filtroEvento,
+        ordenacao,
+        opcoesEdicao.modalidades,
+    ]);
+
+    useEffect(() => {
+        setPaginaAtual(1);
+    }, [termoBusca, filtroStatus, filtroAutor, filtroModalidade, filtroNivel, filtroEvento, ordenacao]);
+
+    const totalPaginas = Math.max(1, Math.ceil(atracoesFiltradas.length / ITENS_POR_PAGINA));
+    const paginaAtualValida = Math.min(paginaAtual, totalPaginas);
+    const indiceInicial = (paginaAtualValida - 1) * ITENS_POR_PAGINA;
+    const atracoesPaginadas = atracoesFiltradas.slice(
+        indiceInicial,
+        indiceInicial + ITENS_POR_PAGINA,
+    );
 
     const abrirModalEdicao = (atracao) => {
         const sugestaoAtual = atracao.sugestao_vagas ?? '';
@@ -720,10 +955,10 @@ export default function ListarAtracoes() {
                         />
                     )}
 
-                    <Card corBorda="#00A44B">
+                    <Card corBorda="transparent">
                         <Container fluid className="mb-5 px-4">
                             <Row className="pt-5 pb-2">
-                                <Col className="d-flex align-items-center">
+                                <Col className="d-flex align-items-center justify-content-center">
                                     <MdEvent color="#00A44B" size={35} />
                                     <h3 className="fw-bold ms-2 mb-0" style={{ color: '#00A44B' }}>
                                         {ehSubmissoes ? 'Gerenciar Submissões' : 'Gerenciar Atrações'}
@@ -732,29 +967,15 @@ export default function ListarAtracoes() {
                             </Row>
                             <hr className="mb-4" />
 
-                            {eventoFiltroId && (
-                                <Row className="mb-4">
-                                    <Col>
-                                        <div
-                                            className="rounded px-3 py-2"
-                                            style={{
-                                                backgroundColor: '#e7f1ff',
-                                                border: '1px solid #9ec5fe',
-                                                color: '#084298',
-                                            }}
-                                        >
-                                            <strong>Evento selecionado:</strong>{' '}
-                                            {eventoSelecionadoLista?.nome || `ID ${eventoFiltroId}`}
-                                        </div>
-                                    </Col>
-                                </Row>
-                            )}
-
                             {/* Filtros e Ordenação */}
-                            <Row className="mb-4">
-                                <Col md={8} lg={6}>
+                            <div
+                                className="mb-4 p-3 rounded-4"
+                                style={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}
+                            >
+                                <Row className="g-3 align-items-end">
+                                <Col md={12} lg={7}>
                                     <Form.Group>
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B', fontWeight: 700 }}>
                                             Buscar {ehSubmissoes ? 'submissão' : 'atração'}
                                         </Form.Label>
                                         <Form.Control
@@ -769,9 +990,9 @@ export default function ListarAtracoes() {
                                         />
                                     </Form.Group>
                                 </Col>
-                                <Col md={4} lg={3}>
+                                <Col md={12} lg={5}>
                                     <Form.Group>
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                        <Form.Label className="fw-bold" style={{ color: '#000', fontWeight: 700 }}>
                                             Ordenar por
                                         </Form.Label>
                                         <Form.Select
@@ -791,13 +1012,18 @@ export default function ListarAtracoes() {
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                            </Row>
+                                </Row>
+                            </div>
 
                             {/* Filtros Avançados */}
-                            <Row className="mb-4 g-2">
-                                <Col md={4} lg={2}>
+                            <div
+                                className="mb-4 p-3 rounded-4"
+                                style={{ backgroundColor: '#ffffff', border: '1px solid #e9ecef' }}
+                            >
+                                <Row className="g-3 align-items-end">
+                                <Col md={6} lg={3}>
                                     <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#666' }}>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
                                             Status
                                         </Form.Label>
                                         <Form.Select
@@ -815,23 +1041,27 @@ export default function ListarAtracoes() {
                                                     <option value="RASCUNHO">Rascunho</option>
                                                     <option value="PREVISTA">Submetida</option>
                                                     <option value="EM_AVALIACAO">Em Avaliação</option>
-                                                    <option value="APROVADA">Aprovada</option>
-                                                    <option value="REPROVADA">Reprovada</option>
+                                                    <option value="REJEITADO">Rejeitada</option>
+                                                    <option value="APROVADO_COM_RESSALVAS">Aceito com Ressalvas</option>
+                                                    <option value="ACEITA">Aceita</option>
+                                                    <option value="CANCELADA">Cancelada</option>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <option value="CONFIRMADA">Confirmada</option>
+                                                    <option value="A_APRESENTAR">A Apresentar</option>
                                                     <option value="EM_ANDAMENTO">Em Andamento</option>
                                                     <option value="ENCERRADA">Encerrada</option>
                                                     <option value="CANCELADA">Cancelada</option>
+                                                    <option value="EM_AVALIACAO">Em Avaliação</option>
+                                                    <option value="FINALIZADA">Finalizada</option>
                                                 </>
                                             )}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                <Col md={4} lg={2}>
+                                <Col md={6} lg={3}>
                                     <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#666' }}>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
                                             Modalidade
                                         </Form.Label>
                                         <Form.Select
@@ -852,9 +1082,9 @@ export default function ListarAtracoes() {
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                <Col md={4} lg={2}>
+                                <Col md={6} lg={3}>
                                     <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#666' }}>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
                                             Nível
                                         </Form.Label>
                                         <Form.Select
@@ -875,33 +1105,31 @@ export default function ListarAtracoes() {
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-                                {isAdmin() && (
-                                    <Col md={4} lg={2}>
-                                        <Form.Group>
-                                            <Form.Label style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                Evento
-                                            </Form.Label>
-                                            <Form.Select
-                                                value={filtroEvento}
-                                                onChange={(e) => setFiltroEvento(e.target.value)}
-                                                size="sm"
-                                                style={{
-                                                    backgroundColor: '#eeeeee',
-                                                    border: '1px solid #ced4da',
-                                                }}
-                                            >
-                                                <option value="">Todos</option>
-                                                {eventosEdicao?.map((evento) => (
-                                                    <option key={evento.id} value={evento.id}>
-                                                        {evento.nome}
-                                                    </option>
-                                                ))}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
-                                )}
+                                <Col md={6} lg={3}>
+                                    <Form.Group>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
+                                            Evento
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtroEvento}
+                                            onChange={(e) => setFiltroEvento(e.target.value)}
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="">Todos</option>
+                                            {eventosEdicao?.map((evento) => (
+                                                <option key={evento.id} value={evento.id}>
+                                                    {evento.nome}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
                                 {filtroStatus || filtroModalidade || filtroNivel || filtroEvento ? (
-                                    <Col md={4} lg={2} className="d-flex align-items-end">
+                                    <Col md={6} lg={3} className="d-flex align-items-end">
                                         <Button
                                             variant="outline-secondary"
                                             size="sm"
@@ -917,7 +1145,8 @@ export default function ListarAtracoes() {
                                         </Button>
                                     </Col>
                                 ) : null}
-                            </Row>
+                                </Row>
+                            </div>
 
                             {carregando ? (
                                 <div className="text-center py-5">
@@ -927,30 +1156,71 @@ export default function ListarAtracoes() {
                             ) : (
                                 <ListGroup variant="flush">
                                     {atracoesFiltradas?.length > 0 ? (
-                                        atracoesFiltradas.map((atracao, index) => {
+                                        atracoesPaginadas.map((atracao, index) => {
                                             const podeEditarItem = podeEditar(atracao);
                                             const podeExcluirItem = podeExcluir(atracao);
                                             const motivoBloqueio = bloqueioExclusao[atracao.id];
+                                            const podeAcessarAvaliacao =
+                                                isAdmin() || isCoordenador() || isAvaliador();
+                                            const isUsuarioComum =
+                                                !isAdmin() && !isCoordenador() && !isAvaliador();
+                                            const minhaAutoria = getMinhaAutoria(atracao);
 
                                             return (
                                                 <ListGroup.Item
                                                     key={atracao.id || index}
-                                                    className="d-flex justify-content-between align-items-center mb-3 border rounded shadow-sm p-3"
-                                                    style={{ borderLeft: '5px solid #00A44B' }}
+                                                    className="d-flex justify-content-between align-items-center mb-3 rounded-4 p-3"
+                                                    style={{
+                                                        borderLeft: `10px solid ${getStatusBorderColor(atracao.status)}`,
+                                                        backgroundColor: '#fff',
+                                                        boxShadow: '0 0.125rem 0.35rem rgba(0, 0, 0, 0.08)',
+                                                    }}
                                                 >
                                                     <div className="d-flex flex-column flex-grow-1">
                                                         <div className="fs-5 fw-bold text-dark mb-1">{atracao.titulo}</div>
-                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-2">
+                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-1">
                                                             <span className="d-flex align-items-center gap-1">
-                                                                <MdInfoOutline /> <strong>Tipo:</strong> {atracao.tipo}
+                                                                <MdInfoOutline /> <strong>Modalidade:</strong> {atracao.tipo || '-'}
                                                             </span>
                                                             <span className="d-flex align-items-center gap-1">
-                                                                <MdPlace /> <strong>Local:</strong> {atracao.local_atracao}
+                                                                <MdSchool /> <strong>Nível:</strong> {atracao.nivel_ensino_display || atracao.nivel_ensino || '-'}
+                                                            </span>
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdEvent /> <strong>Evento:</strong> {getEventoNome(atracao.evento)}
                                                             </span>
                                                         </div>
-                                                        {motivoBloqueio && (
-                                                            <div style={{ fontSize: '0.85rem', color: '#dc3545', marginBottom: '0.5rem' }}>
-                                                                ⚠️ {motivoBloqueio}
+                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-2">
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdPerson /> <strong>Autor:</strong> {atracao.autor_nome || '-'}
+                                                            </span>
+                                                            {getTermosDestaque(atracao).length > 0 && (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdLocalOffer /> <strong>Termos:</strong> {getTermosDestaque(atracao).join(', ')}
+                                                                </span>
+                                                            )}
+                                                            {atracao.orientador_nome ? (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdPerson /> <strong>Orientador:</strong> {atracao.orientador_nome}
+                                                                </span>
+                                                            ) : null}
+                                                            {formatarDataHoraCurta(atracao.data_hora_inicio) ? (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdCalendarToday /> <strong>Início:</strong> {formatarDataHoraCurta(atracao.data_hora_inicio)}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                        {minhaAutoria && (
+                                                            <div className="mb-2">
+                                                                <span
+                                                                    className="badge rounded px-2 py-1"
+                                                                    style={{
+                                                                        backgroundColor: getCoresAutoria(minhaAutoria).fundo,
+                                                                        color: getCoresAutoria(minhaAutoria).texto,
+                                                                        fontSize: '0.7rem',
+                                                                    }}
+                                                                >
+                                                                    {minhaAutoria}
+                                                                </span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -960,22 +1230,95 @@ export default function ListarAtracoes() {
                                                             pill
                                                             bg={getStatusConfig(atracao.status).bg}
                                                             className="px-3 py-2"
+                                                            style={{
+                                                                minWidth: '130px',
+                                                                textAlign: 'center',
+                                                                fontSize: '0.78rem',
+                                                                lineHeight: '1rem',
+                                                                letterSpacing: '0.02em',
+                                                            }}
                                                         >
                                                             {getStatusConfig(atracao.status).label}
                                                         </Badge>
 
-                                                        <Button
-                                                            variant="outline-primary"
-                                                            className="d-flex align-items-center gap-1"
-                                                            onClick={() => abrirModalEdicao(atracao)}
-                                                            disabled={!podeEditarItem}
-                                                            title={!podeEditarItem ? 'Você não tem permissão para editar' : ''}
-                                                        >
-                                                            <MdEdit /> Editar
-                                                        </Button>
+                                                        <Dropdown align="end">
+                                                            <Dropdown.Toggle
+                                                                variant="primary"
+                                                                id={`acoes-${atracao.id}`}
+                                                                style={{
+                                                                    backgroundColor: '#003366',
+                                                                    borderColor: '#003366',
+                                                                    color: '#fff',
+                                                                    minWidth: '94px',
+                                                                    fontWeight: 600,
+                                                                }}
+                                                            >
+                                                                Ações
+                                                            </Dropdown.Toggle>
+
+                                                            <Dropdown.Menu>
+                                                                <Dropdown.Item
+                                                                    onClick={() => abrirModalEdicao(atracao)}
+                                                                    disabled={!podeEditarItem}
+                                                                >
+                                                                    Editar
+                                                                </Dropdown.Item>
+
+                                                                {!isUsuarioComum && (
+                                                                    <>
+                                                                        {ehSubmissoes ? (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/avaliar_submissao?submissao_id=${atracao.id}&evento_id=${atracao.evento || ''}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!podeAcessarAvaliacao}
+                                                                            >
+                                                                                Avaliar Submissão
+                                                                            </Dropdown.Item>
+                                                                        ) : (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/avaliar_atracao?atracao_id=${atracao.id}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!podeAcessarAvaliacao}
+                                                                            >
+                                                                                Avaliar Atração
+                                                                            </Dropdown.Item>
+                                                                        )}
+
+                                                                        {ehSubmissoes ? (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/gerenciar_avaliadores_submissoes?evento_id=${atracao.evento || ''}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!isAdmin()}
+                                                                            >
+                                                                                Gerenciar Avaliadores
+                                                                            </Dropdown.Item>
+                                                                        ) : (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Ver Inscritos
+                                                                            </Dropdown.Item>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </Dropdown.Menu>
+                                                        </Dropdown>
 
                                                         <Button
-                                                            variant="outline-danger"
+                                                            variant="danger"
                                                             className="d-flex align-items-center gap-1"
                                                             onClick={() => {
                                                                 setAtracaoSelecionada(atracao);
@@ -983,6 +1326,11 @@ export default function ListarAtracoes() {
                                                             }}
                                                             disabled={!podeExcluirItem}
                                                             title={motivoBloqueio || ''}
+                                                            style={{
+                                                                backgroundColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
+                                                                borderColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
+                                                                color: '#fff',
+                                                            }}
                                                         >
                                                             <MdDelete /> Excluir
                                                         </Button>
@@ -1000,6 +1348,56 @@ export default function ListarAtracoes() {
                                         </div>
                                     )}
                                 </ListGroup>
+                            )}
+
+                            {atracoesFiltradas.length > 0 && (
+                                <div className="d-flex justify-content-center align-items-center mt-4">
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        className="me-2"
+                                        onClick={() =>
+                                            setPaginaAtual((pagina) => Math.max(1, pagina - 1))
+                                        }
+                                        disabled={paginaAtualValida === 1}
+                                    >
+                                        Anterior
+                                    </Button>
+
+                                    {Array.from({ length: totalPaginas }, (_, index) => {
+                                        const numeroPagina = index + 1;
+                                        return (
+                                            <Button
+                                                key={`page-${numeroPagina}`}
+                                                variant={
+                                                    numeroPagina === paginaAtualValida
+                                                        ? 'success'
+                                                        : 'outline-success'
+                                                }
+                                                size="sm"
+                                                className="mx-1"
+                                                onClick={() => setPaginaAtual(numeroPagina)}
+                                            >
+                                                {numeroPagina}
+                                            </Button>
+                                        );
+                                    })}
+
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        className="ms-2"
+                                        onClick={() =>
+                                            setPaginaAtual((pagina) =>
+                                                Math.min(totalPaginas, pagina + 1),
+                                            )
+                                        }
+                                        disabled={paginaAtualValida === totalPaginas}
+                                    >
+                                        Proximo
+                                    </Button>
+
+                                </div>
                             )}
 
                             <div className="mt-4">

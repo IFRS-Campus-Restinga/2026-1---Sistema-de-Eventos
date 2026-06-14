@@ -364,6 +364,32 @@ export default function NavBar() {
                                     Meus Eventos
                                 </Nav.Link>
                             )}
+                            {!loading && isAuthenticated && !isAdmin && (
+                                <NavDropdown
+                                    title={
+                                        <span className="text-white fw-bold">
+                                            Minhas Participações
+                                        </span>
+                                    }
+                                    id="nav-dropdown-minhas-participacoes"
+                                    align="end"
+                                    className="nav-gestao-dropdown"
+                                >
+                                    <NavDropdown.Item as={Link} to="/listar_submissoes">
+                                        Listar submissões
+                                    </NavDropdown.Item>
+                                    <NavDropdown.Item as={Link} to="/adicionar_submissao">
+                                        Nova submissão
+                                    </NavDropdown.Item>
+                                    <NavDropdown.Divider />
+                                    <NavDropdown.Item as={Link} to="/listar_atracoes">
+                                        Listar atrações
+                                    </NavDropdown.Item>
+                                    <NavDropdown.Item as={Link} to="/adicionar_atracao">
+                                        Nova atração
+                                    </NavDropdown.Item>
+                                </NavDropdown>
+                            )}
                             {!loading && temAvaliacoes && (
                                 <NavDropdown
                                     title={

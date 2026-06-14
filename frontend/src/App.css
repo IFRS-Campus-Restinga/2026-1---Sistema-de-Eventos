@@ -87,3 +87,19 @@
 .nav-gestao-dropdown .nav-item.dropdown:hover > .dropdown-menu {
     display: block;
 }
+
+.modal-editar-atracao-expandido {
+    max-width: 1200px;
+}
+
+.modal-editar-atracao-expandido .modal-content {
+    border-radius: 14px;
+}
+
+.modal-editar-atracao-expandido .modal-body {
+    padding: 1.5rem 1.75rem;
+}
+
+.modal-editar-atracao-expandido .table-responsive {
+    max-height: 320px;
+}

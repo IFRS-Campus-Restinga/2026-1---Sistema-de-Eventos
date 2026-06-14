@@ -17,6 +17,25 @@ from .perms_generic_view import IsAdmin, PodeCoordenarEvento
 User = get_user_model()
 
 
+def _obter_perfil_acesso_usuario(usuario):
+    perfil_usuario = getattr(usuario, "access_profile", None)
+    if perfil_usuario:
+        return perfil_usuario
+
+    grupos_usuario = {group.name for group in usuario.groups.all()}
+
+    if "Administrador" in grupos_usuario or getattr(usuario, "is_superuser", False):
+        return "administrador"
+    if "Servidor" in grupos_usuario:
+        return "servidor"
+    if "Convidado" in grupos_usuario:
+        return "convidado"
+    if "Aluno" in grupos_usuario:
+        return "aluno"
+
+    return None
+
+
 def _serializar_usuarios_com_perfil(usuarios):
     resultados = []
     from ..models.perfil import Perfil
@@ -37,6 +56,7 @@ def _serializar_usuarios_com_perfil(usuarios):
                 "perfil_id": perfil_id,
                 "nome": nome,
                 "email": u.email,
+                "access_profile": _obter_perfil_acesso_usuario(u),
                 "nivel_ensino": getattr(perfil, "nivel_ensino", None)
                 if perfil
                 else None,
@@ -98,12 +118,14 @@ class UsuarioElegivelListView(generics.ListAPIView):
         except (TypeError, ValueError):
             limite = 20
 
-        limite = max(1, min(limite, 50))
+        limite = max(1, min(limite, 200))
 
         usuarios = (
             User.objects.filter(is_active=True)
             .exclude(is_superuser=True)
             .exclude(username__iexact="AnonymousUser")
+            .exclude(groups__name__iexact="Administrador")
+            .prefetch_related("groups")
             .distinct()
         )
 
