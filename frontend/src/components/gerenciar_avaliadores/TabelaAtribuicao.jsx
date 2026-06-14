@@ -20,6 +20,7 @@ export default function TabelaAtribuicao({
     onCancelar,
     destaque = false,
     homologar = false,
+    status = false,
     cancelar = false,
 }) {
     const acoes = [homologar, cancelar];
@@ -31,6 +32,7 @@ export default function TabelaAtribuicao({
             cabecarios={[
                 'Qtd. avaliadores',
                 'Trabalho/Autores',
+                status ? 'Status' : null, // Nova coluna exclusiva adicionada na ordem correta
                 'Tipo',
                 'Área',
                 'Avaliadores',
@@ -40,9 +42,8 @@ export default function TabelaAtribuicao({
                     label: 'Ações',
                     colSpan: acoes.filter((d) => d === true).length + 1,
                 },
-            ].filter(Boolean)} // Mantém os cabeçalhos alinhados com o estado do componente
+            ].filter(Boolean)}
             dados={(trabalhos || []).map((a) => {
-                // Resolve o ID da modalidade de forma segura para exibir o nome por extenso
                 const modalidadeId =
                     typeof a.modalidade === 'object'
                         ? a.modalidade?.id
@@ -55,10 +56,9 @@ export default function TabelaAtribuicao({
                     modalidadeObj?.nome ||
                     modalidadeObj?.titulo ||
                     modalidadeObj?.descricao ||
-                    a.tipo || // Fallback para o campo textual do mock caso exista
+                    a.tipo ||
                     '—';
 
-                // Calcula os limites de avaliadores
                 const num = (a.avaliadores || []).length || 0;
                 const limiteRaw =
                     modalidadeObj?.limite_avaliadores ??
@@ -80,12 +80,60 @@ export default function TabelaAtribuicao({
                     ? `${num}/${limite} avaliadores`
                     : `${num}/— avaliadores`;
 
-                const statusSubmissao = a?.status_submissao ?? null;
+                const statusSubmissao =
+                    a?.status_submissao || a?.status || 'SUBMETIDA';
                 const statusLocked =
                     statusSubmissao === 'CONVERTIDA_EM_ATRACAO' ||
                     statusSubmissao === 'REPROVADA';
 
-                // Monta o array da linha mantendo estritamente a ordem das colunas
+                // Helper de renderização visual e amigável do status da submissão
+                const renderStatusTag = () => {
+                    switch (statusSubmissao) {
+                        case 'CONVERTIDA_EM_ATRACAO':
+                        case 'HOMOLOGADA':
+                        case 'APROVADA':
+                            return (
+                                <Tag
+                                    corFundo="#198754"
+                                    corTexto="#fff"
+                                    texto="Homologada"
+                                />
+                            );
+                        case 'REPROVADA':
+                            return (
+                                <Tag
+                                    corFundo="#dc3545"
+                                    corTexto="#fff"
+                                    texto="Reprovada"
+                                />
+                            );
+                        case 'EM_AVALIACAO':
+                            return (
+                                <Tag
+                                    corFundo="#0dcaf0"
+                                    corTexto="#000"
+                                    texto="Em Avaliação"
+                                />
+                            );
+                        case 'RASCUNHO':
+                            return (
+                                <Tag
+                                    corFundo="#6c757d"
+                                    corTexto="#fff"
+                                    texto="Rascunho"
+                                />
+                            );
+                        default:
+                            return (
+                                <Tag
+                                    corFundo="#0d6efd"
+                                    corTexto="#fff"
+                                    texto="Submetida"
+                                />
+                            );
+                    }
+                };
+
                 const linha = [
                     {
                         value: (
@@ -116,6 +164,12 @@ export default function TabelaAtribuicao({
                         ),
                         style: { verticalAlign: 'middle' },
                     },
+                    status
+                        ? {
+                              value: renderStatusTag(), // Célula de valor da nova coluna inserida
+                              style: { verticalAlign: 'middle' },
+                          }
+                        : null,
                     {
                         value: <span>{tipoTexto}</span>,
                         style: { verticalAlign: 'middle' },
@@ -140,17 +194,11 @@ export default function TabelaAtribuicao({
                         value: (
                             <div className="d-flex flex-wrap gap-2 justify-content-start">
                                 {(a.avaliadores || []).map((av) => {
-                                    // A chave usada no backend/estado pode variar entre:
-                                    //  - "${submissaoId}_${avaliadorId}"
-                                    //  - "${submissaoId}-${avaliadorId}" (legado)
-                                    //  - e pode buscar por perfil_id dependendo do retorno da API.
                                     const perfilId = av.perfil_id || av.id;
 
                                     const chavePossiveis = [
-                                        // formato atual do hook
                                         `${a.id}_${av.id}`,
                                         `${a.id}_${perfilId}`,
-                                        // formato alternativo/legado
                                         `${a.id}-${av.id}`,
                                         `${a.id}-${perfilId}`,
                                     ];
@@ -196,7 +244,6 @@ export default function TabelaAtribuicao({
                     },
                 ];
 
-                // Se a coluna destaque estiver ativa, insere o dado no local correto da linha
                 if (destaque) {
                     linha.push({
                         value: destaquesMap?.[a.id] ? 'Sim' : 'Não',
@@ -205,7 +252,6 @@ export default function TabelaAtribuicao({
                     });
                 }
 
-                // Coluna básica da ação principal (Atribuir)
                 linha.push({
                     value: (
                         <div className="d-flex gap-3">
@@ -240,7 +286,6 @@ export default function TabelaAtribuicao({
                     style: { verticalAlign: 'middle' },
                 });
 
-                // Se homologar estiver ativo, adiciona a estrutura de célula correspondente
                 if (homologar) {
                     linha.push({
                         value: (
@@ -277,7 +322,6 @@ export default function TabelaAtribuicao({
                     });
                 }
 
-                // Se cancelar estiver ativo, adiciona a estrutura de célula correspondente
                 if (cancelar) {
                     linha.push({
                         value: (

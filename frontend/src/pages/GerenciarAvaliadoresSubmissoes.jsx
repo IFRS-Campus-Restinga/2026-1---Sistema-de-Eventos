@@ -193,6 +193,7 @@ export default function GerenciarAvaliacoesSubmissoes() {
                                 homologar={true}
                                 cancelar={true}
                                 destaque={false}
+                                status={true}
                             />
                         </Col>
                     </Row>
