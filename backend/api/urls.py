@@ -21,6 +21,10 @@ from .views.avaliacao_submissao_view import (
     AvaliacaoSubmissaoDetailView,
     AvaliacaoSubmissaoListView,
 )
+from .views.item_avaliacao_submissao_view import (
+    ItemAvaliacaoSubmissaoDetailView,
+    ItemAvaliacaoSubmissaoListView,
+)
 from .views.cadastro_complementar_view import CadastroComplementarView
 from .views.campo_formulario_view import (
     CampoFormularioDetailView,
@@ -75,7 +79,8 @@ from .views.ordem_apresentacao_atracao_view import (
 )
 from .views.perms_view import PermissaoListView
 from .views.sessao_view import SessaoDetailView, SessaoListView
-from .views.submissao_view import SubmissaoListView
+from .views.submissao_view import SubmissaoListView, MinhasSubmissoesAvaliadorView
+from .views.submissao_avaliador_view import SubmissaoAvaliadorView
 from .views.tipo_campo_view import TipoCampoListView
 from .views.tipo_etapa_view import TipoEtapaListView
 from .views.user_view import (
@@ -139,7 +144,6 @@ urlpatterns = [
     path('areas_conhecimento/', AreaConhecimentoViewSet.as_view({'get': 'list'})),
     path('setores/', EnumChoicesAPIView.as_view(enum_class=Setor)),
 
-
     # arquivos
     path("arquivos/", ArquivoListView.as_view()),
 
@@ -156,26 +160,26 @@ urlpatterns = [
     # utilitarios
     path("csrf/", views.get_csrf_token),
 
-    # atracoes
+    # atracoes e submissoes
     path("atracoes/", AtracaoListView.as_view()),
     path("atracoes/opcoes/", AtracaoOpcoesView.as_view()),
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
     path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
-    path(
-        "submissoes/",
-        SubmissaoListView.as_view(),
-    ),
-
+    path("submissoes/", SubmissaoListView.as_view()),
+    path("submissoes/<int:pk>/avaliador/", SubmissaoAvaliadorView.as_view()),
 
     # avaliacao de submissoes
     path("avaliacao_submissao/", AvaliacaoSubmissaoListView.as_view()),
     path("avaliacao_submissao/<int:pk>/", AvaliacaoSubmissaoDetailView.as_view()),
+    path("item_avaliacao_submissao/", ItemAvaliacaoSubmissaoListView.as_view()),
+    path("item_avaliacao_submissao/<int:pk>/", ItemAvaliacaoSubmissaoDetailView.as_view()),
+    path("eventos/<int:evento_id>/minhas_avaliacoes/submissoes/", MinhasSubmissoesAvaliadorView.as_view()),
 
     # avaliacao de atracoes
     path("avaliacao_atracao/", AvaliacaoAtracaoListView.as_view()),
-    path("avaliacao_atracao/<int:pk>", AvaliacaoAtracaoDetailView.as_view()),
+    path("avaliacao_atracao/<int:pk>/", AvaliacaoAtracaoDetailView.as_view()),
     path("item_avaliacao_atracao/", ItemAvaliaçãoAtracaoListView.as_view()),
-    path("item_avaliacao_atracao/<int:pk>", ItemAvaliaçãoAtracaoDetailView.as_view()),
+    path("item_avaliacao_atracao/<int:pk>/", ItemAvaliaçãoAtracaoDetailView.as_view()),
     path("eventos/minhas_avaliacoes/", MeusEventosAvaliadorView.as_view()),
     path("eventos/<int:evento_id>/minhas_avaliacoes/atracoes/", MinhasAtracoesAvaliadorView.as_view()),
 
@@ -184,6 +188,5 @@ urlpatterns = [
     path("sessoes/<int:pk>/", SessaoDetailView.as_view()),
     path("ordem_apresentacao_atracao/", OrdemApresentacaoAtracaoListView.as_view()),
     path("ordem_apresentacao_atracao/<int:pk>/", OrdemApresentacaoAtracaoDetailView.as_view()),
-
 ]
 # fmt: on

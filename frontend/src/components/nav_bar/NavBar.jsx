@@ -187,31 +187,45 @@ function ItensAvaliacoesRecentes({ navigate, eventos }) {
                             <a
                                 className="dropdown-item dropdown-toggle"
                                 href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate(
-                                        `/minhas_avaliacoes?evento_id=${evento.id}`,
-                                    );
-                                }}
+                                onClick={(e) => e.preventDefault()}
                             >
                                 {evento.nome}
                             </a>
 
                             <ul className="dropdown-menu">
-                                <li>
-                                    <a
-                                        className="dropdown-item"
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            navigate(
-                                                `/minhas_avaliacoes?evento_id=${evento.id}`,
-                                            );
-                                        }}
-                                    >
-                                        Minhas Avaliações
-                                    </a>
-                                </li>
+                                {/* CORREÇÃO: Lê cirurgicamente os booleanos calculados pelo ORM do Django */}
+                                {evento.pode_avaliar_submissoes && (
+                                    <li>
+                                        <a
+                                            className="dropdown-item"
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(
+                                                    `/minhas_avaliacoes_submissoes?evento_id=${evento.id}`,
+                                                );
+                                            }}
+                                        >
+                                            Avaliação de Submissões
+                                        </a>
+                                    </li>
+                                )}
+                                {evento.pode_avaliar_atracoes && (
+                                    <li>
+                                        <a
+                                            className="dropdown-item"
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(
+                                                    `/minhas_avaliacoes?evento_id=${evento.id}`,
+                                                );
+                                            }}
+                                        >
+                                            Avaliação de Atrações
+                                        </a>
+                                    </li>
+                                )}
                             </ul>
                         </li>
                     ))}
@@ -244,58 +258,67 @@ export default function NavBar() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [eventosAvaliador, setEventosAvaliador] = useState([]);
 
+    async function carregarSessao(isMounted = true) {
+        try {
+            const result = await checkSession();
+            if (!isMounted) return;
+
+            const autenticado = Boolean(result?.authenticated);
+            const grupos = Array.isArray(result?.user?.groups)
+                ? result.user.groups
+                      .map((group) =>
+                          typeof group === 'string' ? group : group?.name,
+                      )
+                      .filter(Boolean)
+                : [];
+
+            setIsAuthenticated(autenticado);
+            setIsAdmin(grupos.some((group) => ADMIN_GROUPS.includes(group)));
+
+            if (!autenticado) {
+                setEventosAvaliador([]);
+                return;
+            }
+
+            const listaEventos = await listarMeusEventosAvaliador();
+            if (!isMounted) return;
+
+            setEventosAvaliador(
+                Array.isArray(listaEventos) ? listaEventos : [],
+            );
+        } catch {
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setIsAdmin(false);
+                setEventosAvaliador([]);
+            }
+        } finally {
+            if (isMounted) {
+                setLoading(false);
+            }
+        }
+    }
+
     useEffect(() => {
         let ativo = true;
 
-        async function carregarSessao() {
-            try {
-                const result = await checkSession();
+        carregarSessao(ativo);
 
-                if (!ativo) return;
+        const handleAtualizacaoGlobal = () => {
+            carregarSessao(ativo);
+        };
 
-                const autenticado = Boolean(result?.authenticated);
-                const grupos = Array.isArray(result?.user?.groups)
-                    ? result.user.groups
-                          .map((group) =>
-                              typeof group === 'string' ? group : group?.name,
-                          )
-                          .filter(Boolean)
-                    : [];
-
-                setIsAuthenticated(autenticado);
-                setIsAdmin(
-                    grupos.some((group) => ADMIN_GROUPS.includes(group)),
-                );
-
-                if (!autenticado) {
-                    setEventosAvaliador([]);
-                    return;
-                }
-
-                const eventosAvaliador = await listarMeusEventosAvaliador();
-
-                if (!ativo) return;
-
-                setEventosAvaliador(
-                    Array.isArray(eventosAvaliador) ? eventosAvaliador : [],
-                );
-            } catch {
-                if (ativo) {
-                    setIsAuthenticated(false);
-                    setIsAdmin(false);
-                    setEventosAvaliador([]);
-                }
-            } finally {
-                if (ativo) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        carregarSessao();
+        window.addEventListener(
+            'atualizarEventosAvaliador',
+            handleAtualizacaoGlobal,
+        );
 
         return () => {
             ativo = false;
+            window.removeEventListener(
+                'atualizarEventosAvaliador',
+                handleAtualizacaoGlobal,
+            );
         };
     }, []);
 
@@ -375,17 +398,29 @@ export default function NavBar() {
                                     align="end"
                                     className="nav-gestao-dropdown"
                                 >
-                                    <NavDropdown.Item as={Link} to="/listar_submissoes">
+                                    <NavDropdown.Item
+                                        as={Link}
+                                        to="/listar_submissoes"
+                                    >
                                         Listar submissões
                                     </NavDropdown.Item>
-                                    <NavDropdown.Item as={Link} to="/adicionar_submissao">
+                                    <NavDropdown.Item
+                                        as={Link}
+                                        to="/adicionar_submissao"
+                                    >
                                         Nova submissão
                                     </NavDropdown.Item>
                                     <NavDropdown.Divider />
-                                    <NavDropdown.Item as={Link} to="/listar_atracoes">
+                                    <NavDropdown.Item
+                                        as={Link}
+                                        to="/listar_atracoes"
+                                    >
                                         Listar atrações
                                     </NavDropdown.Item>
-                                    <NavDropdown.Item as={Link} to="/adicionar_atracao">
+                                    <NavDropdown.Item
+                                        as={Link}
+                                        to="/adicionar_atracao"
+                                    >
                                         Nova atração
                                     </NavDropdown.Item>
                                 </NavDropdown>

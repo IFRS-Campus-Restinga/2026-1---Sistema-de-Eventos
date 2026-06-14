@@ -12,26 +12,36 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.atracao import Atracao
+from ..models.submissao import Submissao
 from ..models.evento import Evento
 from ..models.perfil import Perfil
 from ..serializers.evento_serializer import EventoSerializer
-
-# from api.permissions import IsAdmin, PodeGerenciarEvento
 from .perms_generic_view import PodeGerenciarEquipeEvento
+
+User = get_user_model()
 
 
 def _serializar_usuarios(usuarios):
-    return [
-        {
-            "id": usuario.id,
-            "username": usuario.username,
-            "email": usuario.email,
-        }
-        for usuario in usuarios
-    ]
-
-
-User = get_user_model()
+    """Auxiliar para serializar usuários acoplando dados do perfil interno."""
+    serialized = []
+    for user in usuarios:
+        perfil = Perfil.objects.filter(usuario=user).first()
+        perfil_id = perfil.id if perfil else None
+        nome = None
+        if perfil and getattr(perfil, "nome", None):
+            nome = perfil.nome
+        else:
+            nome = getattr(user, "get_full_name", lambda: "")() or user.username
+        serialized.append(
+            {
+                "id": user.id,
+                "username": user.username,
+                "perfil_id": perfil_id,
+                "nome": nome,
+                "email": user.email,
+            }
+        )
+    return serialized
 
 
 class EventoListView(APIView):
@@ -60,28 +70,48 @@ class MeusEventosAvaliadorView(APIView):
     def get(self, request):
         user = request.user
 
-        # eventos onde o usuário tem permissão de avaliar alguma atração
+        # 1. Busca eventos por permissão ou histórico em Atrações
         atracoes_com_perm = get_objects_for_user(
             user, "api.avaliar_atracao", klass=Atracao
         )
-        eventos_vinculados = set(
+        eventos_vinculados_atracao = set(
             atracoes_com_perm.values_list("submissao__evento_id", flat=True)
         )
-
-        # eventos onde o usuário já fez avaliações
-        eventos_por_avaliacao = set(
+        eventos_por_avaliacao_atracao = set(
             Evento.objects.filter(
                 submissoes__atracao__avaliacaoatracao__avaliador=user
             ).values_list("pk", flat=True)
         )
+        pks_atracao = eventos_vinculados_atracao | eventos_por_avaliacao_atracao
 
-        # unir eventos vinculados por permissão em atrações e por avaliações existentes
-        pks = eventos_vinculados | eventos_por_avaliacao
+        # 2. Busca eventos por permissão ou histórico em Submissões
+        submissoes_com_perm = get_objects_for_user(
+            user, "api.avaliar_submissao", klass=Submissao
+        )
+        eventos_vinculados_submissao = set(
+            submissoes_com_perm.values_list("evento_id", flat=True)
+        )
+        eventos_por_avaliacao_submissao = set(
+            Evento.objects.filter(submissoes__avaliacoes__avaliador=user).values_list(
+                "pk", flat=True
+            )
+        )
+        pks_submissao = eventos_vinculados_submissao | eventos_por_avaliacao_submissao
 
-        queryset = Evento.objects.filter(pk__in=pks)
+        # 3. Une todos os IDs válidos
+        pks_totais = pks_atracao | pks_submissao
 
-        serializer = EventoSerializer(queryset.distinct(), many=True)
-        return Response(serializer.data)
+        queryset = Evento.objects.filter(pk__in=pks_totais, ativo=True).distinct()
+
+        # 4. Serializa e injeta as travas de escopo dinamicamente
+        dados_eventos = EventoSerializer(queryset, many=True).data
+
+        for evento_data in dados_eventos:
+            evt_id = evento_data["id"]
+            evento_data["pode_avaliar_atracoes"] = evt_id in pks_atracao
+            evento_data["pode_avaliar_submissoes"] = evt_id in pks_submissao
+
+        return Response(dados_eventos, status=200)
 
 
 class EventoDetailView(APIView):
@@ -90,12 +120,9 @@ class EventoDetailView(APIView):
     def get(self, request, pk):
         try:
             evento = Evento.objects.get(pk=pk, ativo=True)
-
             self.check_object_permissions(request, evento)
-
             serializer = EventoSerializer(evento)
             return Response(serializer.data)
-
         except Evento.DoesNotExist:
             return Response({"erro": "Evento não encontrado"}, status=404)
 
@@ -109,13 +136,10 @@ class EventoUpdateView(APIView):
             self.check_object_permissions(request, evento)
 
             serializer = EventoSerializer(evento, data=request.data, partial=True)
-
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
-
             return Response(serializer.errors, status=400)
-
         except Evento.DoesNotExist:
             return Response({"erro": "Evento não encontrado"}, status=404)
 
@@ -130,43 +154,13 @@ class EventoDeleteView(APIView):
 
             evento.ativo = False
             evento.save()
-
             return Response({"msg": "Evento desativado com sucesso"}, status=200)
-
         except Evento.DoesNotExist:
             return Response({"erro": "Evento não encontrado"}, status=404)
 
 
-# isso daq serve pra atribuir um coordenador ao evento, a rigor ele mata o grupo evento
-
-# isso daq serve pra converter os objs vindo do banco em json. serve mais pra transformar msm.
-
-
-def _serializar_usuarios(usuarios):
-    serialized = []
-    for user in usuarios:
-        perfil = Perfil.objects.filter(usuario=user).first()
-        perfil_id = perfil.id if perfil else None
-        nome = None
-        if perfil and getattr(perfil, "nome", None):
-            nome = perfil.nome
-        else:
-            nome = getattr(user, "get_full_name", lambda: "")() or user.username
-        serialized.append(
-            {
-                "id": user.id,
-                "username": user.username,
-                "perfil_id": perfil_id,
-                "nome": nome,
-                "email": user.email,
-            }
-        )
-    return serialized
-
-
 class EventoCoordenadorView(APIView):
     permission_classes = [PodeGerenciarEquipeEvento]
-
     coordenador_perm = "api.coordenar_evento"
 
     def get(self, request, pk):
@@ -181,7 +175,6 @@ class EventoCoordenadorView(APIView):
             only_with_perms_in=["coordenar_evento"],
             with_group_users=False,
         )
-
         return Response(
             {
                 "evento_id": evento.id,
@@ -198,7 +191,6 @@ class EventoCoordenadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         user_id = request.data.get("user_id")
-
         if not user_id:
             return Response({"erro": "Campo user_id é obrigatório"}, status=400)
 
@@ -207,13 +199,8 @@ class EventoCoordenadorView(APIView):
         except User.DoesNotExist:
             return Response({"erro": "Usuário não encontrado"}, status=404)
 
-        # daria pra usar o get_or_create né, mas meio q a gnt tem coordenador,
-        #  enfim, ta td certo. Se veio pra reclamar, faz melhor. -Breno
-
-        # moral disso daq é dar grupo pro coordenador no momento que ele for atribuido a permissão. - Breno
         grupo_coordenador = Group.objects.get(name="Coordenador")
         novo_coordenador.groups.add(grupo_coordenador)
-
         assign_perm(self.coordenador_perm, novo_coordenador, evento)
 
         return Response(
@@ -243,7 +230,6 @@ class EventoCoordenadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         user_id = request.data.get("user_id")
-
         if not user_id:
             return Response({"erro": "Campo user_id é obrigatório"}, status=400)
 
@@ -254,7 +240,6 @@ class EventoCoordenadorView(APIView):
 
         grupo_coordenador = Group.objects.get(name="Coordenador")
         coordenador_removido.groups.remove(grupo_coordenador)
-
         remove_perm(self.coordenador_perm, coordenador_removido, evento)
 
         coordenadores = get_users_with_perms(
@@ -262,7 +247,6 @@ class EventoCoordenadorView(APIView):
             only_with_perms_in=["coordenar_evento"],
             with_group_users=False,
         )
-
         return Response(
             {
                 "msg": "Coordenador removido com sucesso",
@@ -279,7 +263,6 @@ class EventoCoordenadorView(APIView):
 
 class EventoOrganizadorView(APIView):
     permission_classes = [PodeGerenciarEquipeEvento]
-
     organizador_perm = "api.organiza_evento"
 
     def get(self, request, pk):
@@ -294,7 +277,6 @@ class EventoOrganizadorView(APIView):
             only_with_perms_in=["organiza_evento"],
             with_group_users=False,
         )
-
         return Response(
             {
                 "evento_id": evento.id,
@@ -311,7 +293,6 @@ class EventoOrganizadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         user_id = request.data.get("user_id")
-
         if not user_id:
             return Response({"erro": "Campo user_id é obrigatório"}, status=400)
 
@@ -322,7 +303,6 @@ class EventoOrganizadorView(APIView):
 
         grupo_organizador = Group.objects.get(name="Organizador")
         novo_organizador.groups.add(grupo_organizador)
-
         assign_perm(self.organizador_perm, novo_organizador, evento)
 
         organizadores = get_users_with_perms(
@@ -330,7 +310,6 @@ class EventoOrganizadorView(APIView):
             only_with_perms_in=["organiza_evento"],
             with_group_users=False,
         )
-
         return Response(
             {
                 "msg": "Organizador definido com sucesso",
@@ -352,7 +331,6 @@ class EventoOrganizadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         user_id = request.data.get("user_id")
-
         if not user_id:
             return Response({"erro": "Campo user_id é obrigatório"}, status=400)
 
@@ -363,7 +341,6 @@ class EventoOrganizadorView(APIView):
 
         grupo_organizador = Group.objects.get(name="Organizador")
         organizador_removido.groups.remove(grupo_organizador)
-
         remove_perm(self.organizador_perm, organizador_removido, evento)
 
         organizadores = get_users_with_perms(
@@ -371,7 +348,6 @@ class EventoOrganizadorView(APIView):
             only_with_perms_in=["organiza_evento"],
             with_group_users=False,
         )
-
         return Response(
             {
                 "msg": "Organizador removido com sucesso",
@@ -388,7 +364,6 @@ class EventoOrganizadorView(APIView):
 
 class EventoAvaliadorView(APIView):
     permission_classes = [PodeGerenciarEquipeEvento]
-
     avaliador_perm = "api.avaliador_evento"
 
     def get(self, request, pk):
@@ -398,7 +373,6 @@ class EventoAvaliadorView(APIView):
         except Evento.DoesNotExist:
             return Response({"erro": "Evento não encontrado"}, status=404)
 
-        # se nenhuma modalidade do evento requer avaliação, não faz sentido ter avaliadores
         if not evento.modalidades.filter(requer_avaliacao=True).exists():
             return Response(
                 {"erro": "Nenhuma modalidade do evento requer avaliação"}, status=400
@@ -407,7 +381,6 @@ class EventoAvaliadorView(APIView):
         avaliadores = get_users_with_perms(
             evento, only_with_perms_in=["avaliador_evento"], with_group_users=False
         )
-
         return Response(
             {"evento_id": evento.id, "avaliadores": _serializar_usuarios(avaliadores)},
             status=status.HTTP_200_OK,
@@ -421,7 +394,6 @@ class EventoAvaliadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         perfil_id = request.data.get("perfil_id")
-
         if not perfil_id:
             return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
 
@@ -431,20 +403,17 @@ class EventoAvaliadorView(APIView):
         except Perfil.DoesNotExist:
             return Response({"erro": "Perfil não encontrado"}, status=404)
 
-        # se nenhuma modalidade do evento requer avaliação, não faz sentido ter avaliadores
         if not evento.modalidades.filter(requer_avaliacao=True).exists():
             return Response(
                 {"erro": "Nenhuma modalidade do evento requer avaliação"}, status=400
             )
 
-        # usuário deve pertencer ao grupo 'Servidor' para ser escolhido como avaliador
         if not novo_avaliador.groups.filter(name="Servidor").exists():
             return Response(
                 {"erro": "Usuário não pertence ao grupo Servidor"}, status=400
             )
 
         assign_perm(self.avaliador_perm, novo_avaliador, evento)
-
         return Response(
             {
                 "msg": "Avaliador definido com sucesso",
@@ -472,7 +441,6 @@ class EventoAvaliadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         perfil_id = request.data.get("perfil_id")
-
         if not perfil_id:
             return Response({"erro": "Campo perfil_id é obrigatório"}, status=400)
 
@@ -487,7 +455,6 @@ class EventoAvaliadorView(APIView):
         avaliadores = get_users_with_perms(
             evento, only_with_perms_in=["avaliador_evento"], with_group_users=False
         )
-
         return Response(
             {
                 "msg": "Avaliador removido com sucesso",

@@ -4,9 +4,7 @@ import { API_URL } from '../config';
 export const listarMeusEventosAvaliador = async () => {
     const response = await axios.get(
         `${API_URL}/api/eventos/minhas_avaliacoes/`,
-        {
-            withCredentials: true,
-        },
+        { withCredentials: true },
     );
     return response.data;
 };
@@ -14,11 +12,21 @@ export const listarMeusEventosAvaliador = async () => {
 export const listarMinhasAtracoesParaEvento = async (eventoId) => {
     const response = await axios.get(
         `${API_URL}/api/eventos/${eventoId}/minhas_avaliacoes/atracoes/`,
-        {
-            withCredentials: true,
-        },
+        { withCredentials: true },
     );
     return response.data;
 };
 
-export default { listarMeusEventosAvaliador, listarMinhasAtracoesParaEvento };
+export const listarMinhasSubmissoesParaEvento = async (eventoId) => {
+    const response = await axios.get(
+        `${API_URL}/api/eventos/${eventoId}/minhas_avaliacoes/submissoes/`,
+        { withCredentials: true },
+    );
+    return response.data;
+};
+
+export default {
+    listarMeusEventosAvaliador,
+    listarMinhasAtracoesParaEvento,
+    listarMinhasSubmissoesParaEvento,
+};

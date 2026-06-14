@@ -2,104 +2,80 @@ import axios from 'axios';
 import { pegarTokenCsrf } from './csrfService';
 import { API_URL } from '../config';
 
-export const listarAvaliacoes = async () => {
-    const response = await axios.get(`${API_URL}/api/avaliacao-submissao/`, {
+export const pegarCriteriosSubmissaoPorModalidade = async (modalidadeId) => {
+    const response = await axios.get(
+        `${API_URL}/api/criterio_avaliacao_submissao/`,
+        {
+            withCredentials: true,
+        },
+    );
+    const criterios = response.data || [];
+    if (!modalidadeId) return criterios;
+    return criterios.filter((c) => c.modalidade === modalidadeId);
+};
+
+export const criarAvaliacaoSubmissaoComItens = async (
+    avaliacaoDados,
+    itens,
+) => {
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    // 1. Criar cabeçalho da avaliação da submissão
+    const respAvaliacao = await axios.post(
+        `${API_URL}/api/avaliacao_submissao/`,
+        avaliacaoDados,
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
+        },
+    );
+    const avaliacao = respAvaliacao.data;
+
+    // 2. Criar itens de avaliação associados (notas por critério)
+    const itensCriados = [];
+    for (const it of itens) {
+        const payload = {
+            nota: it.nota,
+            criterio_avaliacao: it.criterio_avaliacao,
+            avaliacao_submissao: avaliacao.id,
+        };
+        const respItem = await axios.post(
+            `${API_URL}/api/item_avaliacao_submissao/`,
+            payload,
+            {
+                headers: { 'X-CSRFToken': csrfToken },
+                withCredentials: true,
+            },
+        );
+        itensCriados.push(respItem.data);
+    }
+
+    return { avaliacao, itens: itensCriados };
+};
+
+export const listarAvaliacoesSubmissao = async (params = {}) => {
+    const response = await axios.get(`${API_URL}/api/avaliacao_submissao/`, {
+        params,
         withCredentials: true,
     });
     return response.data;
 };
 
-export const listarAvaliacoesPorSubmissao = async (submissaoId) => {
+export const listarItensAvaliacaoSubmissao = async (avaliacaoId) => {
     const response = await axios.get(
-        `${API_URL}/api/avaliacao-submissao/?submissao_id=${submissaoId}`,
+        `${API_URL}/api/item_avaliacao_submissao/`,
         {
+            params: { avaliacao_submissao: avaliacaoId },
             withCredentials: true,
-        }
+        },
     );
     return response.data;
 };
 
-export const listarAvaliacoesPorAvaliador = async (avaliadorId) => {
-    const response = await axios.get(
-        `${API_URL}/api/avaliacao-submissao/?avaliador_id=${avaliadorId}`,
-        {
-            withCredentials: true,
-        }
-    );
-    return response.data;
-};
-
-export const listarAvaliacoesPorStatus = async (status) => {
-    const response = await axios.get(
-        `${API_URL}/api/avaliacao-submissao/?status=${status}`,
-        {
-            withCredentials: true,
-        }
-    );
-    return response.data;
-};
-
-export const buscarDetalhesAvaliacao = async (avaliacaoId) => {
-    const response = await axios.get(
-        `${API_URL}/api/avaliacao-submissao/${avaliacaoId}/`,
-        {
-            withCredentials: true,
-        }
-    );
-    return response.data;
-};
-
-export const criarAvaliacao = async (dados) => {
-    const csrfData = await pegarTokenCsrf();
-    const csrfToken = csrfData?.csrfToken || '';
-
-    try {
-        const response = await axios.post(
-            `${API_URL}/api/avaliacao-submissao/`,
-            dados,
-            {
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                },
-                withCredentials: true,
-            }
-        );
-        return response.data;
-    } catch (error) {
-        console.error('Erro ao criar avaliação:', error.response?.data || error.message);
-        throw error;
-    }
-};
-
-export const atualizarAvaliacao = async (avaliacaoId, dados) => {
-    const csrfData = await pegarTokenCsrf();
-    const csrfToken = csrfData?.csrfToken || '';
-
-    const response = await axios.put(
-        `${API_URL}/api/avaliacao-submissao/${avaliacaoId}/`,
-        dados,
-        {
-            headers: {
-                'X-CSRFToken': csrfToken,
-            },
-            withCredentials: true,
-        }
-    );
-    return response.data;
-};
-
-export const deletarAvaliacao = async (avaliacaoId) => {
-    const csrfData = await pegarTokenCsrf();
-    const csrfToken = csrfData?.csrfToken || '';
-
-    const response = await axios.delete(
-        `${API_URL}/api/avaliacao-submissao/${avaliacaoId}/`,
-        {
-            headers: {
-                'X-CSRFToken': csrfToken,
-            },
-            withCredentials: true,
-        }
-    );
-    return response.data;
+export default {
+    pegarCriteriosSubmissaoPorModalidade,
+    criarAvaliacaoSubmissaoComItens,
+    listarAvaliacoesSubmissao,
+    listarItensAvaliacaoSubmissao,
 };

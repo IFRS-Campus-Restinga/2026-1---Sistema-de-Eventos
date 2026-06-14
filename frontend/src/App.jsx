@@ -41,6 +41,7 @@ import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
 import GerenciarAvaliadoresSubmissoes from './pages/GerenciarAvaliadoresSubmissoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
+import MinhasAvaliacoesSubmissoes from './pages/MinhasAvaliacoesSubmissoes';
 
 const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
 
@@ -123,6 +124,7 @@ function App() {
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
                 <Route path="/gerenciar_avaliadores_submissoes" element={protegido(<GerenciarAvaliadoresSubmissoes />, ADMIN_GROUPS)} />
+                <Route path="/minhas_avaliacoes_submissoes"  element={protegidoComAvaliador(<MinhasAvaliacoesSubmissoes />, ADMIN_GROUPS)}/>
                 <Route path="/meus_eventos_avaliador"  element={protegidoComAvaliador(<MeusEventosAvaliador />, ADMIN_GROUPS)}/>
                 <Route path="/avaliar_submissao" element={protegidoComAvaliador(<AvaliarSubmissao />, ADMIN_GROUPS)} />
                 <Route path="/minhas_avaliacoes" element={protegidoComAvaliador(<MinhasAvaliacoes />, ADMIN_GROUPS)} />
