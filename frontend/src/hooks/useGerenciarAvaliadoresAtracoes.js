@@ -11,7 +11,8 @@ import {
     listarCriteriosAtracao,
 } from '../services/gerenciarAvaliadoresService';
 import {
-    buildAreaOptions,
+    construirOpcoesArea,
+    construirOpcoesModalidade,
     filtrarAtracoes,
     ordenarAtracoesPorMedia,
     mapearAvaliacoes,
@@ -22,9 +23,10 @@ import {
 export default function useGerenciarAvaliadoresAtracoes(eventoId) {
     const [exibirModal, setExibirModal] = useState(false);
     const [atracoes, setAtracoes] = useState([]);
-    const [allAtracoes, setAllAtracoes] = useState([]);
+    const [todasAtracoes, setTodasAtracoes] = useState([]);
     const [filtroArea, setFiltroArea] = useState('');
     const [filtroBusca, setFiltroBusca] = useState('');
+    const [filtroModalidade, setFiltroModalidade] = useState('');
     const [filtroOrdenacao, setFiltroOrdenacao] = useState('desc');
     const [carregando, setCarregando] = useState(false);
     const [isMobile, setIsMobile] = useState(
@@ -57,8 +59,13 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
         useAtracaoAvaliador();
 
     const areaOptions = useMemo(
-        () => buildAreaOptions(allAtracoes),
-        [allAtracoes],
+        () => construirOpcoesArea(todasAtracoes),
+        [todasAtracoes],
+    );
+
+    const opcoesModalidade = useMemo(
+        () => construirOpcoesModalidade(modalidadesMap),
+        [modalidadesMap],
     );
 
     const ordenarOpcoes = useMemo(
@@ -163,12 +170,12 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
         setCarregando(true);
         try {
             if (!eventoId) {
-                setAllAtracoes([]);
+                setTodasAtracoes([]);
                 setAtracoes([]);
                 setCarregando(false);
                 return;
             }
-            const mMap = await carregarModalidades();
+            const mapaModalidades = await carregarModalidades();
 
             const dados = await listarAtracoesEvento(eventoId);
             const lista = Array.isArray(dados) ? dados : [];
@@ -177,7 +184,7 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
                 const modalidadeObj =
                     typeof item.modalidade === 'object' && item.modalidade
                         ? item.modalidade
-                        : mMap[item.modalidade];
+                        : mapaModalidades[item.modalidade];
                 if (!modalidadeObj) return true;
                 return modalidadeObj.requer_avaliacao === true;
             });
@@ -226,23 +233,30 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
                     : null;
                 return { ...item, nota_media: media };
             });
-
-            const listaOrdenada = ordenarAtracoesPorMedia(
-                listaComNotas,
-                filtroOrdenacao,
-                destaquesCalc,
-            );
-            setAllAtracoes(listaOrdenada);
-            setAtracoes(listaOrdenada);
+            // armazenar as atrações sem forçar nova requisição ao alterar ordenação
+            setTodasAtracoes(listaComNotas);
+            setAtracoes(listaComNotas);
             await carregarEventosMap();
             await carregarCriterios();
         } catch (e) {
-            setAllAtracoes([]);
+            setTodasAtracoes([]);
             setAtracoes([]);
         } finally {
             setCarregando(false);
         }
-    }, [eventoId, filtroOrdenacao]);
+    }, [eventoId]);
+
+    // Reordena localmente quando a ordenação muda, sem recarregar os dados do servidor
+    // Agora reordena a lista atualmente exibida para não perder filtros aplicados.
+    useEffect(() => {
+        setAtracoes((prev) =>
+            ordenarAtracoesPorMedia(
+                Array.isArray(prev) ? prev : [],
+                filtroOrdenacao,
+                destaquesMap,
+            ),
+        );
+    }, [filtroOrdenacao, destaquesMap]);
 
     useEffect(() => {
         carregarLista();
@@ -255,11 +269,23 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
     }, []);
 
     const aoFiltrar = useCallback(() => {
-        const filtrado = filtrarAtracoes(allAtracoes, filtroArea, filtroBusca);
+        const filtrado = filtrarAtracoes(
+            todasAtracoes,
+            filtroArea,
+            filtroBusca,
+            filtroModalidade,
+        );
         setAtracoes(
             ordenarAtracoesPorMedia(filtrado, filtroOrdenacao, destaquesMap),
         );
-    }, [allAtracoes, filtroArea, filtroBusca, filtroOrdenacao, destaquesMap]);
+    }, [
+        todasAtracoes,
+        filtroArea,
+        filtroBusca,
+        filtroModalidade,
+        filtroOrdenacao,
+        destaquesMap,
+    ]);
 
     const toggleSelecao = (perfilId) => {
         setSelecionadasSugestoes((prev) => {
@@ -428,12 +454,15 @@ export default function useGerenciarAvaliadoresAtracoes(eventoId) {
         carregando,
         isMobile,
         filtroArea,
+        filtroModalidade,
         filtroBusca,
         filtroOrdenacao,
         areaOptions,
+        opcoesModalidade,
         ordenarOpcoes,
         valorOrdenacao,
         setFiltroArea,
+        setFiltroModalidade,
         setFiltroBusca,
         onOrdenacaoChange,
         aoFiltrar,

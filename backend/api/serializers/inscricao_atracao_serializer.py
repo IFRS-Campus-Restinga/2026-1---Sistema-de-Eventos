@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from ..models.atracao import Atracao
-from ..models.evento import Evento
 from ..models.inscricao_atracao import InscricaoAtracao
 from ..models.perfil import Perfil
 
@@ -18,33 +17,21 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
         queryset=Atracao.objects.all(),
         source="atracao",
     )
-    evento_id = serializers.PrimaryKeyRelatedField(
-        queryset=Evento.objects.all(),
-        source="evento",
-        required=False,
-        allow_null=True,
-    )
+
+    evento_id = serializers.SerializerMethodField()
+
+    def get_evento_id(self, obj):
+        atracao = getattr(obj, "atracao", None)
+        submissao = getattr(atracao, "submissao", None)
+        return getattr(submissao, "evento_id", None)
 
     def validate(self, attrs):
         perfil = attrs.get("perfil") or getattr(self.instance, "perfil", None)
         atracao = attrs.get("atracao") or getattr(self.instance, "atracao", None)
-        evento = attrs.get("evento") or getattr(self.instance, "evento", None)
+        submissao = None
 
         if atracao:
-            evento_da_atracao = getattr(atracao, "evento", None)
-
-            if evento is not None and evento_da_atracao is not None:
-                if evento.id != evento_da_atracao.id:
-                    raise serializers.ValidationError(
-                        {
-                            "evento_id": [
-                                "O evento informado deve ser o mesmo evento da atração."
-                            ]
-                        }
-                    )
-
-            if evento is None:
-                attrs["evento"] = evento_da_atracao
+            submissao = getattr(atracao, "submissao", None)
 
         if perfil and atracao:
             inscricao_existente = InscricaoAtracao.objects.filter(
@@ -61,7 +48,7 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
                 )
 
         # Somente permitir inscrição em atracoes do tipo 'oficina'
-        modalidade = getattr(atracao, "modalidade", None)
+        modalidade = getattr(submissao, "modalidade", None)
         modalidade_nome = (
             getattr(modalidade, "nome", "") if modalidade is not None else ""
         )

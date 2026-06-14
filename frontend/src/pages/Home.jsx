@@ -165,11 +165,28 @@ export default function Home({ campus = 'Campus Restinga' }) {
     }, [loginAlert, location.pathname]);
 
     const eventosOrdenados = useMemo(() => {
-        return [...eventos].sort((eventoA, eventoB) => {
-            const idA = Number(eventoA?.id ?? 0);
-            const idB = Number(eventoB?.id ?? 0);
+        // Ordena por data (menor primeiro). Usa a menor data válida entre as etapas
+        // de cada evento. Se não houver data, coloca o evento ao final.
+        const getMenorData = (evento) => {
+            const datas = (evento?.etapas || [])
+                .flatMap((et) => [et?.data_inicio, et?.data_fim])
+                .filter(Boolean)
+                .map((d) => new Date(d).getTime())
+                .filter((t) => !Number.isNaN(t));
 
-            return idB - idA;
+            return datas.length > 0 ? Math.min(...datas) : Infinity;
+        };
+
+        return [...eventos].sort((eventoA, eventoB) => {
+            const tA = getMenorData(eventoA);
+            const tB = getMenorData(eventoB);
+
+            if (tA === tB) {
+                // desempate de datas por  id (mais novo primeiro)
+                return Number(eventoB?.id ?? 0) - Number(eventoA?.id ?? 0);
+            }
+
+            return tA - tB;
         });
     }, [eventos]);
 
@@ -206,6 +223,15 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     evento?.tema,
                     evento?.descricao,
                     evento?.setor,
+                    evento?.etapa_atual,
+
+                    // tipos de etapas (INSCRICAO, REALIZACAO_EVENTO, etc.)
+                    evento?.etapas
+                        ? evento.etapas
+                              .map((et) => et?.tipo_etapa)
+                              .filter(Boolean)
+                              .join(' ')
+                        : null,
                 ]
                     .filter(Boolean)
                     .join(' ')
@@ -223,8 +249,26 @@ export default function Home({ campus = 'Campus Restinga' }) {
         possuiEtapaSubmissaoAberta,
     ]);
 
-    const eventoDestaque = eventosFiltrados[0] ?? null;
-    const eventosSecundarios = eventosFiltrados.slice(1);
+    const eventosDestaque = useMemo(() => {
+        if (!eventosFiltrados || eventosFiltrados.length === 0) return [];
+
+        const destaquePorRealizacao = eventosFiltrados.filter((e) =>
+            possuiEtapaRealizacaoAberta(e),
+        );
+
+        return destaquePorRealizacao.length > 0
+            ? destaquePorRealizacao
+            : [eventosFiltrados[0]];
+    }, [eventosFiltrados, possuiEtapaRealizacaoAberta]);
+
+    const eventosDestaqueIds = useMemo(
+        () => new Set(eventosDestaque.map((e) => e.id)),
+        [eventosDestaque],
+    );
+
+    const eventosSecundarios = useMemo(() => {
+        return eventosFiltrados.filter((e) => !eventosDestaqueIds.has(e.id));
+    }, [eventosFiltrados, eventosDestaqueIds]);
     const temFiltroAtivo =
         filtroStatus !== 'TODOS' || termoBusca.trim().length > 0;
 
@@ -234,7 +278,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
             evento={evento}
             destaque={destaque}
             onDetalhes={() => {
-                navigate(`/detalhe_evento/${evento.id}`);
+                navigate(`/programacao_evento/${evento.id}`);
             }}
             onInscrever={() => handleInscrever(evento.id)}
             possuiInscricao={estaInscritoEmEvento(evento.id)}
@@ -369,7 +413,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                                 onChange={(event) =>
                                     setTermoBusca(event.target.value)
                                 }
-                                placeholder="Buscar eventos por nome, tema, área ou fase..."
+                                placeholder="Buscar eventos por nome, tema ou fase..."
                             />
                         </label>
 
@@ -402,15 +446,19 @@ export default function Home({ campus = 'Campus Restinga' }) {
                             <Spinner animation="border" role="status" />
                             <span>Carregando eventos...</span>
                         </div>
-                    ) : eventosFiltrados.length > 0 && eventoDestaque ? (
+                    ) : eventosFiltrados.length > 0 ? (
                         <div className="d-grid gap-4">
                             {!temFiltroAtivo ? (
                                 <>
-                                    <div className="d-none d-lg-block">
-                                        {renderCard(eventoDestaque, true)}
-                                    </div>
-                                    <div className="d-block d-lg-none">
-                                        {renderCard(eventoDestaque, false)}
+                                    <div>
+                                        {eventosDestaque.map((evento) => (
+                                            <div
+                                                className="mb-4"
+                                                key={evento.id}
+                                            >
+                                                {renderCard(evento, true)}
+                                            </div>
+                                        ))}
                                     </div>
                                 </>
                             ) : null}

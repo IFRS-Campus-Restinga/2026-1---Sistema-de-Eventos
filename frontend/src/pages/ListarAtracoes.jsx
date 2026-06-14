@@ -4,6 +4,7 @@ import {
     Button,
     Col,
     Container,
+    Dropdown,
     Form,
     ListGroup,
     Row,
@@ -12,13 +13,16 @@ import {
 import {
     MdAddCircle,
     MdArrowBack,
+    MdCalendarToday,
     MdDelete,
     MdEdit,
     MdEvent,
     MdInfoOutline,
-    MdPlace,
+    MdLocalOffer,
+    MdPerson,
+    MdSchool,
 } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Alerta from '../components/common/Alerta';
 import Card from '../components/common/Card';
 import EditarAtracaoModal from '../components/common/EditarAtracaoModal';
@@ -44,6 +48,11 @@ const LIMITS_EDICAO = {
 };
 
 export default function ListarAtracoes() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const ehSubmissoes = location.pathname === '/listar_submissoes';
+    const ehAtracoes = location.pathname === '/listar_atracoes';
+
     const [atracoes, setAtracoes] = useState([]);
     const [carregando, setCarregando] = useState(true);
     const [termoBusca, setTermoBusca] = useState('');
@@ -51,6 +60,21 @@ export default function ListarAtracoes() {
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
     const [mostrarModalExclusao, setMostrarModalExclusao] = useState(false);
     const [atracaoSelecionada, setAtracaoSelecionada] = useState(null);
+    const [usuarioLogado, setUsuarioLogado] = useState(null);
+    const [bloqueioExclusao, setBloqueioExclusao] = useState({});
+    const [bloqueioEdicao, setBloqueioEdicao] = useState({});
+    
+    // Filtros e ordenação
+    const [filtroStatus, setFiltroStatus] = useState('');
+    const [filtroAutor, setFiltroAutor] = useState('');
+    const [filtroModalidade, setFiltroModalidade] = useState('');
+    const [filtroNivel, setFiltroNivel] = useState('');
+    const [filtroEvento, setFiltroEvento] = useState('');
+    const [ordenacao, setOrdenacao] = useState('criacao');
+    const [paginaAtual, setPaginaAtual] = useState(1);
+
+    const ITENS_POR_PAGINA = 10;
+
     const [formEdicao, setFormEdicao] = useState({
         id: null,
         titulo: '',
@@ -73,8 +97,15 @@ export default function ListarAtracoes() {
     const [habilitarSugestaoVagasEdicao, setHabilitarSugestaoVagasEdicao] = useState(false);
     const [usuarioLogadoEdicao, setUsuarioLogadoEdicao] = useState(null);
 
-    const navigate = useNavigate();
     const eventoFiltroId = getSelectedEventoId();
+    const gruposUsuarioNormalizados = useMemo(() => {
+        const grupos = Array.isArray(usuarioLogado?.groups) ? usuarioLogado.groups : [];
+        return grupos
+            .map((group) => (typeof group === 'string' ? group : group?.name))
+            .filter(Boolean)
+            .map((group) => String(group).trim().toLowerCase());
+    }, [usuarioLogado]);
+
     const eventoSelecionadoLista = useMemo(() => {
         if (!eventoFiltroId) return null;
 
@@ -89,17 +120,18 @@ export default function ListarAtracoes() {
 
     const normalizarNiveisEnsino = (valor) => {
         if (Array.isArray(valor)) {
-            return valor.filter((item) => String(item || '').trim() !== '');
+            const primeiroValido = valor.find((item) => String(item || '').trim() !== '');
+            return primeiroValido ? String(primeiroValido).trim() : '';
         }
 
         if (!valor) {
-            return [];
+            return '';
         }
 
         return String(valor)
             .split(',')
             .map((item) => item.trim())
-            .filter((item) => item !== '');
+            .find((item) => item !== '') || '';
     };
 
     const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
@@ -140,6 +172,18 @@ export default function ListarAtracoes() {
         carregarAtracoes();
     }, [carregarAtracoes]);
 
+    // Atualizar bloqueios de exclusão quando atracoes mudam
+    useEffect(() => {
+        const novosBloqueios = {};
+        atracoes.forEach((item) => {
+            const motivo = obterMotivoBloqueioExclusao(item);
+            if (motivo) {
+                novosBloqueios[item.id] = motivo;
+            }
+        });
+        setBloqueioExclusao(novosBloqueios);
+    }, [atracoes]);
+
     useEffect(() => {
         const carregarOpcoesEdicao = async () => {
             const [dadosOpcoes, dadosEventos, dadosUsuarios, dadosUsuarioLogado] = await Promise.allSettled([
@@ -166,6 +210,7 @@ export default function ListarAtracoes() {
 
             if (dadosUsuarioLogado.status === 'fulfilled') {
                 setUsuarioLogadoEdicao(dadosUsuarioLogado.value || null);
+                setUsuarioLogado(dadosUsuarioLogado.value || null);
             }
         };
 
@@ -225,13 +270,25 @@ export default function ListarAtracoes() {
         const mapa = {
             RASCUNHO: { label: 'RASCUNHO', bg: 'secondary' },
             PREVISTA: { label: 'SUBMETIDA', bg: 'primary' },
-            CONFIRMADA: { label: 'CONFIRMADA', bg: 'success' },
+            SUBMETIDA: { label: 'SUBMETIDA', bg: 'primary' },
+            A_APRESENTAR: { label: 'A APRESENTAR', bg: 'success' },
+            CONFIRMADA: { label: 'A APRESENTAR', bg: 'success' },
             EM_ANDAMENTO: { label: 'EM ANDAMENTO', bg: 'warning' },
             ENCERRADA: { label: 'ENCERRADA', bg: 'dark' },
             CANCELADA: { label: 'CANCELADA', bg: 'danger' },
             EM_AVALIACAO: { label: 'EM AVALIACAO', bg: 'warning' },
-            APROVADA: { label: 'APROVADA', bg: 'success' },
-            REPROVADA: { label: 'REPROVADA', bg: 'danger' },
+            REJEITADO: { label: 'REJEITADA', bg: 'danger' },
+            REPROVADA: { label: 'REJEITADA', bg: 'danger' },
+            REPROVADO: { label: 'REJEITADA', bg: 'danger' },
+            APROVADO_COM_RESSALVAS: {
+                label: 'ACEITO COM RESSALVAS',
+                bg: 'info',
+            },
+            ACEITA: { label: 'ACEITA', bg: 'success' },
+            APROVADA: { label: 'ACEITA', bg: 'success' },
+            APROVADO: { label: 'ACEITA', bg: 'success' },
+            CONVERTIDA_EM_ATRACAO: { label: 'A APRESENTAR', bg: 'success' },
+            FINALIZADA: { label: 'FINALIZADA', bg: 'success' },
         };
 
         return (
@@ -240,6 +297,156 @@ export default function ListarAtracoes() {
                 bg: 'secondary',
             }
         );
+    };
+
+    const getStatusBorderColor = (status) => {
+        const statusNormalizado = (status || '').toUpperCase();
+
+        const mapa = {
+            RASCUNHO: '#6c757d',
+            PREVISTA: '#0d6efd',
+            SUBMETIDA: '#0d6efd',
+            A_APRESENTAR: '#198754',
+            CONFIRMADA: '#198754',
+            EM_ANDAMENTO: '#ffc107',
+            ENCERRADA: '#212529',
+            CANCELADA: '#dc3545',
+            EM_AVALIACAO: '#fd7e14',
+            REJEITADO: '#dc3545',
+            REPROVADA: '#dc3545',
+            REPROVADO: '#dc3545',
+            APROVADO_COM_RESSALVAS: '#0dcaf0',
+            ACEITA: '#198754',
+            APROVADA: '#198754',
+            APROVADO: '#198754',
+            CONVERTIDA_EM_ATRACAO: '#198754',
+            FINALIZADA: '#20c997',
+        };
+
+        return mapa[statusNormalizado] || '#6c757d';
+    };
+
+    // Função para determinar se usuário é admin
+    const isAdmin = () =>
+        Boolean(
+            usuarioLogado?.is_superuser ||
+                usuarioLogado?.is_staff ||
+                ['admin', 'administrador'].includes(
+                    String(usuarioLogado?.group || '').trim().toLowerCase(),
+                ) ||
+                gruposUsuarioNormalizados.includes('admin') ||
+                gruposUsuarioNormalizados.includes('administrador'),
+        );
+
+    // Função para determinar se usuário é coordenador
+    const isCoordenador = () => gruposUsuarioNormalizados.includes('coordenador');
+
+    // Função para determinar se usuário é avaliador
+    const isAvaliador = () => gruposUsuarioNormalizados.includes('avaliador');
+
+    const getMinhaAutoria = (item) => {
+        if (isAdmin()) return null;
+
+        const autorias = Array.isArray(item?.autorias) && item.autorias.length > 0
+            ? item.autorias
+            : (Array.isArray(item?.equipe) ? item.equipe : []);
+
+        const usuarioId = String(usuarioLogado?.id || '').trim();
+        const usuarioNome = String(usuarioLogado?.username || usuarioLogado?.nome || '').trim().toLowerCase();
+
+        const autoriaEncontrada = autorias.find((autoria) => {
+            const idsPossiveis = [autoria?.usuario, autoria?.user_id, autoria?.perfil_usuario]
+                .map((valor) => String(valor || '').trim())
+                .filter(Boolean);
+
+            if (usuarioId && idsPossiveis.includes(usuarioId)) {
+                return true;
+            }
+
+            const nomeAutoria = String(autoria?.nome || '').trim().toLowerCase();
+            return usuarioNome && nomeAutoria === usuarioNome;
+        });
+
+        if (!autoriaEncontrada) return null;
+
+        const tipoAutoria =
+            autoriaEncontrada?.funcao ||
+            autoriaEncontrada?.tipo ||
+            autoriaEncontrada?.papel ||
+            'AUTORIA';
+
+        return String(tipoAutoria).trim().toUpperCase();
+    };
+
+    const getCoresAutoria = (tipoAutoria) => {
+        const tipo = String(tipoAutoria || '').trim().toUpperCase();
+        const mapa = {
+            AUTOR: { fundo: '#1D4ED8', texto: '#FFFFFF' },
+            COAUTOR: { fundo: '#0F766E', texto: '#FFFFFF' },
+            ORIENTADOR: { fundo: '#7C3AED', texto: '#FFFFFF' },
+            AUTORIA: { fundo: '#4B5563', texto: '#FFFFFF' },
+        };
+
+        return mapa[tipo] || mapa.AUTORIA;
+    };
+
+    // Função para determinar se usuário é autor do item
+    const isAutor = (item) => {
+        if (!usuarioLogado) return false;
+        if (isAdmin()) return true;
+
+        return Boolean(getMinhaAutoria(item));
+    };
+
+    // Função para determinar se coordenador gerencia o evento
+    const coordenadorGerenciaEvento = (item) => {
+        if (!isCoordenador()) return false;
+        return usuarioLogado?.eventos_coordenados?.includes(item.evento) || false;
+    };
+
+    const normalizarStatusParaPermissao = (status) => {
+        return String(status || '').toUpperCase();
+    };
+
+    // Função para validar se pode editar
+    const podeEditar = (item) => {
+        if (isAdmin()) return true;
+
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidosCoordenador = ['PREVISTA', 'SUBMETIDA', 'CONFIRMADA', 'A_APRESENTAR', 'RASCUNHO'];
+        const statusPermitidosUsuario = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
+
+        if (isCoordenador()) {
+            if (!coordenadorGerenciaEvento(item) && !isAutor(item)) return false;
+            return statusPermitidosCoordenador.includes(status);
+        }
+
+        if (!isAutor(item)) return false;
+        return statusPermitidosUsuario.includes(status);
+    };
+
+    // Função para validar se pode excluir
+    const podeExcluir = (item) => {
+        if (!podeEditar(item)) return false; // Se não pode editar, não pode excluir
+        
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
+        
+        return statusPermitidos.includes(status);
+    };
+
+    // Função para obter motivo do bloqueio de exclusão
+    const obterMotivoBloqueioExclusao = (item) => {
+        if (isAdmin()) return null;
+
+        const status = normalizarStatusParaPermissao(item.status);
+        const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
+
+        if (!statusPermitidos.includes(status)) {
+            return `Exclusão não permitida para itens com status "${getStatusConfig(status).label}".`;
+        }
+
+        return null;
     };
 
     const getAreasEventoEdicao = () => {
@@ -273,23 +480,227 @@ export default function ListarAtracoes() {
             .replace(/[\u0300-\u036f]/g, '')
             .toLowerCase();
 
-    const atracoesFiltradas = useMemo(() => {
-        const termo = normalizarTexto(termoBusca.trim());
-        if (!termo) return atracoes;
+    const getEventoNome = (eventoId) => {
+        const evento = (eventosEdicao || []).find((item) => String(item.id) === String(eventoId));
+        return evento?.nome || `ID ${eventoId}`;
+    };
 
-        return atracoes.filter((atracao) => {
-            const conteudoBusca = [
-                atracao.titulo,
-                atracao.tipo,
-                atracao.local_atracao,
-                getStatusConfig(atracao.status).label,
-            ]
-                .map((valor) => normalizarTexto(valor))
-                .join(' ');
-
-            return conteudoBusca.includes(termo);
+    const formatarDataHoraCurta = (valor) => {
+        if (!valor) return '';
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) return '';
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
         });
-    }, [atracoes, termoBusca]);
+    };
+
+    const getTermosDestaque = (item) => {
+        const maxTermos = 4;
+
+        const termosPalavrasChave = String(item?.palavras_chave || '')
+            .split(/[;,]/)
+            .map((termo) => termo.trim())
+            .filter((termo) => termo.length >= 3);
+
+        if (termosPalavrasChave.length > 0) {
+            return [...new Set(termosPalavrasChave)].slice(0, maxTermos);
+        }
+
+        const stopwords = new Set([
+            'para', 'como', 'entre', 'sobre', 'com', 'sem', 'dos', 'das', 'que',
+            'uma', 'um', 'nos', 'nas', 'por', 'ser', 'sao', 'são', 'seu', 'sua',
+            'seus', 'suas', 'tambem', 'também', 'mais', 'menos', 'muito', 'muita',
+        ]);
+
+        const termosResumo = String(item?.resumo || '')
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .split(/\s+/)
+            .map((termo) => termo.trim())
+            .filter((termo) => termo.length >= 5 && !stopwords.has(termo));
+
+        return [...new Set(termosResumo)].slice(0, maxTermos);
+    };
+
+    const STATUS_SUBMISSOES = new Set([
+        'RASCUNHO',
+        'PREVISTA',
+        'SUBMETIDA',
+        'EM_AVALIACAO',
+        'REJEITADO',
+        'REPROVADA',
+        'REPROVADO',
+        'APROVADO_COM_RESSALVAS',
+        'ACEITA',
+        'APROVADA',
+        'APROVADO',
+        'CANCELADA',
+    ]);
+
+    const STATUS_ATRACOES = new Set([
+        'A_APRESENTAR',
+        'CONFIRMADA',
+        'EM_ANDAMENTO',
+        'ENCERRADA',
+        'CANCELADA',
+        'EM_AVALIACAO',
+        'FINALIZADA',
+        'CONVERTIDA_EM_ATRACAO',
+    ]);
+
+    const atracoesFiltradas = useMemo(() => {
+        let resultado = [...atracoes].filter((item) => {
+            const statusBruto = (item.status || '').toUpperCase();
+
+            if (ehSubmissoes) {
+                return STATUS_SUBMISSOES.has(statusBruto);
+            }
+
+            if (ehAtracoes) {
+                return STATUS_ATRACOES.has(statusBruto);
+            }
+
+            return true;
+        });
+
+        // Aplicar filtro de busca
+        const termo = normalizarTexto(termoBusca.trim());
+        if (termo) {
+            resultado = resultado.filter((atracao) => {
+                const conteudoBusca = [
+                    atracao.titulo,
+                    atracao.tipo,
+                    atracao.local_atracao,
+                    getStatusConfig(atracao.status).label,
+                ]
+                    .map((valor) => normalizarTexto(valor))
+                    .join(' ');
+
+                return conteudoBusca.includes(termo);
+            });
+        }
+
+        // Aplicar filtro de status
+        if (filtroStatus) {
+            resultado = resultado.filter(
+                (item) => (item.status || '').toUpperCase() === filtroStatus.toUpperCase()
+            );
+        }
+
+        // Aplicar filtro de autor
+        if (filtroAutor) {
+            resultado = resultado.filter((item) => {
+                const autorias = item.autorias || item.equipe || [];
+                return autorias.some(
+                    (autoria) =>
+                        normalizarTexto(autoria.nome || '').includes(normalizarTexto(filtroAutor))
+                );
+            });
+        }
+
+        // Aplicar filtro de modalidade
+        if (filtroModalidade) {
+            const modalidadeSelecionada = (opcoesEdicao.modalidades || []).find(
+                (modalidade) =>
+                    String(modalidade?.value ?? modalidade?.id ?? '') === String(filtroModalidade),
+            );
+
+            const termoModalidadeSelecionada = normalizarTexto(
+                modalidadeSelecionada?.label || modalidadeSelecionada?.nome || '',
+            );
+
+            resultado = resultado.filter((item) => {
+                const modalidadeItem = String(item?.modalidade ?? item?.modalidade_id ?? '');
+                const modalidadePorNome = normalizarTexto(
+                    item?.tipo || item?.modalidade_display || item?.modalidade_nome || '',
+                );
+
+                const batePorId = modalidadeItem !== '' && modalidadeItem === String(filtroModalidade);
+                const batePorNome =
+                    termoModalidadeSelecionada !== '' &&
+                    modalidadePorNome.includes(termoModalidadeSelecionada);
+
+                return batePorId || batePorNome;
+            });
+        }
+
+        // Aplicar filtro de nível
+        if (filtroNivel) {
+            resultado = resultado.filter((item) => {
+                const nivel = normalizarNiveisEnsino(item.nivel_ensino);
+                return normalizarTexto(nivel).includes(normalizarTexto(filtroNivel));
+            });
+        }
+
+        // Aplicar filtro de evento
+        if (filtroEvento) {
+            resultado = resultado.filter(
+                (item) => item.evento === parseInt(filtroEvento, 10)
+            );
+        }
+
+        // Aplicar ordenação
+        if (ordenacao === 'titulo') {
+            resultado.sort((a, b) => (a.titulo || '').localeCompare(b.titulo || ''));
+        } else if (ordenacao === 'autor') {
+            resultado.sort((a, b) => {
+                const autorA = ((a.autorias || a.equipe || [])[0]?.nome || '').toLowerCase();
+                const autorB = ((b.autorias || b.equipe || [])[0]?.nome || '').toLowerCase();
+                return autorA.localeCompare(autorB);
+            });
+        } else if (ordenacao === 'status') {
+            resultado.sort((a, b) => {
+                const statusA = (a.status || '').toUpperCase();
+                const statusB = (b.status || '').toUpperCase();
+                return statusA.localeCompare(statusB);
+            });
+        } else if (ordenacao === 'modalidade') {
+            resultado.sort((a, b) => (a.modalidade || '').localeCompare(b.modalidade || ''));
+        } else if (ordenacao === 'nivel') {
+            resultado.sort((a, b) => {
+                const nivelA = normalizarNiveisEnsino(a.nivel_ensino);
+                const nivelB = normalizarNiveisEnsino(b.nivel_ensino);
+                return nivelA.localeCompare(nivelB);
+            });
+        } else {
+            // Padrão: por criação (reverso)
+            resultado.sort((a, b) => {
+                const dataA = new Date(a.criado_em || a.created_at || 0);
+                const dataB = new Date(b.criado_em || b.created_at || 0);
+                return dataB - dataA;
+            });
+        }
+
+        return resultado;
+    }, [
+        atracoes,
+        ehSubmissoes,
+        ehAtracoes,
+        termoBusca,
+        filtroStatus,
+        filtroAutor,
+        filtroModalidade,
+        filtroNivel,
+        filtroEvento,
+        ordenacao,
+        opcoesEdicao.modalidades,
+    ]);
+
+    useEffect(() => {
+        setPaginaAtual(1);
+    }, [termoBusca, filtroStatus, filtroAutor, filtroModalidade, filtroNivel, filtroEvento, ordenacao]);
+
+    const totalPaginas = Math.max(1, Math.ceil(atracoesFiltradas.length / ITENS_POR_PAGINA));
+    const paginaAtualValida = Math.min(paginaAtual, totalPaginas);
+    const indiceInicial = (paginaAtualValida - 1) * ITENS_POR_PAGINA;
+    const atracoesPaginadas = atracoesFiltradas.slice(
+        indiceInicial,
+        indiceInicial + ITENS_POR_PAGINA,
+    );
 
     const abrirModalEdicao = (atracao) => {
         const sugestaoAtual = atracao.sugestao_vagas ?? '';
@@ -333,18 +744,11 @@ export default function ListarAtracoes() {
         setMostrarModalEdicao(true);
     };
 
-    const toggleNivelEnsinoEdicao = (nivelValue) => {
-        setFormEdicao((prev) => {
-            const atuais = normalizarNiveisEnsino(prev.nivel_ensino);
-            const atualizados = atuais.includes(nivelValue)
-                ? atuais.filter((item) => item !== nivelValue)
-                : [...atuais, nivelValue];
-
-            return {
-                ...prev,
-                nivel_ensino: atualizados,
-            };
-        });
+    const selecionarNivelEnsinoEdicao = (nivelValue) => {
+        setFormEdicao((prev) => ({
+            ...prev,
+            nivel_ensino: nivelValue,
+        }));
     };
 
     const getNomeUsuario = (usuario) =>
@@ -455,7 +859,7 @@ export default function ListarAtracoes() {
 
         const tituloPalavras = contarPalavras(formEdicao.titulo || '');
 
-        const nivelEnsinoVazio = normalizarNiveisEnsino(formEdicao.nivel_ensino).length === 0;
+        const nivelEnsinoVazio = !String(formEdicao.nivel_ensino || '').trim();
 
         if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || nivelEnsinoVazio || !formEdicao.area_conhecimento) {
             mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
@@ -508,14 +912,14 @@ export default function ListarAtracoes() {
             setSalvandoEdicao(true);
             await editarAtracao(formEdicao.id, formEdicao);
 
-            mostrarAlerta('Submissão atualizada com sucesso.', 'success');
+            mostrarAlerta(`${ehSubmissoes ? 'Submissão' : 'Atração'} atualizado com sucesso.`, 'success');
             setMostrarModalEdicao(false);
             await carregarAtracoes();
         } catch (error) {
-            console.error('Erro ao editar atração:', error);
+            console.error('Erro ao editar:', error);
             const mensagemErro = error.response?.data
                 ? JSON.stringify(error.response.data)
-                : 'Não foi possível salvar a edição.';
+                : `Não foi possível salvar a edição.`;
             mostrarAlerta(mensagemErro);
         } finally {
             setSalvandoEdicao(false);
@@ -527,13 +931,13 @@ export default function ListarAtracoes() {
 
         try {
             await excluirAtracao(atracaoSelecionada.id);
-            mostrarAlerta('Submissão excluída com sucesso.', 'success');
+            mostrarAlerta(`${ehSubmissoes ? 'Submissão' : 'Atração'} excluído com sucesso.`, 'success');
             setMostrarModalExclusao(false);
             setAtracaoSelecionada(null);
             await carregarAtracoes();
         } catch (error) {
-            console.error('Erro ao excluir atração:', error);
-            mostrarAlerta('Não foi possível excluir a submissão.');
+            console.error('Erro ao excluir:', error);
+            mostrarAlerta(`Não foi possível excluir o ${ehSubmissoes ? 'submissão' : 'atração'}.`);
         }
     };
 
@@ -551,47 +955,34 @@ export default function ListarAtracoes() {
                         />
                     )}
 
-                    <Card corBorda="#00A44B">
+                    <Card corBorda="transparent">
                         <Container fluid className="mb-5 px-4">
                             <Row className="pt-5 pb-2">
-                                <Col className="d-flex align-items-center">
+                                <Col className="d-flex align-items-center justify-content-center">
                                     <MdEvent color="#00A44B" size={35} />
                                     <h3 className="fw-bold ms-2 mb-0" style={{ color: '#00A44B' }}>
-                                        Gerenciar Submissões
+                                        {ehSubmissoes ? 'Gerenciar Submissões' : 'Gerenciar Atrações'}
                                     </h3>
                                 </Col>
                             </Row>
                             <hr className="mb-4" />
 
-                            {eventoFiltroId && (
-                                <Row className="mb-4">
-                                    <Col>
-                                        <div
-                                            className="rounded px-3 py-2"
-                                            style={{
-                                                backgroundColor: '#e7f1ff',
-                                                border: '1px solid #9ec5fe',
-                                                color: '#084298',
-                                            }}
-                                        >
-                                            <strong>Evento selecionado:</strong>{' '}
-                                            {eventoSelecionadoLista?.nome || `ID ${eventoFiltroId}`}
-                                        </div>
-                                    </Col>
-                                </Row>
-                            )}
-
-                            <Row className="mb-4">
-                                <Col md={8} lg={6}>
+                            {/* Filtros e Ordenação */}
+                            <div
+                                className="mb-4 p-3 rounded-4"
+                                style={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}
+                            >
+                                <Row className="g-3 align-items-end">
+                                <Col md={12} lg={7}>
                                     <Form.Group>
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                            Buscar submissão
+                                        <Form.Label className="fw-bold" style={{ color: '#00A44B', fontWeight: 700 }}>
+                                            Buscar {ehSubmissoes ? 'submissão' : 'atração'}
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
                                             value={termoBusca}
                                             onChange={(e) => setTermoBusca(e.target.value)}
-                                            placeholder="Digite titulo, tipo, local ou status"
+                                            placeholder={`Digite titulo, tipo, local ou status`}
                                             style={{
                                                 backgroundColor: '#eeeeee',
                                                 border: '1px solid #ced4da',
@@ -599,85 +990,425 @@ export default function ListarAtracoes() {
                                         />
                                     </Form.Group>
                                 </Col>
-                            </Row>
+                                <Col md={12} lg={5}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-bold" style={{ color: '#000', fontWeight: 700 }}>
+                                            Ordenar por
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={ordenacao}
+                                            onChange={(e) => setOrdenacao(e.target.value)}
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="criacao">Criação (Recente)</option>
+                                            <option value="titulo">Título</option>
+                                            <option value="autor">Autor</option>
+                                            <option value="status">Status</option>
+                                            <option value="modalidade">Modalidade</option>
+                                            <option value="nivel">Nível de Ensino</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                </Row>
+                            </div>
+
+                            {/* Filtros Avançados */}
+                            <div
+                                className="mb-4 p-3 rounded-4"
+                                style={{ backgroundColor: '#ffffff', border: '1px solid #e9ecef' }}
+                            >
+                                <Row className="g-3 align-items-end">
+                                <Col md={6} lg={3}>
+                                    <Form.Group>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
+                                            Status
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtroStatus}
+                                            onChange={(e) => setFiltroStatus(e.target.value)}
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="">Todos</option>
+                                            {ehSubmissoes ? (
+                                                <>
+                                                    <option value="RASCUNHO">Rascunho</option>
+                                                    <option value="PREVISTA">Submetida</option>
+                                                    <option value="EM_AVALIACAO">Em Avaliação</option>
+                                                    <option value="REJEITADO">Rejeitada</option>
+                                                    <option value="APROVADO_COM_RESSALVAS">Aceito com Ressalvas</option>
+                                                    <option value="ACEITA">Aceita</option>
+                                                    <option value="CANCELADA">Cancelada</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="A_APRESENTAR">A Apresentar</option>
+                                                    <option value="EM_ANDAMENTO">Em Andamento</option>
+                                                    <option value="ENCERRADA">Encerrada</option>
+                                                    <option value="CANCELADA">Cancelada</option>
+                                                    <option value="EM_AVALIACAO">Em Avaliação</option>
+                                                    <option value="FINALIZADA">Finalizada</option>
+                                                </>
+                                            )}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6} lg={3}>
+                                    <Form.Group>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
+                                            Modalidade
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtroModalidade}
+                                            onChange={(e) => setFiltroModalidade(e.target.value)}
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="">Todas</option>
+                                            {opcoesEdicao.modalidades?.map((modalidade) => (
+                                                <option key={modalidade.value || modalidade.id} value={modalidade.value || modalidade.id}>
+                                                    {modalidade.label || modalidade.nome}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6} lg={3}>
+                                    <Form.Group>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
+                                            Nível
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtroNivel}
+                                            onChange={(e) => setFiltroNivel(e.target.value)}
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="">Todos</option>
+                                            {opcoesEdicao.niveis_ensino?.map((nivel) => (
+                                                <option key={nivel.value || nivel.id} value={nivel.value || nivel.id}>
+                                                    {nivel.label || nivel.nome}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6} lg={3}>
+                                    <Form.Group>
+                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
+                                            Evento
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={filtroEvento}
+                                            onChange={(e) => setFiltroEvento(e.target.value)}
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: '#eeeeee',
+                                                border: '1px solid #ced4da',
+                                            }}
+                                        >
+                                            <option value="">Todos</option>
+                                            {eventosEdicao?.map((evento) => (
+                                                <option key={evento.id} value={evento.id}>
+                                                    {evento.nome}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                {filtroStatus || filtroModalidade || filtroNivel || filtroEvento ? (
+                                    <Col md={6} lg={3} className="d-flex align-items-end">
+                                        <Button
+                                            variant="outline-secondary"
+                                            size="sm"
+                                            onClick={() => {
+                                                setFiltroStatus('');
+                                                setFiltroModalidade('');
+                                                setFiltroNivel('');
+                                                setFiltroEvento('');
+                                            }}
+                                            className="w-100"
+                                        >
+                                            Limpar Filtros
+                                        </Button>
+                                    </Col>
+                                ) : null}
+                                </Row>
+                            </div>
 
                             {carregando ? (
                                 <div className="text-center py-5">
                                     <Spinner animation="border" variant="success" />
-                                    <p className="mt-2 text-muted">Buscando submissões no sistema...</p>
+                                    <p className="mt-2 text-muted">Buscando {ehSubmissoes ? 'submissões' : 'atrações'} no sistema...</p>
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
                                     {atracoesFiltradas?.length > 0 ? (
-                                        atracoesFiltradas.map((atracao, index) => (
-                                            <ListGroup.Item
-                                                key={atracao.id || index}
-                                                className="d-flex justify-content-between align-items-center mb-3 border rounded shadow-sm p-3"
-                                                style={{ borderLeft: '5px solid #00A44B' }}
-                                            >
-                                                <div className="d-flex flex-column">
-                                                    <div className="fs-5 fw-bold text-dark mb-1">{atracao.titulo}</div>
-                                                    <div className="d-flex flex-wrap gap-3 text-muted small">
-                                                        <span className="d-flex align-items-center gap-1">
-                                                            <MdInfoOutline /> <strong>Tipo:</strong> {atracao.tipo}
-                                                        </span>
-                                                        <span className="d-flex align-items-center gap-1">
-                                                            <MdPlace /> <strong>Local:</strong> {atracao.local_atracao}
-                                                        </span>
+                                        atracoesPaginadas.map((atracao, index) => {
+                                            const podeEditarItem = podeEditar(atracao);
+                                            const podeExcluirItem = podeExcluir(atracao);
+                                            const motivoBloqueio = bloqueioExclusao[atracao.id];
+                                            const podeAcessarAvaliacao =
+                                                isAdmin() || isCoordenador() || isAvaliador();
+                                            const isUsuarioComum =
+                                                !isAdmin() && !isCoordenador() && !isAvaliador();
+                                            const minhaAutoria = getMinhaAutoria(atracao);
+
+                                            return (
+                                                <ListGroup.Item
+                                                    key={atracao.id || index}
+                                                    className="d-flex justify-content-between align-items-center mb-3 rounded-4 p-3"
+                                                    style={{
+                                                        borderLeft: `10px solid ${getStatusBorderColor(atracao.status)}`,
+                                                        backgroundColor: '#fff',
+                                                        boxShadow: '0 0.125rem 0.35rem rgba(0, 0, 0, 0.08)',
+                                                    }}
+                                                >
+                                                    <div className="d-flex flex-column flex-grow-1">
+                                                        <div className="fs-5 fw-bold text-dark mb-1">{atracao.titulo}</div>
+                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-1">
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdInfoOutline /> <strong>Modalidade:</strong> {atracao.tipo || '-'}
+                                                            </span>
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdSchool /> <strong>Nível:</strong> {atracao.nivel_ensino_display || atracao.nivel_ensino || '-'}
+                                                            </span>
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdEvent /> <strong>Evento:</strong> {getEventoNome(atracao.evento)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-2">
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <MdPerson /> <strong>Autor:</strong> {atracao.autor_nome || '-'}
+                                                            </span>
+                                                            {getTermosDestaque(atracao).length > 0 && (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdLocalOffer /> <strong>Termos:</strong> {getTermosDestaque(atracao).join(', ')}
+                                                                </span>
+                                                            )}
+                                                            {atracao.orientador_nome ? (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdPerson /> <strong>Orientador:</strong> {atracao.orientador_nome}
+                                                                </span>
+                                                            ) : null}
+                                                            {formatarDataHoraCurta(atracao.data_hora_inicio) ? (
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdCalendarToday /> <strong>Início:</strong> {formatarDataHoraCurta(atracao.data_hora_inicio)}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                        {minhaAutoria && (
+                                                            <div className="mb-2">
+                                                                <span
+                                                                    className="badge rounded px-2 py-1"
+                                                                    style={{
+                                                                        backgroundColor: getCoresAutoria(minhaAutoria).fundo,
+                                                                        color: getCoresAutoria(minhaAutoria).texto,
+                                                                        fontSize: '0.7rem',
+                                                                    }}
+                                                                >
+                                                                    {minhaAutoria}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
 
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <Badge
-                                                        pill
-                                                        bg={getStatusConfig(atracao.status).bg}
-                                                        className="px-3 py-2"
-                                                    >
-                                                        {getStatusConfig(atracao.status).label}
-                                                    </Badge>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <Badge
+                                                            pill
+                                                            bg={getStatusConfig(atracao.status).bg}
+                                                            className="px-3 py-2"
+                                                            style={{
+                                                                minWidth: '130px',
+                                                                textAlign: 'center',
+                                                                fontSize: '0.78rem',
+                                                                lineHeight: '1rem',
+                                                                letterSpacing: '0.02em',
+                                                            }}
+                                                        >
+                                                            {getStatusConfig(atracao.status).label}
+                                                        </Badge>
 
-                                                    <Button
-                                                        variant="outline-primary"
-                                                        className="d-flex align-items-center gap-1"
-                                                        onClick={() => abrirModalEdicao(atracao)}
-                                                    >
-                                                        <MdEdit /> Editar
-                                                    </Button>
+                                                        <Dropdown align="end">
+                                                            <Dropdown.Toggle
+                                                                variant="primary"
+                                                                id={`acoes-${atracao.id}`}
+                                                                style={{
+                                                                    backgroundColor: '#003366',
+                                                                    borderColor: '#003366',
+                                                                    color: '#fff',
+                                                                    minWidth: '94px',
+                                                                    fontWeight: 600,
+                                                                }}
+                                                            >
+                                                                Ações
+                                                            </Dropdown.Toggle>
 
-                                                    <Button
-                                                        variant="outline-danger"
-                                                        className="d-flex align-items-center gap-1"
-                                                        onClick={() => {
-                                                            setAtracaoSelecionada(atracao);
-                                                            setMostrarModalExclusao(true);
-                                                        }}
-                                                    >
-                                                        <MdDelete /> Excluir
-                                                    </Button>
-                                                </div>
-                                            </ListGroup.Item>
-                                        ))
+                                                            <Dropdown.Menu>
+                                                                <Dropdown.Item
+                                                                    onClick={() => abrirModalEdicao(atracao)}
+                                                                    disabled={!podeEditarItem}
+                                                                >
+                                                                    Editar
+                                                                </Dropdown.Item>
+
+                                                                {!isUsuarioComum && (
+                                                                    <>
+                                                                        {ehSubmissoes ? (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/avaliar_submissao?submissao_id=${atracao.id}&evento_id=${atracao.evento || ''}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!podeAcessarAvaliacao}
+                                                                            >
+                                                                                Avaliar Submissão
+                                                                            </Dropdown.Item>
+                                                                        ) : (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/avaliar_atracao?atracao_id=${atracao.id}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!podeAcessarAvaliacao}
+                                                                            >
+                                                                                Avaliar Atração
+                                                                            </Dropdown.Item>
+                                                                        )}
+
+                                                                        {ehSubmissoes ? (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/gerenciar_avaliadores_submissoes?evento_id=${atracao.evento || ''}`,
+                                                                                    )
+                                                                                }
+                                                                                disabled={!isAdmin()}
+                                                                            >
+                                                                                Gerenciar Avaliadores
+                                                                            </Dropdown.Item>
+                                                                        ) : (
+                                                                            <Dropdown.Item
+                                                                                onClick={() =>
+                                                                                    navigate(
+                                                                                        `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Ver Inscritos
+                                                                            </Dropdown.Item>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </Dropdown.Menu>
+                                                        </Dropdown>
+
+                                                        <Button
+                                                            variant="danger"
+                                                            className="d-flex align-items-center gap-1"
+                                                            onClick={() => {
+                                                                setAtracaoSelecionada(atracao);
+                                                                setMostrarModalExclusao(true);
+                                                            }}
+                                                            disabled={!podeExcluirItem}
+                                                            title={motivoBloqueio || ''}
+                                                            style={{
+                                                                backgroundColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
+                                                                borderColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
+                                                                color: '#fff',
+                                                            }}
+                                                        >
+                                                            <MdDelete /> Excluir
+                                                        </Button>
+                                                    </div>
+                                                </ListGroup.Item>
+                                            );
+                                        })
                                     ) : (
                                         <div className="text-center py-5 border rounded bg-white">
                                             <p className="text-muted mb-0">
                                                 {atracoes.length > 0
-                                                    ? 'Nenhuma submissao encontrada para o termo informado.'
-                                                    : 'Nenhuma submissao cadastrada ate o momento.'}
+                                                    ? `Nenhuma ${ehSubmissoes ? 'submissão' : 'atração'} encontrada para o termo informado.`
+                                                    : `Nenhuma ${ehSubmissoes ? 'submissão' : 'atração'} cadastrada até o momento.`}
                                             </p>
                                         </div>
                                     )}
                                 </ListGroup>
                             )}
 
+                            {atracoesFiltradas.length > 0 && (
+                                <div className="d-flex justify-content-center align-items-center mt-4">
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        className="me-2"
+                                        onClick={() =>
+                                            setPaginaAtual((pagina) => Math.max(1, pagina - 1))
+                                        }
+                                        disabled={paginaAtualValida === 1}
+                                    >
+                                        Anterior
+                                    </Button>
+
+                                    {Array.from({ length: totalPaginas }, (_, index) => {
+                                        const numeroPagina = index + 1;
+                                        return (
+                                            <Button
+                                                key={`page-${numeroPagina}`}
+                                                variant={
+                                                    numeroPagina === paginaAtualValida
+                                                        ? 'success'
+                                                        : 'outline-success'
+                                                }
+                                                size="sm"
+                                                className="mx-1"
+                                                onClick={() => setPaginaAtual(numeroPagina)}
+                                            >
+                                                {numeroPagina}
+                                            </Button>
+                                        );
+                                    })}
+
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        className="ms-2"
+                                        onClick={() =>
+                                            setPaginaAtual((pagina) =>
+                                                Math.min(totalPaginas, pagina + 1),
+                                            )
+                                        }
+                                        disabled={paginaAtualValida === totalPaginas}
+                                    >
+                                        Proximo
+                                    </Button>
+
+                                </div>
+                            )}
+
                             <div className="mt-4">
                                 <Button
                                     as={Link}
-                                    to="/adicionar_atracao"
+                                    to={ehSubmissoes ? '/adicionar_submissao' : '/adicionar_atracao'}
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                                     style={{ backgroundColor: '#00A44B', border: 'none' }}
                                 >
-                                    <MdAddCircle size={20} /> Nova Submissão
+                                    <MdAddCircle size={20} /> Novo{ehSubmissoes ? 'a Submissão' : 'a Atração'}
                                 </Button>
                             </div>
                         </Container>
@@ -705,7 +1436,7 @@ export default function ListarAtracoes() {
                     contarPalavras={contarPalavras}
                     LIMITS_EDICAO={LIMITS_EDICAO}
                     normalizarNiveisEnsino={normalizarNiveisEnsino}
-                    toggleNivelEnsinoEdicao={toggleNivelEnsinoEdicao}
+                    selecionarNivelEnsinoEdicao={selecionarNivelEnsinoEdicao}
                     getAreasEventoEdicao={getAreasEventoEdicao}
                     normalizarAreaEdicao={normalizarAreaEdicao}
                     usuariosEdicao={usuariosEdicao}
@@ -724,7 +1455,7 @@ export default function ListarAtracoes() {
             <ModalPopup
                 show={mostrarModalExclusao}
                 titulo="Aviso!"
-                tituloSecundario="Excluir Submissão"
+                tituloSecundario={`Excluir ${ehSubmissoes ? 'Submissão' : 'Atração'}`}
                 onAcao={handleConfirmarExclusao}
                 onFechar={() => setMostrarModalExclusao(false)}
                 textoAcao="Excluir"

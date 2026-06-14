@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from eventos_session.permissions import HasValidSessionToken
+from eventos_session.services.token_service import get_token_cookie_name
 
 
 @api_view(["GET"])
@@ -20,6 +21,8 @@ def system_id(request):
 def logout(request):
     response = Response({"message": "Sessão encerrada"}, status=status.HTTP_200_OK)
     # [TEMP-FALLBACK] Deletar cookies de autenticação HttpOnly
+    response.delete_cookie(get_token_cookie_name("access_token"), path="/")
+    response.delete_cookie(get_token_cookie_name("refresh_token"), path="/")
     response.delete_cookie("access_token", path="/")
     response.delete_cookie("refresh_token", path="/")
     return response

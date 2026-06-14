@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.atracao import Atracao
 from ..models.avaliacao_atracao import AvaliacaoAtracao
@@ -18,6 +19,17 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.perfil import Perfil
 from ..serializers.atracao_serializer import AtracaoSerializer
+from ..services.submissao_atracao_policy import (
+    STATUS_EDICAO_COORDENADOR,
+    STATUS_EDICAO_USUARIO,
+    STATUS_EXCLUSAO_COORDENADOR,
+    STATUS_EXCLUSAO_USUARIO,
+    coordenador_gerencia_evento,
+    is_admin,
+    is_coordenador,
+    possui_status_permitido,
+    usuario_eh_autor,
+)
 from .perms_generic_view import PodeGerenciarEquipeEvento
 
 User = get_user_model()
@@ -28,20 +40,29 @@ class AtracaoListView(APIView):
 
     permission_classes = [AllowAny]
 
+    def _base_queryset(self):
+        return Atracao.objects.filter(submissao__isnull=False).select_related(
+            "submissao",
+            "submissao__modalidade",
+            "submissao__evento",
+            "espaco",
+        )
+
     def get(self, request):
         evento_id = request.query_params.get("evento")
+
         if evento_id:
-            atracoes = Atracao.objects.filter(
-                evento_id=evento_id
+            atracoes = self._base_queryset().filter(
+                submissao__evento_id=evento_id
             )  # atrações de um evento específico
         else:
-            atracoes = Atracao.objects.all()  # retorna todas as atrações
+            atracoes = self._base_queryset()  # retorna todas as atrações
 
         serializer = AtracaoSerializer(atracoes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = AtracaoSerializer(data=request.data)
+        serializer = AtracaoSerializer(data=request.data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -53,11 +74,112 @@ class AtracaoDetailView(APIView):
 
     permission_classes = [AllowAny]
 
+    def _base_queryset(self):
+        return Atracao.objects.filter(submissao__isnull=False).select_related(
+            "submissao",
+            "submissao__modalidade",
+            "submissao__evento",
+            "espaco",
+        )
+
     def get_object(self, pk):
         try:
-            return Atracao.objects.get(pk=pk)
+            return self._base_queryset().get(pk=pk)
         except Atracao.DoesNotExist:
             return None
+
+    def _validar_permissao_edicao(self, request, atracao):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False, "Autenticação obrigatória para editar submissão/atração."
+
+        if is_admin(user):
+            return True, ""
+
+        if is_coordenador(user):
+            tem_escopo = coordenador_gerencia_evento(user, atracao) or usuario_eh_autor(
+                user, atracao
+            )
+            if not tem_escopo:
+                return (
+                    False,
+                    "Coordenador só pode editar submissões/atrações do evento que coordena ou de sua autoria.",
+                )
+
+            if possui_status_permitido(atracao, STATUS_EDICAO_COORDENADOR):
+                return True, ""
+
+            return (
+                False,
+                "Coordenador só pode editar com status PREVISTA, SUBMETIDA, RASCUNHO ou CONFIRMADA.",
+            )
+
+        if not usuario_eh_autor(user, atracao):
+            return False, "Você só pode editar submissões/atrações de sua autoria."
+
+        if possui_status_permitido(atracao, STATUS_EDICAO_USUARIO):
+            return True, ""
+
+        return False, "Aluno/Servidor só pode editar submissão/atração em RASCUNHO."
+
+    @staticmethod
+    def _atracao_esta_programada(atracao):
+        return atracao.ordem_apresentacoes.exists()
+
+    def _validar_permissao_exclusao(self, request, atracao):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return (
+                False,
+                "Autenticação obrigatória para excluir submissão/atração.",
+                status.HTTP_403_FORBIDDEN,
+            )
+
+        if is_admin(user):
+            return True, "", status.HTTP_204_NO_CONTENT
+
+        if self._atracao_esta_programada(atracao):
+            return (
+                False,
+                "Não é possível excluir: a submissão/atração já foi programada.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        if is_coordenador(user):
+            tem_escopo = coordenador_gerencia_evento(user, atracao) or usuario_eh_autor(
+                user, atracao
+            )
+            if not tem_escopo:
+                return (
+                    False,
+                    "Coordenador só pode excluir submissões/atrações do evento que coordena ou de sua autoria.",
+                    status.HTTP_403_FORBIDDEN,
+                )
+
+            if possui_status_permitido(atracao, STATUS_EXCLUSAO_COORDENADOR):
+                return True, "", status.HTTP_204_NO_CONTENT
+
+            return (
+                False,
+                "Coordenador só pode excluir com status PREVISTA, SUBMETIDA, RASCUNHO ou CONFIRMADA.",
+                status.HTTP_403_FORBIDDEN,
+            )
+
+        if not usuario_eh_autor(user, atracao):
+            return (
+                False,
+                "Você só pode excluir submissões/atrações de sua autoria.",
+                status.HTTP_403_FORBIDDEN,
+            )
+
+        if possui_status_permitido(atracao, STATUS_EXCLUSAO_USUARIO):
+            return True, "", status.HTTP_204_NO_CONTENT
+
+        return (
+            False,
+            "Aluno/Servidor só pode excluir submissão/atração em SUBMETIDA ou RASCUNHO.",
+            status.HTTP_403_FORBIDDEN,
+        )
 
     def get(self, request, pk):
         atracao = self.get_object(pk)
@@ -74,7 +196,23 @@ class AtracaoDetailView(APIView):
             return Response(
                 {"detail": "Atração não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
-        serializer = AtracaoSerializer(atracao, data=request.data)
+
+        # Se a submissão foi REPROVADA, bloquear alterações na atração
+        submissao = getattr(atracao, "submissao", None)
+        status_submissao = getattr(submissao, "status_submissao", None)
+        if status_submissao == StatusSubmissao.REPROVADA:
+            return Response(
+                {"detail": "Não é possível modificar: a submissão foi reprovada."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        pode_editar, motivo = self._validar_permissao_edicao(request, atracao)
+        if not pode_editar:
+            return Response({"detail": motivo}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = AtracaoSerializer(
+            atracao, data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -86,6 +224,22 @@ class AtracaoDetailView(APIView):
             return Response(
                 {"detail": "Atração não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
+
+        # Se a submissão foi REPROVADA, bloquear remoção da atração
+        submissao = getattr(atracao, "submissao", None)
+        status_submissao = getattr(submissao, "status_submissao", None)
+        if status_submissao == StatusSubmissao.REPROVADA:
+            return Response(
+                {"detail": "Não é possível excluir: a submissão foi reprovada."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        pode_excluir, motivo, http_status = self._validar_permissao_exclusao(
+            request, atracao
+        )
+        if not pode_excluir:
+            return Response({"detail": motivo}, status=http_status)
+
         atracao.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -100,8 +254,9 @@ class AtracaoAvaliadorView(APIView):
             atracao = Atracao.objects.get(pk=pk)
         except Atracao.DoesNotExist:
             return Response({"erro": "Atração não encontrada"}, status=404)
+        modalidade = getattr(getattr(atracao, "submissao", None), "modalidade", None)
         # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
-        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+        if not modalidade or not modalidade.requer_avaliacao:
             return Response(
                 {"erro": "Modalidade da atração não requer avaliação"}, status=400
             )
@@ -139,6 +294,7 @@ class AtracaoAvaliadorView(APIView):
             atracao = Atracao.objects.get(pk=pk)
         except Atracao.DoesNotExist:
             return Response({"erro": "Atração não encontrada"}, status=404)
+        modalidade = getattr(getattr(atracao, "submissao", None), "modalidade", None)
 
         perfil_id = request.data.get("perfil_id")
 
@@ -152,14 +308,14 @@ class AtracaoAvaliadorView(APIView):
             return Response({"erro": "Perfil não encontrado"}, status=404)
 
         # se modalidade da atração não requer avaliação, não faz sentido ter avaliadores
-        if not atracao.modalidade or not atracao.modalidade.requer_avaliacao:
+        if not modalidade or not modalidade.requer_avaliacao:
             return Response(
                 {"erro": "Modalidade da atração não requer avaliação"}, status=400
             )
 
         # verifica limite de avaliadores definido pela modalidade
-        if atracao.modalidade:
-            limite = atracao.modalidade.limite_avaliadores or 0
+        if modalidade:
+            limite = modalidade.limite_avaliadores or 0
             atuais = get_users_with_perms(
                 atracao, only_with_perms_in=["avaliar_atracao"], with_group_users=False
             )
@@ -179,7 +335,9 @@ class AtracaoAvaliadorView(APIView):
 
         # garantir que usuário receba permissão de avaliador no nível do evento
         try:
-            assign_perm("api.avaliador_evento", usuario, atracao.evento)
+            evento = getattr(getattr(atracao, "submissao", None), "evento", None)
+            if evento is not None:
+                assign_perm("api.avaliador_evento", usuario, evento)
         except Exception:
             pass
         avaliadores = get_users_with_perms(
@@ -243,14 +401,16 @@ class AtracaoAvaliadorView(APIView):
         # se o usuário não tiver mais permissões de avaliar atrações neste evento
         # e não tiver avaliações neste evento, remover a permissão de avaliador no nível do evento
         try:
-            evento = atracao.evento
+            evento = getattr(getattr(atracao, "submissao", None), "evento", None)
+            if evento is None:
+                raise ValueError("Atração sem evento associado na submissão")
             # verificar se existem outras atrações do mesmo evento com perm de avaliar
             atracoes_com_perm = get_objects_for_user(
                 usuario, "api.avaliar_atracao", klass=Atracao
-            ).filter(evento=evento)
+            ).filter(submissao__evento=evento)
 
             avaliacoes_no_evento = AvaliacaoAtracao.objects.filter(
-                avaliador=usuario, atracao__evento=evento
+                avaliador=usuario, atracao__submissao__evento=evento
             ).exists()
 
             if not atracoes_com_perm.exists() and not avaliacoes_no_evento:
@@ -306,13 +466,24 @@ class MinhasAtracoesAvaliadorView(APIView):
             return Response({"erro": "Evento não encontrado"}, status=404)
 
         # atrações do evento para as quais o usuário tem permissão obj-level
-        atracoes_perm = get_objects_for_user(
-            user, "api.avaliar_atracao", klass=Atracao
-        ).filter(evento_id=evento_id)
+        atracoes_perm = (
+            get_objects_for_user(user, "api.avaliar_atracao", klass=Atracao)
+            .filter(submissao__evento_id=evento_id)
+            .select_related(
+                "submissao",
+                "submissao__modalidade",
+                "submissao__evento",
+                "espaco",
+            )
+        )
 
         # avaliações já realizadas pelo usuário
         avaliacoes = AvaliacaoAtracao.objects.filter(avaliador=user).select_related(
-            "atracao"
+            "atracao",
+            "atracao__submissao",
+            "atracao__submissao__modalidade",
+            "atracao__submissao__evento",
+            "atracao__espaco",
         )
         avaliadas_ids = {a.atracao_id: a for a in avaliacoes}
 
@@ -358,7 +529,11 @@ class MinhasAtracoesAvaliadorView(APIView):
             if av.atracao_id in atracoes_perm_ids:
                 continue
             # somente considerar avaliações cuja atração pertence ao evento requisitado
-            if not av.atracao or getattr(av.atracao, "evento_id", None) != evento.id:
+            if (
+                not av.atracao
+                or getattr(getattr(av.atracao, "submissao", None), "evento_id", None)
+                != evento.id
+            ):
                 continue
             atr = av.atracao
             data = AtracaoSerializer(atr).data

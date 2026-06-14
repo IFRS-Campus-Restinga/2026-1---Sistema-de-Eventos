@@ -53,8 +53,9 @@ class ItemAvaliaçãoAtracaoListView(APIView):
 
         # verificar se a etapa de realização do evento está aberta
         agora = timezone.now()
+        evento = getattr(getattr(avaliacao.atracao, "submissao", None), "evento", None)
         etapa_realizacao = EtapaEvento.objects.filter(
-            evento=avaliacao.atracao.evento,
+            evento=evento,
             tipo_etapa=TipoEtapa.REALIZACAO_EVENTO,
             data_inicio__lte=agora,
             data_fim__gte=agora,
@@ -113,8 +114,9 @@ class ItemAvaliaçãoAtracaoDetailView(APIView):
 
         # verificar se a etapa de realização do evento está aberta
         agora = timezone.now()
+        evento = getattr(getattr(avaliacao.atracao, "submissao", None), "evento", None)
         etapa_realizacao = EtapaEvento.objects.filter(
-            evento=avaliacao.atracao.evento,
+            evento=evento,
             tipo_etapa=TipoEtapa.REALIZACAO_EVENTO,
             data_inicio__lte=agora,
             data_fim__gte=agora,

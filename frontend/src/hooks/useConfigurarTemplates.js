@@ -8,11 +8,17 @@ export function useConfigurarTemplates() {
     const [nomeExibicao, setNomeExibicao] = useState('');
     const [assunto, setAssunto] = useState('');
     const [mensagem, setMensagem] = useState('');
+    const [showModalExcluir, setShowModalExcluir] = useState(false);
 
-    // --- MOCKS (Funções inativas apenas para o front não quebrar) ---
     const carregarTemplates = useCallback(async () => {
-        console.log('Mock: Carregando templates ignorado por enquanto.');
-        setTemplates([]);
+        try {
+            const dados =
+                await configurarTemplatesService.buscarTemplatesPerfil();
+            setTemplates(dados);
+        } catch (erro) {
+            console.error('Falha ao carregar os templates:', erro);
+            setTemplates([]);
+        }
     }, []);
 
     useEffect(() => {
@@ -33,12 +39,31 @@ export function useConfigurarTemplates() {
         setMensagem('');
     };
 
-    const handleDeletar = async (templateId, csrfToken) => {
-        console.log('Mock: Função de deletar acionada para o ID', templateId);
-    };
-    // --------------------------------------------------------------
+    const handleDeletar = async (csrfToken) => {
+        if (!templateEmEdicao) return;
 
-    // --- FOCO: FUNÇÃO DE CRIAR ---
+        try {
+            console.log(
+                'Iniciando requisição DELETE para ID:',
+                templateEmEdicao.id,
+            );
+
+            await configurarTemplatesService.deletarTemplatePerfil(
+                templateEmEdicao.id,
+                csrfToken,
+            );
+
+            console.log('Sucesso! Template excluído.');
+
+            // Fecha o modal, limpa o form e atualiza a lista
+            setShowModalExcluir(false);
+            handleNovoTemplate();
+            carregarTemplates();
+        } catch (erro) {
+            console.error('Falha na requisição de exclusão:', erro);
+        }
+    };
+
     const handleSalvar = async (e, csrfToken) => {
         e.preventDefault();
 
@@ -48,33 +73,45 @@ export function useConfigurarTemplates() {
             corpo_texto: mensagem,
         };
 
-        // Se tiver template em edição, ignora (pois o foco agora é só criar)
-        if (templateEmEdicao) {
-            console.log('Mock: Função de edição acionada e ignorada.', payload);
-            return;
-        }
-
         try {
-            console.log(
-                'Iniciando requisição POST para criar template...',
-                payload,
-            );
-
-            const resposta =
-                await configurarTemplatesService.criarTemplatePerfil(
+            if (templateEmEdicao) {
+                // --- FOCO: EDITAR TEMPLATE EXISTENTE ---
+                console.log(
+                    'Iniciando requisição PATCH para atualizar template...',
                     payload,
-                    csrfToken,
                 );
 
-            console.log(
-                'Sucesso! Template criado no banco de dados:',
-                resposta,
-            );
+                const resposta =
+                    await configurarTemplatesService.atualizarTemplatePerfil(
+                        templateEmEdicao.id,
+                        payload,
+                        csrfToken,
+                    );
 
-            // Limpa o formulário após a criação
-            handleNovoTemplate();
+                console.log('Sucesso! Template atualizado:', resposta);
+                carregarTemplates(); // Recarrega a barra lateral para mostrar a edição
+            } else {
+                // --- CRIAR NOVO TEMPLATE (Mantido como estava) ---
+                console.log(
+                    'Iniciando requisição POST para criar template...',
+                    payload,
+                );
+
+                const resposta =
+                    await configurarTemplatesService.criarTemplatePerfil(
+                        payload,
+                        csrfToken,
+                    );
+
+                console.log(
+                    'Sucesso! Template criado no banco de dados:',
+                    resposta,
+                );
+                handleNovoTemplate(); // Limpa o formulário
+                carregarTemplates(); // Recarrega a barra lateral para mostrar o novo template
+            }
         } catch (erro) {
-            console.error('Falha na requisição de criação:', erro);
+            console.error('Falha na requisição de salvar/atualizar:', erro);
         }
     };
 
@@ -90,6 +127,8 @@ export function useConfigurarTemplates() {
         handleSelecionarTemplate,
         handleNovoTemplate,
         handleSalvar,
+        showModalExcluir,
+        setShowModalExcluir,
         handleDeletar,
     };
 }

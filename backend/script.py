@@ -82,6 +82,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Oficina",
@@ -90,6 +91,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Pôster",
@@ -98,6 +100,7 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 2,
         "ativo": True,
+        "permite_submissao": True,
     },
     {
         "nome": "Mesa-redonda",
@@ -106,7 +109,22 @@ MODALIDADES_DATA = [
         "emite_certificado": True,
         "limite_avaliadores": 0,
         "ativo": True,
+        "permite_submissao": True,
     },
+]
+
+TEMPLATES_SISTEMA_DATA = [
+    {
+        "nome_exibicao": "E-mail de Boas Vindas",
+        "assunto": "Bem-vindo ao Sistema!",
+        "corpo_texto": (
+            "Olá, {{ nome_usuario }} {{ sobrenome_usuario }}.\n\n"
+            "Seu cadastro complementar no Sistema de Eventos foi realizado com Sucesso!.\n"
+            "Seja muito bem-vindo!"
+            "Agora no Site você pode se inscrever e gerenciar os eventos que você participa."
+        ),
+        "identificador": "welcome_email",
+    }
 ]
 
 # Dicionário de Mapeamento para as chaves reais salvas no Banco (TextChoices)
@@ -185,19 +203,25 @@ ETAPAS_DATA = [
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2026-04-01 08:00:00",
-        "data_fim": "2026-06-15 23:59:59",
+        "data_fim": "2026-06-06 23:59:59",
     },
     {
         "evento_nome": "Semana Acadêmica de Tecnologia",
         "tipo_etapa": "REALIZACAO_EVENTO",
-        "data_inicio": "2025-10-20 08:00:00",
-        "data_fim": "2025-10-22 18:00:00",
+        "data_inicio": "2026-06-07 08:00:00",
+        "data_fim": "2026-06-10 18:00:00",
     },
     {
         "evento_nome": "Mostra de Extensão",
         "tipo_etapa": "INSCRICAO_PUBLICO",
         "data_inicio": "2026-05-10 00:00:00",
         "data_fim": "2026-05-29 23:59:59",
+    },
+    {
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "tipo_etapa": "REALIZACAO_EVENTO",
+        "data_inicio": "2026-10-20 08:00:00",
+        "data_fim": "2026-10-22 18:00:00",
     },
 ]
 
@@ -297,6 +321,131 @@ ATRACOES_DATA = [
         "area_conhecimento": "Engenharias",
         "status": "CONFIRMADA",
     },
+    {
+        "titulo": "Robótica: uso de lego",
+        "resumo": "Lego. Desenvolvimento de kits de baixo custo para ensino de robótica.",
+        "palavras_chave": "robótica, educação, automação",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
+        "area_conhecimento": "Engenharias",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Artes visuais: pintura moderna",
+        "resumo": "Projeto artístico em escolas de ensino médio.",
+        "palavras_chave": "artes, pintura, moderna",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "ENSINO_MEDIO_INTEGRADO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "IF Niños",
+        "resumo": "Projeto de ensino de espanhol para crianças e adolescentes.",
+        "palavras_chave": "espanhol, educação, crianças",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Ciclo de leituras",
+        "resumo": "Série de leituras e discussões sobre textos literários.",
+        "palavras_chave": "leitura, literatura, discussão",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Oficina",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Linguística, Letras e Artes",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Esporte na vida adulta",
+        "resumo": "Discussões sobre a importância do esporte na vida dos adultos.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Palestra",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Dança e expressão corporal",
+        "resumo": "Exploração da dança como forma de expressão e bem-estar físico e emocional.",
+        "palavras_chave": "dança, expressão corporal, bem-estar",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Tênis de mesa, um esporte para todas as idades",
+        "resumo": "Apresentação dos benefícios do tênis de mesa para a saúde física e mental em diferentes faixas etárias.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Pôster",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+    {
+        "titulo": "Vivendo bem: a importância do esporte na vida adulta",
+        "resumo": "Exploração dos benefícios do esporte para a saúde e qualidade de vida dos adultos.",
+        "palavras_chave": "esporte, saúde, vida adulta",
+        "evento_nome": "Jornada de Pesquisa e Inovação",
+        "modalidade_nome": "Palestra",
+        "nivel_ensino": "GRADUACAO",
+        "area_conhecimento": "Ciências da Saúde",
+        "status": "CONFIRMADA",
+    },
+]
+
+CAMPO_FORMULARIO_DATA = [
+    {
+        "modalidade": "Palestra",
+        "nome": "Necessita acessibilidade",
+        "tipo": "BOOLEANO",
+        "obrigatorio": False,
+    },
+    {
+        "modalidade": "Palestra",
+        "nome": "Apresentação em PDF",
+        "tipo": "ARQUIVO",
+        "obrigatorio": True,
+    },
+    {
+        "modalidade": "Oficina",
+        "nome": "Necessita projetor",
+        "tipo": "BOOLEANO",
+        "obrigatorio": True,
+    },
+    {
+        "modalidade": "Oficina",
+        "nome": "Necessita computador",
+        "tipo": "BOOLEANO",
+        "obrigatorio": True,
+    },
+    {
+        "modalidade": "Pôster",
+        "nome": "Observações",
+        "tipo": "TEXTO",
+        "obrigatorio": False,
+    },
+]
+
+CRITERIOS_ATRACAO_DATA = [
+    ("Clareza da apresentação", "A clareza e estrutura da apresentação."),
+    ("Originalidade", "Nível de novidade e contribuição do trabalho."),
+    ("Relevância", "Relevância para a área e público alvo."),
+]
+
+CRITERIOS_SUBMISSAO_DATA = [
+    ("Qualidade técnica", "Rigor metodológico e qualidade técnica."),
+    ("Impacto", "Potencial impacto e aplicabilidade."),
+    ("Adequação ao tema", "Compatibilidade com o tema do evento."),
 ]
 
 
@@ -408,6 +557,75 @@ def seed_modalidades():
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
 
 
+def seed_campos_formulario():
+    from api.enumerations.tipo_campo import TipoCampo
+    from api.models.campo_formulario import CampoFormulario
+    from api.models.modalidade import Modalidade
+
+    created = []
+    existing = []
+
+    for item in CAMPO_FORMULARIO_DATA:
+        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade"]).first()
+        if not modalidade:
+            print(
+                f"Aviso: Modalidade '{item['modalidade']}' não encontrada. Pulando campo '{item['nome']}'."
+            )
+            continue
+
+        campo = CampoFormulario.objects.filter(
+            nome__iexact=item["nome"], modalidade=modalidade
+        ).first()
+        if campo:
+            existing.append(f"{campo.nome} ({modalidade.nome})")
+            continue
+
+        campo = CampoFormulario(
+            nome=item["nome"],
+            tipo_dado=TipoCampo[item["tipo"]],
+            obrigatorio=item["obrigatorio"],
+            ativo=True,
+            modalidade=modalidade,
+        )
+        campo.full_clean()
+        campo.save()
+        created.append(f"{campo.nome} ({modalidade.nome})")
+
+    print("Seed de campos de formulário finalizada.")
+    print(f"Criados: {created if created else 'nenhum'}")
+    print(f"Ja existiam: {existing if existing else 'nenhum'}")
+
+
+def seed_criterios():
+    from api.models.criterio_avaliacao_atracao import CriterioAvaliacaoAtracao
+    from api.models.criterio_avaliacao_submissao import CriterioAvaliacaoSubmissao
+    from api.models.modalidade import Modalidade
+
+    modalidades_avaliacao = Modalidade.objects.filter(requer_avaliacao=True)
+    for mod in modalidades_avaliacao:
+        for nome, descricao in CRITERIOS_ATRACAO_DATA:
+            obj, created = CriterioAvaliacaoAtracao.objects.get_or_create(
+                modalidade=mod,
+                nome=nome,
+                defaults={"descricao": descricao, "ativo": True},
+            )
+            if created:
+                print(f"Criterio de atracao criado: {nome} ({mod.nome})")
+
+    modalidades_submissao = Modalidade.objects.filter(requer_avaliacao_submissao=True)
+    for mod in modalidades_submissao:
+        for nome, descricao in CRITERIOS_SUBMISSAO_DATA:
+            obj, created = CriterioAvaliacaoSubmissao.objects.get_or_create(
+                modalidade=mod,
+                nome=nome,
+                defaults={"descricao": descricao, "ativo": True},
+            )
+            if created:
+                print(f"Criterio de submissao criado: {nome} ({mod.nome})")
+
+    print("Seed de critérios finalizada.")
+
+
 def seed_areas():
     from api.models.area_conhecimento import AreaConhecimento
 
@@ -462,6 +680,7 @@ def seed_atracoes():
     from api.models.atracao import Atracao
     from api.models.evento import Evento
     from api.models.modalidade import Modalidade
+    from api.models.submissao import Submissao
 
     created = []
     existing = []
@@ -480,26 +699,33 @@ def seed_atracoes():
         # Converte o nome amigável para a chave de choice correspondente (ex: "CIENCIAS_EXATAS_E_DA_TERRA")
         chave_area = MAPA_AREAS_CHOICES.get(item["area_conhecimento"], item["area_conhecimento"])
 
-        atracao = Atracao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
-        if atracao:
-            existing.append(atracao.titulo)
+        submissao = Submissao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
+        if submissao and Atracao.objects.filter(submissao=submissao).exists():
+            existing.append(submissao.titulo)
             continue
 
+        if submissao is None:
+            submissao = Submissao(
+                titulo=item["titulo"],
+                resumo=item["resumo"],
+                palavras_chave=item["palavras_chave"],
+                modalidade=modalidade,
+                nivel_ensino=item["nivel_ensino"],
+                area_conhecimento=chave_area,
+                evento=evento,
+                sou_orientador=False,
+                acessibilidade=False,
+            )
+            submissao.full_clean()
+            submissao.save()
+
         atracao = Atracao(
-            titulo=item["titulo"],
-            resumo=item["resumo"],
-            palavras_chave=item["palavras_chave"],
-            modalidade=modalidade,
-            nivel_ensino=item["nivel_ensino"],
-            area_conhecimento=chave_area, 
-            evento=evento,
+            submissao=submissao,
             status=item["status"],
-            sou_orientador=False,
-            acessibilidade=False,
         )
         atracao.full_clean()
         atracao.save()
-        created.append(atracao.titulo)
+        created.append(submissao.titulo)
 
     print("Seed de atracoes finalizada.")
     print(f"Criadas: {created if created else 'nenhuma'}")
@@ -580,6 +806,32 @@ def seed_arquivos():
     print(f"Ja existiam: {existing if existing else 'nenhum'}")
 
 
+def seed_templates_sistema():
+    from emails.models import TemplateSistema
+
+    created = []
+    existing = []
+
+    for item in TEMPLATES_SISTEMA_DATA:
+        template, was_created = TemplateSistema.objects.get_or_create(
+            identificador=item["identificador"],
+            defaults={
+                "nome_exibicao": item["nome_exibicao"],
+                "assunto": item["assunto"],
+                "corpo_texto": item["corpo_texto"],
+            },
+        )
+
+        if was_created:
+            created.append(template.identificador)
+        else:
+            existing.append(template.identificador)
+
+    print("Seed de templates de sistema finalizada.")
+    print(f"Criados: {created if created else 'nenhum'}")
+    print(f"Ja existiam: {existing if existing else 'nenhum'}")
+
+
 def seed_admin_user():
     from django.contrib.auth import get_user_model
     from django.contrib.auth.models import Group
@@ -613,9 +865,12 @@ if __name__ == "__main__":
     seed_locais()
     seed_espacos()
     seed_modalidades()
+    seed_campos_formulario()
+    seed_criterios()
     seed_areas()
     seed_eventos()
     seed_atracoes()
     seed_arquivos()
     seed_etapas()
+    seed_templates_sistema()
     seed_admin_user()

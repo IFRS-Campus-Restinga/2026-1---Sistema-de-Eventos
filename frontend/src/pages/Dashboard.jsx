@@ -423,9 +423,7 @@ export default function Dashboard() {
                                             >
                                                 <Link
                                                     className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        '/listar_inscritos_evento'
-                                                    }
+                                                    to={`/listar_inscritos_evento?eventoId=${eventoId}`}
                                                 >
                                                     <HiOutlineClipboardList
                                                         size={20}
@@ -480,7 +478,7 @@ export default function Dashboard() {
                                         >
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={'#'}
+                                                to={'/listar_submissoes'}
                                             >
                                                 <GoTasklist
                                                     size={25}
@@ -498,7 +496,7 @@ export default function Dashboard() {
                                         >
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
-                                                to={'#'}
+                                                to={'/adicionar_submissao'}
                                             >
                                                 + Adicionar Submissão
                                             </Link>
@@ -574,7 +572,11 @@ export default function Dashboard() {
                                         >
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={'#'}
+                                                to={
+                                                    eventoId
+                                                        ? `/gerenciar_avaliadores_submissoes?evento_id=${eventoId}`
+                                                        : '#'
+                                                }
                                             >
                                                 <BsPersonFillCheck
                                                     size={25}

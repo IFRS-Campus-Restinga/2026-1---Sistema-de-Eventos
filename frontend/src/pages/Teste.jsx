@@ -367,7 +367,7 @@ export default function Dashboard() {
                                         <Col sm={6}>
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={'/listar_atracoes'}
+                                                to={'/listar_submissoes'}
                                             >
                                                 <GoTasklist
                                                     size={25}
@@ -380,7 +380,7 @@ export default function Dashboard() {
                                         <Col sm={6}>
                                             <Link
                                                 className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-success"
-                                                to={'/adicionar_atracao'}
+                                                to={'/adicionar_submissao'}
                                             >
                                                 + Adicionar Submissão
                                             </Link>

@@ -15,6 +15,7 @@ export default function ModalAtribuicao({
     selecionadasSugestoes,
     toggleSelecao,
     avaliadoresContagemMap,
+    modalidadesMap,
     onSalvar,
     onFechar,
 }) {
@@ -68,6 +69,29 @@ export default function ModalAtribuicao({
                                 selecionada?.area_conhecimento ||
                                     selecionada?.modalidade,
                             )}
+                        </span>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <span className="fw-bold">Tipo:</span>{' '}
+                        <span>
+                            {(() => {
+                                const mod =
+                                    typeof selecionada?.modalidade ===
+                                        'object' && selecionada?.modalidade
+                                        ? selecionada.modalidade
+                                        : modalidadesMap?.[
+                                              selecionada?.modalidade
+                                          ];
+                                return (
+                                    mod?.nome ||
+                                    mod?.titulo ||
+                                    mod?.descricao ||
+                                    selecionada?.modalidade ||
+                                    '-'
+                                );
+                            })()}
                         </span>
                     </Col>
                 </Row>

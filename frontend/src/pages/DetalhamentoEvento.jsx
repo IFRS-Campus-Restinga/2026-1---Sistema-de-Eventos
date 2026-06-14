@@ -118,27 +118,25 @@ export default function DetalheEvento() {
                             <Button
                                 variant="light"
                                 as={Link}
-                                to="/adicionar_atracao"
+                                to="/adicionar_submissao"
                                 onClick={() => setSelectedEventoId(id)}
                                 className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm"
                                 style={{ color: verdeIFRS }}
                             >
                                 <MdSend className="me-2" /> Submeter Trabalho
                             </Button>
-                            {estaInscritoEvento && (
-                                <Button
-                                    variant="outline-light"
-                                    as={Link}
-                                    to={`/inscrever_atracoes/${evento.id}`}
-                                    onClick={() =>
-                                        setSelectedEventoId(evento.id)
-                                    }
-                                    className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
-                                >
-                                    <MdFactCheck className="me-2" /> Inscrever
-                                    em Atrações
-                                </Button>
-                            )}
+
+                            <Button
+                                variant="outline-light"
+                                as={Link}
+                                to={`/inscrever_atracoes/${evento.id}`}
+                                onClick={() => setSelectedEventoId(evento.id)}
+                                className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"
+                            >
+                                <MdFactCheck className="me-2" /> Inscrever em
+                                Atrações
+                            </Button>
+
                             <Button
                                 variant="outline-light"
                                 className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold border-2"

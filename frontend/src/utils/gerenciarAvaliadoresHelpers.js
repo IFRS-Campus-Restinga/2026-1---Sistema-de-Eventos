@@ -1,6 +1,6 @@
 import formatAreaConhecimento from './formatAreaConhecimento';
 
-export const buildAreaOptions = (atracoes) => {
+export const construirOpcoesArea = (atracoes) => {
     const valores = Array.from(
         new Set(
             (atracoes || []).map((a) => a.area_conhecimento).filter(Boolean),
@@ -13,21 +13,44 @@ export const buildAreaOptions = (atracoes) => {
     }));
 };
 
-export const filtrarAtracoes = (allAtracoes, filtroArea, filtroBusca) => {
+export const construirOpcoesModalidade = (modalidadesMap) => {
+    const valores = Object.values(modalidadesMap || {});
+    return valores.map((m) => ({
+        valor: m.id,
+        rotulo: m.nome || m.titulo || m.descricao || String(m.id),
+    }));
+};
+
+export const filtrarAtracoes = (
+    todasAtracoes,
+    filtroArea,
+    filtroBusca,
+    filtroModalidade,
+) => {
     const area = filtroArea?.toLowerCase?.() || '';
     const busca = filtroBusca?.toLowerCase?.() || '';
+    const modalidadeFiltro = filtroModalidade || '';
 
-    return (allAtracoes || []).filter((a) => {
-        const matchArea = area
+    return (todasAtracoes || []).filter((a) => {
+        const correspondeArea = area
             ? (a.area_conhecimento || a.modalidade || '')
+                  .toString()
                   .toLowerCase()
                   .includes(area)
             : true;
-        const matchBusca = busca
+        const correspondeBusca = busca
             ? (a.titulo || '').toLowerCase().includes(busca) ||
               (a.autores_text || '').toLowerCase().includes(busca)
             : true;
-        return matchArea && matchBusca;
+        const modalidadeId =
+            typeof a.modalidade === 'object' && a.modalidade
+                ? a.modalidade.id
+                : a.modalidade;
+        const correspondeModalidade = modalidadeFiltro
+            ? String(modalidadeId) === String(modalidadeFiltro)
+            : true;
+
+        return correspondeArea && correspondeBusca && correspondeModalidade;
     });
 };
 

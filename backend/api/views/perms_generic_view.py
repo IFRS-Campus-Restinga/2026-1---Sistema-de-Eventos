@@ -151,3 +151,57 @@ class PodeVerAvaliacaoAtracao(BasePermission):
 
         # avaliador só pode ver sua própria avaliação
         return getattr(obj, "avaliador", None) == user
+
+
+class PodeVerAvaliacaoSubmissao(BasePermission):
+    """
+    Regra de visibilidade para as avaliações de submissão.
+    Administradores e Coordenadores possuem visão macro (visualizam tudo).
+    Avaliadores comuns têm escopo restrito apenas às avaliações de sua autoria.
+    """
+
+    def _is_admin_or_coordenador(self, user):
+        return (
+            user.is_superuser
+            or user.groups.filter(name__in=["Administrador", "Coordenador"]).exists()
+        )
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+
+        if self._is_admin_or_coordenador(user):
+            return True
+
+        # Restringe o avaliador comum às suas próprias avaliações executadas
+        return getattr(obj, "avaliador", None) == user
+
+
+class PodeGerenciarAvaliadoresSubmissao(IsGroupAndObjectPerm):
+    """
+    Permissão para determinar quem pode vincular ou remover um avaliador de
+    uma submissão específica. Segue o ecossistema do seu 'PodeGerenciarEquipeEvento'.
+    """
+
+    required_groups = ["Coordenador", "Administrador"]
+    required_object_perms = ["api.coordenar_evento"]
+
+    def has_object_permission(self, request, view, obj):
+        # O objeto testado aqui será a Submissao. Precisamos validar a permissão
+        # do usuário com base no Evento ao qual a submissão pertence.
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser or self.is_admin(user):
+            return True
+
+        evento = getattr(obj, "evento", None)
+        if not evento:
+            return False
+
+        return any(user.has_perm(perm, evento) for perm in self.required_object_perms)

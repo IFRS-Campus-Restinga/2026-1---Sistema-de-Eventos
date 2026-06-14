@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
-import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -173,10 +172,18 @@ STATIC_URL = "static/"
 AUTH_USER_MODEL = "eventos_session.Usuario"
 
 BASE_SYSTEM_URL = "http://localhost:8000"
+
+# System ID e API Key para autenticação entre sistemas
 SYSTEM_ID = "4b055e06-b02a-4fc7-abe5-3d8d5dd81006"
 API_KEY = "567c11e97215f381de0fe08e362743373ca4c67fd17c86bbdb57cc3dca088292"
+
+# System ID e API Key para testes locais (desenvolvimento)
+'''SYSTEM_ID = "4eec2eb7-acec-4f6b-951d-0843a743b662"
+API_KEY = "35a21d216559e2f69b6ad9a31571074fff06b658ddfbea77125205342f6edfce"'''
+
 JWT_SECRET_KEY = SECRET_KEY
 JWT_ALGORITHM = "HS256"
+JWT_COOKIE_PREFIX = "evento_"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = 1
 
@@ -191,21 +198,24 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # Autenticação do e-mail
-EMAIL_HOST_USER = "sistema.eventos.testes@gmail.com"
-EMAIL_HOST_PASSWORD = "eulnwpqkvvfwqbtn"
+EMAIL_HOST_USER = "naoresponda_sistema@restinga.ifrs.edu.br"
+EMAIL_HOST_PASSWORD = "sqnghirhsbdtegwl"
 
 # Remetente padrão das mensagens
-DEFAULT_FROM_EMAIL = "sistema.eventos.testes@gmail.com"
+DEFAULT_FROM_EMAIL = "naoresponda_sistema@restinga.ifrs.edu.br"
 
 # CONFIGURAÇÕES DO CELERY E REDIS (Upstash) para envio de e-mails
 
 # Connection String da UpStash
-CELERY_BROKER_URL = "rediss://default:gQAAAAAAAfC-AAIgcDI2OTA0NjIzYTE2Njg0YjkxOTM5Y2YxMTkwMGNkYjQ1MQ@popular-falcon-127166.upstash.io:6379"
+# CELERY_BROKER_URL = "rediss://default:gQAAAAAAAfC-AAIgcDI2OTA0NjIzYTE2Njg0YjkxOTM5Y2YxMTkwMGNkYjQ1MQ@popular-falcon-127166.upstash.io:6379" Upstash deixei já aqui caso precise retornar a Upstash
+CELERY_BROKER_URL = "redis://default:jLwe3xTAr3f52Orn0hLgraq8Jzjls6Kc@great-leather-amusement-38746.db.redis.io:19045"
 
 # SSL parâmetros de segurança
-CELERY_BROKER_USE_SSL = {
-    "ssl_cert_reqs": ssl.CERT_NONE  # Em produção deve ser configurado o Certificado e mudar a linha para: 'ssl_cert_reqs': ssl.CERT_REQUIRED
-}
+
+
+# CELERY_BROKER_USE_SSL = {
+#     "ssl_cert_reqs": ssl.CERT_NONE  # Em produção deve ser configurado o Certificado e mudar a linha para: 'ssl_cert_reqs': ssl.CERT_REQUIRED Upstash deixei já aqui caso precise retornar a Upstash
+# }
 
 # Padrões de segurança e formato de dados para a fila
 CELERY_ACCEPT_CONTENT = ["json"]

@@ -45,6 +45,15 @@ class Modalidade(Base):
         default=False,
     )
 
+    limite_maximo_vagas = models.IntegerField(
+        verbose_name=_("Número máximo de vagas"),
+        help_text=_("Informe um limite máximo de vagas"),
+        null=True,
+        blank=True,
+        default=None,
+        validators=[MinValueValidator(0)],
+    )
+
     limite_vagas = models.IntegerField(
         verbose_name=_("Número de vagas"),
         help_text=_("Informe se há um limite de vagas"),
@@ -92,9 +101,19 @@ class Modalidade(Base):
                 "Não pode haver limite de vagas se não há controle de vagas."
             )
 
+        if (not self.requer_controle_vagas) and (self.limite_maximo_vagas is not None):
+            errors["limite_maximo_vagas"] = _(
+                "Só é possível informar o limite máximo de vagas se houver controle de vagas."
+            )
+
         # validar valor não-negativo quando informado
         if self.limite_vagas is not None and self.limite_vagas < 0:
             errors["limite_vagas"] = _("O número de vagas deve ser maior ou igual a 0.")
+
+        if self.limite_maximo_vagas is not None and self.limite_maximo_vagas < 0:
+            errors["limite_maximo_vagas"] = _(
+                "O número máximo de vagas deve ser maior ou igual a 0."
+            )
 
         if len(self.nome.strip()) < 3:
             errors["nome"] = _("O nome deve ter pelo menos 3 caracteres.")

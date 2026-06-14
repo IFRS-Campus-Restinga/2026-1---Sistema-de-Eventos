@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .base import Base
 from .campo_formulario import CampoFormulario
+from .submissao import Submissao
 
 
 class Resposta(Base):
@@ -14,10 +15,11 @@ class Resposta(Base):
     )
 
     campo_formulario = models.ForeignKey(CampoFormulario, on_delete=models.RESTRICT)
-    atracao = models.ForeignKey(
-        "Atracao",
+    submissao = models.ForeignKey(
+        Submissao,
         on_delete=models.CASCADE,
         related_name="respostas",
+        db_column="atracao_id",
         null=True,
         blank=True,
     )

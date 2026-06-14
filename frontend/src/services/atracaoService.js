@@ -207,10 +207,25 @@ export const buscarEventos = async () => {
     return response.data;
 };
 
-export const buscarUsuarios = async (q) => {
-    // apenas servidores/avaliadores, aceita parâmetro q para busca
-    const response = await axios.get(`${API_URL}/api/users/servidores/`, {
-        params: q ? { q } : {},
+export const buscarUsuarios = async (q, options = {}) => {
+    const mode = options?.mode || 'elegiveis';
+    const limit = options?.limit || 200;
+
+    const endpoint =
+        mode === 'servidores'
+            ? `${API_URL}/api/users/servidores/`
+            : `${API_URL}/api/users/elegiveis/`;
+
+    const params = {
+        ...(q ? { q } : {}),
+    };
+
+    if (mode !== 'servidores') {
+        params.limit = limit;
+    }
+
+    const response = await axios.get(endpoint, {
+        params,
         withCredentials: true,
     });
     return response.data;

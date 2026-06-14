@@ -25,6 +25,11 @@ def get_setting(name: str, default):
     return getattr(settings, name, default)
 
 
+def get_token_cookie_name(base_name: str) -> str:
+    prefix = str(get_setting("JWT_COOKIE_PREFIX", "")).strip()
+    return f"{prefix}{base_name}"
+
+
 def is_admin_user(user) -> bool:
     return bool(
         getattr(user, "is_superuser", False) or getattr(user, "is_staff", False)
@@ -204,15 +209,15 @@ def build_hub_auth_cookies(request_cookies: dict | None) -> dict:
     api_key do sistema como credencial via cookie 'system', conforme
     suportado pelo Hub para autenticacao server-to-server.
     """
-    allowed = ("access_token", "refresh_token")
+    allowed = ("eventos_access_token", "eventos_refresh_token")
     cookies = {}
 
     if request_cookies:
-        cookies = {
-            name: value
-            for name, value in ((k, request_cookies.get(k)) for k in allowed)
-            if value
-        }
+        for name in allowed:
+            prefixed_name = get_token_cookie_name(name)
+            value = request_cookies.get(prefixed_name)
+            if value:
+                cookies[name] = value
 
     if not cookies:
         api_key = str(get_setting("API_KEY", "")).strip()

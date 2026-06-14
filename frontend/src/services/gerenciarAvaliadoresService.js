@@ -14,7 +14,8 @@ import { pegarCriterioAvaliacaoAtracao } from './criterioAvaliacaoAtracaoService
 export const listarAtracoesEvento = async (eventoId) =>
     listarAtracoes(eventoId);
 
-export const listarUsuariosServidores = async (texto) => buscarUsuarios(texto);
+export const listarUsuariosServidores = async (texto) =>
+    buscarUsuarios(texto, { mode: 'servidores' });
 
 export const listarEventos = async () => buscarEventos();
 

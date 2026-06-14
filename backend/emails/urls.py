@@ -3,6 +3,7 @@ from .views import (
     TemplateSistemaListView,
     TemplatePerfilListCreateView,
     TemplatePerfilDetailView,
+    EnviarEmailsView,
 )
 
 urlpatterns = [
@@ -20,5 +21,10 @@ urlpatterns = [
         "templates_perfil/<int:pk>/",
         TemplatePerfilDetailView.as_view(),
         name="templates_perfil_detail",
+    ),
+    path(
+        "eventos/<int:evento_id>/enviar_emails/",
+        EnviarEmailsView.as_view(),
+        name="enviar_emails_evento",
     ),
 ]

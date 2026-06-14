@@ -1,450 +1,282 @@
-import { useEffect, useState } from 'react';
+import { Container, Row, Col, Button, Form } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import Container from 'react-bootstrap/esm/Container';
-import Row from 'react-bootstrap/esm/Row';
-import Col from 'react-bootstrap/esm/Col';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import Card from 'react-bootstrap/Card';
-import Table from 'react-bootstrap/Table';
-import Badge from 'react-bootstrap/Badge';
+import Tag from '../components/common/Tag';
 import Alerta from '../components/common/Alerta';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { MdArrowBack } from 'react-icons/md';
+import useAvaliarSubmissao from '../hooks/useAvaliarSubmissao';
+import { obterCorPorTag } from '../utils/themeTags';
+import formatAreaConhecimento from '../utils/formatAreaConhecimento';
 
-import { useEventos } from '../hooks/useEventos';
-import { useAtracoesMock } from '../hooks/useAtracoesMock';
-import { useAvaliacaoSubmissao } from '../hooks/useAvaliacaoSubmissao';
-
-const statusBadgeVariant = {
-    EM_AVALIACAO: 'warning',
-    APROVADO: 'success',
-    REPROVADO: 'danger',
-    APROVADO_COM_RESSALVAS: 'info',
-};
-
-const statusLabels = {
-    EM_AVALIACAO: 'Em Avaliação',
-    APROVADO: 'Aprovado',
-    REPROVADO: 'Reprovado',
-    APROVADO_COM_RESSALVAS: 'Aprovado com Ressalvas',
-};
-
-export default function AvaliarSubmissao({ campus = 'Campus Restinga' }) {
+export default function AvaliarSubmissao() {
     const navigate = useNavigate();
-    const { eventos } = useEventos();
-    const { atracoes } = useAtracoesMock();
+    const [alerta, setAlerta] = useState(null);
+
+    const params = new URLSearchParams(window.location.search);
+    const submissaoId = params.get('submissao_id');
+    const avaliacaoIdParam = params.get('avaliacao_id');
+
     const {
-        handleCriarAvaliacao,
-        carregarAvaliacoesPorSubmissao,
-        avaliacoes,
+        submissao,
+        criterios,
+        itens,
+        parecer,
+        setParecer,
+        statusAprovacao,
+        setStatusAprovacao,
         loading,
-        message,
-    } = useAvaliacaoSubmissao();
-
-    const [selectedEventoId, setSelectedEventoId] = useState('');
-    const [selectedAtracaoId, setSelectedAtracaoId] = useState('');
-    const [avaliacaoForm, setAvaliacaoForm] = useState({
-        nota: '',
-        status_aprovacao: 'EM_AVALIACAO',
-        comentarios: '',
-    });
-
-    const atracoesPorEvento = atracoes.filter(
-        (a) => String(a.evento) === String(selectedEventoId)
-    );
-    const atracaoSelecionada = selectedAtracaoId
-        ? atracoesPorEvento.find(
-              (a) => String(a.id) === String(selectedAtracaoId)
-          )
-        : null;
-    const eventoSelecionado = eventos.find(
-        (ev) => String(ev.id) === String(selectedEventoId)
-    );
-
-    const handleChangeForm = (campo, valor) => {
-        setAvaliacaoForm((prev) => ({
-            ...prev,
-            [campo]: valor,
-        }));
-    };
-
-    const handleSubmitAvaliacao = async (event) => {
-        event?.preventDefault();
-
-        if (loading) {
-            return;
-        }
-
-        const dadosAvaliacao = {
-            submissao: parseInt(selectedAtracaoId),
-            nota: parseFloat(avaliacaoForm.nota),
-            status_aprovacao: avaliacaoForm.status_aprovacao,
-            comentarios: avaliacaoForm.comentarios,
-        };
-
-        console.log('Enviando dados:', dadosAvaliacao);
-
-        await handleCriarAvaliacao(dadosAvaliacao);
-        setAvaliacaoForm({
-            nota: '',
-            status_aprovacao: 'EM_AVALIACAO',
-            comentarios: '',
-        });
-        setSelectedAtracaoId('');
-    };
+        editingAllowed,
+        handleNotaChange,
+        handleSubmit,
+        podeEnviar,
+    } = useAvaliarSubmissao({ submissaoId, avaliacaoId: avaliacaoIdParam });
 
     useEffect(() => {
-        if (selectedAtracaoId) {
-            carregarAvaliacoesPorSubmissao(selectedAtracaoId);
+        // Impede o usuário de selecionar "Em Avaliação"
+        if (editingAllowed && statusAprovacao === 'EM_AVALIACAO') {
+            setStatusAprovacao('APROVADO');
         }
-    }, [selectedAtracaoId, carregarAvaliacoesPorSubmissao]);
+    }, [editingAllowed, statusAprovacao, setStatusAprovacao]);
+
+    const onSubmit = async () => {
+        if (!submissao) return;
+        try {
+            const res = await handleSubmit();
+            if (res && res.success) {
+                const redirectTimeout = 2000;
+                setAlerta({
+                    mensagem: 'Avaliação da submissão salva com sucesso',
+                    variacao: 'success',
+                    duracao: redirectTimeout,
+                    reacao: Date.now(),
+                });
+                setTimeout(
+                    () =>
+                        navigate(
+                            `/minhas_avaliacoes_submissoes?evento_id=${submissao.evento}`,
+                        ),
+                    redirectTimeout + 100,
+                );
+            } else {
+                setAlerta({
+                    mensagem: 'Erro ao enviar avaliação',
+                    variacao: 'danger',
+                    reacao: Date.now(),
+                });
+            }
+        } catch {
+            setAlerta({
+                mensagem: 'Erro ao enviar avaliação',
+                variacao: 'danger',
+                reacao: Date.now(),
+            });
+        }
+    };
 
     return (
-        <>
+        <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
-            <main className="flex-fill mb-5">
-                <Container fluid className="px-5">
+            <main className="py-4 px-3">
+                <Container className="px-5 py-4 d-flex flex-column gap-3 shadow rounded-4 bg-white">
                     <Row>
-                        <Col className="text-center my-5">
-                            <h1 className="fw-bold text-success">
-                                Avaliar Submissões de Trabalhos
+                        <Col className="px-0">
+                            <h1 className="fw-bold text-dark">
+                                {submissao
+                                    ? submissao.titulo
+                                    : 'Carregando Submissão...'}
                             </h1>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col className="px-0 d-flex flex-wrap gap-2">
+                            <Tag
+                                corTexto="#fff"
+                                corFundo="#003366"
+                                texto={
+                                    submissao?.nivel_ensino_display || 'Nível'
+                                }
+                            />
+                            <Tag
+                                corTexto="#fff"
+                                corFundo={obterCorPorTag(
+                                    formatAreaConhecimento(
+                                        submissao?.area_conhecimento,
+                                    ),
+                                )}
+                                texto={
+                                    formatAreaConhecimento(
+                                        submissao?.area_conhecimento,
+                                    ) || 'Área'
+                                }
+                            />
                         </Col>
                     </Row>
 
                     <Row>
-                        <Col lg={10} className="mx-auto">
-                            {/* SELEÇÃO */}
-                            <Card className="mb-4">
-                                <Card.Header className="bg-success text-white">
-                                    <Card.Title className="mb-0">
-                                        Selecione uma Submissão
-                                    </Card.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                    <Form onSubmit={handleSubmitAvaliacao}>
-                                        <Row>
-                                            <Col md={6} className="mb-3">
-                                                <Form.Label className="fw-bold">
-                                                    Evento
-                                                </Form.Label>
-                                                <Form.Select
-                                                    value={selectedEventoId}
-                                                    onChange={(e) => {
-                                                        setSelectedEventoId(e.target.value);
-                                                        setSelectedAtracaoId('');
-                                                    }}
-                                                >
-                                                    <option value="">
-                                                        Selecione um evento
-                                                    </option>
-                                                    {eventos.map((ev) => (
-                                                        <option key={ev.id} value={ev.id}>
-                                                            {ev.nome}
-                                                        </option>
-                                                    ))}
-                                                </Form.Select>
-                                            </Col>
+                        <Col
+                            className="rounded-2 fw-semibold p-3"
+                            style={{
+                                background: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                color: '#1d4ed8',
+                            }}
+                        >
+                            Atribua notas de 0.0 a 10.0 para cada critério
+                            avaliativo institucional utilizando ponto para
+                            decimais.
+                        </Col>
+                    </Row>
 
-                                            <Col md={6} className="mb-3">
-                                                <Form.Label className="fw-bold">
-                                                    Atracao/Trabalho
-                                                </Form.Label>
-                                                <Form.Select
-                                                    value={selectedAtracaoId}
-                                                    onChange={(e) =>
-                                                        setSelectedAtracaoId(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    disabled={!selectedEventoId}
-                                                >
-                                                    <option value="">
-                                                        {!selectedEventoId
-                                                            ? 'Selecione um evento'
-                                                            : 'Selecione uma atracao'}
-                                                    </option>
-                                                    {atracoesPorEvento.map((atr) => (
-                                                        <option key={atr.id} value={atr.id}>
-                                                            {atr.titulo}
-                                                        </option>
-                                                    ))}
-                                                </Form.Select>
-                                            </Col>
-                                        </Row>
-                                    </Form>
-                                </Card.Body>
-                            </Card>
+                    {(criterios || []).map((c, idx) => (
+                        <Row
+                            key={c.id}
+                            className="p-3 rounded-4 bg-light border mb-2"
+                        >
+                            <Col className="d-md-flex justify-content-between align-items-center">
+                                <div className="d-flex flex-column gap-1">
+                                    <span className="fw-bold fs-5 text-dark">{`${
+                                        idx + 1
+                                    }. ${c.nome}`}</span>
+                                    <span className="text-muted small">
+                                        {c.descricao}
+                                    </span>
+                                </div>
+                                <input
+                                    max={10}
+                                    min={0}
+                                    step={0.1}
+                                    value={itens[idx]?.nota ?? ''}
+                                    onChange={(e) =>
+                                        handleNotaChange(idx, e.target.value)
+                                    }
+                                    type="number"
+                                    className="score-input fs-4 window-input fw-bold text-center mt-3 mt-md-0"
+                                    style={{
+                                        width: '100px',
+                                        height: '50px',
+                                        borderRadius: '8px',
+                                        border: '2px solid #cbd5e1',
+                                    }}
+                                    disabled={!editingAllowed}
+                                    required
+                                />
+                            </Col>
+                        </Row>
+                    ))}
 
-                            {/* DADOS DA ATRACAO */}
-                            {atracaoSelecionada && (
-                                <Card className="mb-4">
-                                    <Card.Header className="bg-info text-white">
-                                        <Card.Title className="mb-0">
-                                            {atracaoSelecionada.titulo}
-                                        </Card.Title>
-                                    </Card.Header>
-                                    <Card.Body>
-                                        <Row className="mb-3">
-                                            <Col md={6} className="mb-3">
-                                                <strong>ID:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.id}
-                                                </p>
-                                            </Col>
-                                            <Col md={6} className="mb-3">
-                                                <strong>Evento:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {eventoSelecionado?.nome || '-'}
-                                                </p>
-                                            </Col>
-                                        </Row>
+                    <Row className="d-flex flex-column gap-2 mt-2">
+                        <Col className="px-0">
+                            <label
+                                htmlFor="parecer"
+                                className="fw-bold fs-5 text-dark"
+                            >
+                                Parecer Descritivo da Banca
+                            </label>
+                        </Col>
+                        <Col className="w-100 px-0">
+                            <textarea
+                                id="parecer"
+                                placeholder="Escreva o parecer descritivo detalhado sobre a submissão de trabalho..."
+                                rows={5}
+                                className="form-control w-100 p-3 bg-light"
+                                value={parecer}
+                                onChange={(e) => setParecer(e.target.value)}
+                                disabled={!editingAllowed}
+                                required
+                            />
+                        </Col>
+                    </Row>
 
-                                        <Row className="mb-3">
-                                            <Col md={6} className="mb-3">
-                                                <strong>Modalidade:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.modalidade || '-'}
-                                                </p>
-                                            </Col>
-                                            <Col md={6} className="mb-3">
-                                                <strong>Status:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.status || '-'}
-                                                </p>
-                                            </Col>
-                                        </Row>
+                    <Row className="mt-2">
+                        <Col md={6} className="px-0">
+                            <Form.Group>
+                                <Form.Label className="fw-bold text-dark">
+                                    Resultado / Status de Aprovação
+                                </Form.Label>
+                                <Form.Select
+                                    value={statusAprovacao}
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        // bloqueia seleção de "Em Avaliação" (segurança extra)
+                                        if (next === 'EM_AVALIACAO') return;
+                                        setStatusAprovacao(next);
+                                    }}
+                                    disabled={!editingAllowed}
+                                    className="p-2 bg-light fw-semibold"
+                                >
+                                    <option value="EM_AVALIACAO" disabled>
+                                        Em Avaliação
+                                    </option>
+                                    <option value="APROVADO">Aprovado</option>
+                                    <option value="APROVADO_COM_RESSALVAS">
+                                        Aprovado com Ressalvas
+                                    </option>
+                                    <option value="REPROVADO">Reprovado</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+                    </Row>
 
-                                        <Row className="mb-3">
-                                            <Col md={6} className="mb-3">
-                                                <strong>Área de Conhecimento:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.areaConhecimento ||
-                                                        atracaoSelecionada.area_conhecimento ||
-                                                        '-'}
-                                                </p>
-                                            </Col>
-                                            <Col md={6} className="mb-3">
-                                                <strong>Nível de Ensino:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.nivelEnsino ||
-                                                        atracaoSelecionada.nivel_ensino ||
-                                                        '-'}
-                                                </p>
-                                            </Col>
-                                        </Row>
+                    <Row className="d-flex flex-column justify-content-center text-center my-3 p-3 bg-light rounded-3">
+                        <Col className="small fw-bold text-secondary">
+                            MÉDIA FINAL ARITMÉTICA
+                        </Col>
+                        <Col className="fw-bold display-4 text-success">
+                            {(() => {
+                                const vals = (itens || [])
+                                    .map((i) => i.nota)
+                                    .filter((n) => Number.isFinite(n));
+                                if (!vals.length) return '--';
+                                return (
+                                    vals.reduce((a, b) => a + b, 0) /
+                                    vals.length
+                                )
+                                    .toFixed(1)
+                                    .replace('.', ',');
+                            })()}
+                        </Col>
+                    </Row>
 
-                                        <Row>
-                                            <Col className="mb-3">
-                                                <strong>Resumo:</strong>
-                                                <p className="mb-0 text-muted">
-                                                    {atracaoSelecionada.resumo || '-'}
-                                                </p>
-                                            </Col>
-                                        </Row>
-                                    </Card.Body>
-                                </Card>
-                            )}
-
-                            {/* FORMULÁRIO DE AVALIAÇÃO */}
-                            {atracaoSelecionada && (
-                                <Card className="mb-4 border-warning">
-                                    <Card.Header className="bg-warning">
-                                        <Card.Title className="mb-0">
-                                            Registrar Avaliação
-                                        </Card.Title>
-                                    </Card.Header>
-                                    <Card.Body>
-                                        <Form>
-                                            <Row>
-                                                <Col md={4} className="mb-3">
-                                                    <Form.Label className="fw-bold">
-                                                        Nota (0.0 - 10.0) *
-                                                    </Form.Label>
-                                                    <Form.Control
-                                                        type="number"
-                                                        min="0"
-                                                        max="10"
-                                                        step="0.1"
-                                                        placeholder="0"
-                                                        value={avaliacaoForm.nota}
-                                                        onChange={(e) =>
-                                                            handleChangeForm(
-                                                                'nota',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    />
-                                                </Col>
-
-                                                <Col md={8} className="mb-3">
-                                                    <Form.Label className="fw-bold">
-                                                        Status *
-                                                    </Form.Label>
-                                                    <Form.Select
-                                                        value={
-                                                            avaliacaoForm.status_aprovacao
-                                                        }
-                                                        onChange={(e) =>
-                                                            handleChangeForm(
-                                                                'status_aprovacao',
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                    >
-                                                        <option value="EM_AVALIACAO">
-                                                            Em Avaliação
-                                                        </option>
-                                                        <option value="APROVADO">
-                                                            Aprovado
-                                                        </option>
-                                                        <option value="REPROVADO">
-                                                            Reprovado
-                                                        </option>
-                                                        <option value="APROVADO_COM_RESSALVAS">
-                                                            Aprovado com Ressalvas
-                                                        </option>
-                                                    </Form.Select>
-                                                </Col>
-                                            </Row>
-
-                                            <Form.Group className="mb-3">
-                                                <Form.Label className="fw-bold">
-                                                    Comentários
-                                                </Form.Label>
-                                                <Form.Control
-                                                    as="textarea"
-                                                    rows={3}
-                                                    placeholder="Deixe suas observações..."
-                                                    value={avaliacaoForm.comentarios}
-                                                    onChange={(e) =>
-                                                        handleChangeForm(
-                                                            'comentarios',
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                />
-                                            </Form.Group>
-
-                                            <div className="d-flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="success"
-                                                    className="fw-bold"
-                                                    onClick={handleSubmitAvaliacao}
-                                                    disabled={
-                                                        loading ||
-                                                        !avaliacaoForm.nota ||
-                                                        !selectedAtracaoId
-                                                    }
-                                                >
-                                                    {loading
-                                                        ? 'Salvando...'
-                                                        : 'Enviar Avaliação'}
-                                                </Button>
-
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    className="fw-bold"
-                                                    onClick={() => navigate(-1)}
-                                                >
-                                                    Voltar
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    </Card.Body>
-                                </Card>
-                            )}
-
-                            {/* HISTÓRICO DE AVALIAÇÕES */}
-                            {avaliacoes.length > 0 && (
-                                <Card>
-                                    <Card.Header className="bg-secondary text-white">
-                                        <Card.Title className="mb-0">
-                                            Avaliações Registradas
-                                        </Card.Title>
-                                    </Card.Header>
-                                    <Card.Body>
-                                        <div className="table-responsive">
-                                            <Table striped bordered hover>
-                                                <thead className="table-light">
-                                                    <tr>
-                                                        <th>Nota</th>
-                                                        <th>Status</th>
-                                                        <th>Data/Hora</th>
-                                                        <th>Comentários</th>
-                                                        <th>Ações</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {avaliacoes.map((av) => (
-                                                        <tr key={av.id}>
-                                                            <td className="fw-bold">
-                                                                {av.nota}
-                                                            </td>
-                                                            <td>
-                                                                <Badge
-                                                                    bg={
-                                                                        statusBadgeVariant[
-                                                                            av.status_aprovacao
-                                                                        ]
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        statusLabels[
-                                                                            av.status_aprovacao
-                                                                        ]
-                                                                    }
-                                                                </Badge>
-                                                            </td>
-                                                            <td>
-                                                                {av.data_avaliacao
-                                                                    ? new Date(
-                                                                          av.data_avaliacao
-                                                                      ).toLocaleString(
-                                                                          'pt-BR'
-                                                                      )
-                                                                    : '-'}
-                                                            </td>
-                                                            <td>{av.comentarios}</td>
-                                                            <td>
-                                                                <Button
-                                                                    variant="outline-primary"
-                                                                    size="sm"
-                                                                    disabled
-                                                                >
-                                                                    Editar
-                                                                </Button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </Table>
-                                        </div>
-                                    </Card.Body>
-                                </Card>
-                            )}
+                    <Row className="d-flex flex-md-row flex-column gap-3">
+                        <Col>
+                            <Button
+                                variant="success"
+                                className="w-100 py-3 fw-bold fs-5"
+                                onClick={onSubmit}
+                                disabled={loading || !podeEnviar}
+                            >
+                                Finalizar Avaliação Científica
+                            </Button>
+                        </Col>
+                        <Col md={3}>
+                            <Button
+                                onClick={() => navigate(-1)}
+                                variant="secondary"
+                                className="d-flex text-center justify-content-center align-items-center gap-2 py-3 w-100 fw-bold"
+                            >
+                                <MdArrowBack /> Voltar
+                            </Button>
                         </Col>
                     </Row>
                 </Container>
             </main>
-
-            {message && (
+            {alerta && (
                 <Alerta
-                    mensagem={message.text}
-                    variacao={message.type}
-                    duracao={5000}
+                    key={alerta.reacao}
+                    mensagem={alerta.mensagem}
+                    variacao={alerta.variacao}
+                    duracao={alerta.duracao}
+                    reacao={alerta.reacao}
                 />
             )}
-
             <Footer
                 telefone="(51) 3333-1234"
                 endereco="Rua Alberto Hoffmann, 285"
                 ano={2026}
-                campus={campus}
+                campus="Campus Restinga"
             />
-        </>
+        </div>
     );
 }

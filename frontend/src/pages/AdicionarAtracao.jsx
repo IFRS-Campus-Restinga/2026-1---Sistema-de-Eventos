@@ -27,7 +27,7 @@ export default function AdicionarAtracao() {
         resumo: '',
         palavras_chave: '',
         modalidade: '',
-        nivel_ensino: [],
+        nivel_ensino: '',
         area_conhecimento: '',
         anexo_pdf: null,
         acessibilidade: false,
@@ -235,7 +235,7 @@ export default function AdicionarAtracao() {
             await salvarRascunho(dadosRascunho);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_atracoes'), 1500);
+            setTimeout(() => navigate('/listar_submissoes'), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
             const msg =
@@ -249,8 +249,7 @@ export default function AdicionarAtracao() {
 
     const handleSubmeter = async () => {
         if (isLoading) return;
-        const nivelEnsinoVazio =
-            !Array.isArray(formState.nivel_ensino) || formState.nivel_ensino.length === 0;
+        const nivelEnsinoVazio = !String(formState.nivel_ensino || '').trim();
 
         if (!formState.titulo || !formState.resumo || !formState.modalidade || nivelEnsinoVazio || !formState.area_conhecimento || !formState.evento) {
             mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
@@ -290,7 +289,7 @@ export default function AdicionarAtracao() {
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_atracoes'), 1500);
+            setTimeout(() => navigate('/listar_submissoes'), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
             const msg =

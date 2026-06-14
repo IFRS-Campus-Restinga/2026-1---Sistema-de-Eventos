@@ -37,3 +37,43 @@ export const criarInscricaoAtracao = async (dados) => {
 
     return response.data;
 };
+
+export const marcarPresencaInscricaoAtracao = async (inscricao) => {
+    if (!inscricao || !inscricao.id) {
+        throw new Error('Inscrição inválida');
+    }
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.put(
+        `${API_URL}/api/inscricoes_atracoes/${inscricao.id}/`,
+        { presente: true },
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};
+
+export const retirarPresencaInscricaoAtracao = async (inscricao) => {
+    if (!inscricao || !inscricao.id) {
+        throw new Error('Inscrição inválida');
+    }
+
+    const csrfData = await pegarTokenCsrf();
+    const csrfToken = csrfData?.csrfToken || '';
+
+    const response = await axios.put(
+        `${API_URL}/api/inscricoes_atracoes/${inscricao.id}/`,
+        { presente: false },
+        {
+            headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
+        },
+    );
+
+    return response.data;
+};

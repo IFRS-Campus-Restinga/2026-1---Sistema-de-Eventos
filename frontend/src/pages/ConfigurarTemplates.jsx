@@ -9,6 +9,7 @@ import Form from 'react-bootstrap/Form';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import FormularioCustomizado from '../components/custom-form-card/FormularioCustomizado';
+import ModalPopup from '../components/common/ModalPopup';
 
 //Hooks
 import { useCsrf } from '../hooks/useCsrf';
@@ -31,13 +32,15 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
         handleNovoTemplate,
         handleSalvar,
         handleDeletar,
+        showModalExcluir,
+        setShowModalExcluir,
     } = useConfigurarTemplates();
 
     // Campos da coluna direita
     const camposEdicao = [
         {
             tipo: 'text',
-            titulo: 'Nome de Exibição (Identificação interna)',
+            titulo: 'Nome do Template',
             name: 'nomeExibicao',
             preValue: nomeExibicao,
             onChange: (valor) => setNomeExibicao(valor),
@@ -59,7 +62,7 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
     ];
 
     return (
-        <div className="d-flex flex-column min-vh-100">
+        <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
             <main className="flex-grow-1 py-4">
@@ -68,58 +71,76 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
 
                     <Row>
                         {/* Coluna Esquerda: Listagem de Templates */}
-                        <Col md={5} lg={4} className="mb-4">
-                            <div className="p-4 border rounded bg-light h-100 shadow-sm d-flex flex-column">
-                                <div className="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 className="text-dark fw-bold mb-0">
+                        <Col
+                            md={5}
+                            lg={4}
+                            className="mb-4 d-flex flex-column text-secondary bg-white rounded-4 py-3 px-3"
+                            style={{
+                                border: '1px solid rgba(0,0,0,0.09)',
+                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
+                            }}
+                        >
+                            {/* Removido o ms-3 para alinhar corretamente dentro do novo container */}
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <div className="d-flex flex-column text-secondary">
+                                    <span className="fw-bold fs-3 text-black">
                                         Meus Templates
-                                    </h5>
-                                    <Button
-                                        variant="outline-primary"
-                                        size="sm"
-                                        onClick={handleNovoTemplate}
-                                    >
-                                        + Novo
-                                    </Button>
+                                    </span>
+                                    <span>Gerencie seus e-mails</span>
                                 </div>
-
-                                <div
-                                    className="overflow-auto"
-                                    style={{
-                                        maxHeight: '600px',
-                                        paddingRight: '5px',
-                                    }}
+                                <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    className="mt-2"
+                                    onClick={handleNovoTemplate}
                                 >
-                                    <div className="d-flex flex-column gap-2">
-                                        {templates?.map((t) => (
-                                            <Button
-                                                key={`${t.tipo}_${t.id}`}
-                                                variant={
-                                                    templateEmEdicao?.id ===
-                                                        t.id &&
-                                                    templateEmEdicao?.tipo ===
-                                                        t.tipo
-                                                        ? 'primary'
-                                                        : 'white'
-                                                }
-                                                className="text-start border shadow-sm text-dark"
-                                                onClick={() =>
-                                                    handleSelecionarTemplate(t)
-                                                }
-                                            >
-                                                <div className="fw-bold">
-                                                    {t.nome_exibicao}
-                                                </div>
-                                            </Button>
-                                        ))}
-                                    </div>
+                                    + Novo
+                                </Button>
+                            </div>
+
+                            {/* Removido o ms-3 para alinhar com o cabeçalho acima */}
+                            <div
+                                className="overflow-auto"
+                                style={{
+                                    maxHeight: '600px',
+                                    paddingRight: '5px',
+                                }}
+                            >
+                                <div className="d-flex flex-column gap-2">
+                                    {templates?.map((t) => (
+                                        <Button
+                                            key={`${t.tipo}_${t.id}`}
+                                            variant={
+                                                templateEmEdicao?.id === t.id &&
+                                                templateEmEdicao?.tipo ===
+                                                    t.tipo
+                                                    ? 'primary'
+                                                    : 'white'
+                                            }
+                                            className="text-start border shadow-sm text-dark"
+                                            onClick={() =>
+                                                handleSelecionarTemplate(t)
+                                            }
+                                        >
+                                            <div className="fw-bold">
+                                                {t.nome_exibicao}
+                                            </div>
+                                        </Button>
+                                    ))}
                                 </div>
                             </div>
                         </Col>
 
                         {/* Coluna Direita: Edição via FormularioCustomizado */}
                         <Col md={7} lg={8}>
-                            <Form onSubmit={(e) => handleSalvar(e, csrfToken)}>
+                            <Form
+                                key={
+                                    templateEmEdicao
+                                        ? templateEmEdicao.id
+                                        : 'novo'
+                                }
+                                onSubmit={(e) => handleSalvar(e, csrfToken)}
+                            >
                                 <div className="d-flex flex-column h-100">
                                     <FormularioCustomizado
                                         titulo={
@@ -133,18 +154,18 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                                         add={false}
                                     />
 
-                                    <div className="d-flex justify-content-between mt-3">
-                                        <Button
-                                            variant="outline-danger"
-                                            onClick={() =>
-                                                handleDeletar(
-                                                    templateEmEdicao?.id,
-                                                    csrfToken,
-                                                )
-                                            }
-                                        >
-                                            Excluir Template
-                                        </Button>
+                                    <div className="d-flex justify-content-end gap-3 mt-3">
+                                        {/* O botão de excluir só aparece se houver um template em edição */}
+                                        {templateEmEdicao && (
+                                            <Button
+                                                variant="outline-danger"
+                                                onClick={() =>
+                                                    setShowModalExcluir(true)
+                                                } // Mudou aqui
+                                            >
+                                                Excluir Template
+                                            </Button>
+                                        )}
 
                                         <Button variant="primary" type="submit">
                                             {templateEmEdicao
@@ -158,6 +179,18 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                     </Row>
                 </Container>
             </main>
+
+            <ModalPopup
+                show={showModalExcluir}
+                titulo={templateEmEdicao?.nome_exibicao || 'Excluir Template'}
+                tituloSecundario=""
+                texto="Quer realmente excluir este template?"
+                textoFechar="Voltar"
+                onFechar={() => setShowModalExcluir(false)}
+                textoAcao="Excluir"
+                onAcao={() => handleDeletar(csrfToken)}
+                variante="danger"
+            />
 
             <Footer
                 telefone="(51) 3333-1234"

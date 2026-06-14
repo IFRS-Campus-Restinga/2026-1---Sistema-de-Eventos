@@ -3,8 +3,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from ..enumerations.tipo_autoria import TipoAutoria
-from .atracao import Atracao
 from .base import Base
+from .submissao import Submissao
 
 
 class Autoria(Base):
@@ -21,7 +21,7 @@ class Autoria(Base):
         verbose_name=_("Usuário"),
     )
     submissao = models.ForeignKey(
-        Atracao,
+        Submissao,
         on_delete=models.CASCADE,
         related_name="autorias",
         verbose_name=_("Submissão"),

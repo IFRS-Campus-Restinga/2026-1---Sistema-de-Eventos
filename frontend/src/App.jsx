@@ -24,7 +24,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import DefinirOrganizadorEvento from './pages/DefinirOrganizadorEvento';
 import AdicionarAtracao from './pages/AdicionarAtracao';
 import ListarAtracoes from './pages/ListarAtracoes';
-import ListarInscritos from './pages/ListarInscritos';
+import ListarInscritosAtracao from './pages/ListarInscritosAtracao';
 import MeusEventos from './pages/MeusEventos';
 import MinhasParticipacoes from './pages/MinhasParticipacoes';
 import MeusEventosAvaliador from './pages/MeusEventosAvaliador';
@@ -38,8 +38,10 @@ import ListarInscritosEvento from './pages/ListarInscritosEvento';
 import MinhasAvaliacoes from './pages/MinhasAvaliacoes';
 import AvaliarAtracao from './pages/AvaliarAtracao';
 import GerenciarAvaliadoresAtracoes from './pages/GerenciarAvaliadoresAtracoes';
+import GerenciarAvaliadoresSubmissoes from './pages/GerenciarAvaliadoresSubmissoes';
 import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
+import MinhasAvaliacoesSubmissoes from './pages/MinhasAvaliacoesSubmissoes';
 
 const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
 
@@ -108,17 +110,21 @@ function App() {
                 <Route path="/editar_espaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
 
                 {/* Atracoes & Inscritos */}
-                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />)} />
+                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />)} />
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
-                <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />, ADMIN_GROUPS)} />
+                <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />)} />
+                <Route path="/adicionar_submissao" element={protegido(<AdicionarAtracao />)} />
                 <Route path="/listar_inscritos_evento" element={protegido(<ListarInscritosEvento />, ADMIN_GROUPS)} />
-                <Route path="/listar_inscritos" element={protegido(<ListarInscritos />, ADMIN_GROUPS)} />
+                <Route path="/listar_inscritos_atracao" element={protegido(<ListarInscritosAtracao />)} />
                 <Route path="/meus_eventos" element={protegido(<MeusEventos />)} />
                 <Route path="/meus_eventos/:eventoId/participacoes" element={protegido(<MinhasParticipacoes />)} />
                 <Route path="/credenciamento/:eventoSlug" element={<PresencaEvento />} />
 
                 {/* Submissões e Avaliações */}
                 <Route path="/gerenciar_avaliadores_atracoes" element={protegido(<GerenciarAvaliadoresAtracoes />, ADMIN_GROUPS)} />
+                <Route path="/gerenciar_avaliadores_submissoes" element={protegido(<GerenciarAvaliadoresSubmissoes />, ADMIN_GROUPS)} />
+                <Route path="/minhas_avaliacoes_submissoes"  element={protegidoComAvaliador(<MinhasAvaliacoesSubmissoes />, ADMIN_GROUPS)}/>
                 <Route path="/meus_eventos_avaliador"  element={protegidoComAvaliador(<MeusEventosAvaliador />, ADMIN_GROUPS)}/>
                 <Route path="/avaliar_submissao" element={protegidoComAvaliador(<AvaliarSubmissao />, ADMIN_GROUPS)} />
                 <Route path="/minhas_avaliacoes" element={protegidoComAvaliador(<MinhasAvaliacoes />, ADMIN_GROUPS)} />

@@ -1,4 +1,5 @@
 import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
+import { useState } from 'react';
 
 export default function EditarAtracaoModal({
     show = false,
@@ -10,8 +11,7 @@ export default function EditarAtracaoModal({
     setHabilitarSugestaoVagasEdicao,
     contarPalavras,
     LIMITS_EDICAO,
-    normalizarNiveisEnsino,
-    toggleNivelEnsinoEdicao,
+    selecionarNivelEnsinoEdicao,
     getAreasEventoEdicao,
     normalizarAreaEdicao,
     getNomeUsuario,
@@ -24,8 +24,78 @@ export default function EditarAtracaoModal({
     onClose,
     onSalvar,
 }) {
+    const [buscasUsuariosEdicao, setBuscasUsuariosEdicao] = useState({});
+
+    const normalizarTexto = (texto) =>
+        (texto || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+    const formatarPerfilAcesso = (perfil) => {
+        const perfilNormalizado = normalizarTexto(perfil);
+        const perfisConhecidos = {
+            aluno: 'Aluno',
+            servidor: 'Servidor',
+            convidado: 'Convidado',
+            administrador: 'Administrador',
+            admin: 'Administrador',
+        };
+
+        return perfisConhecidos[perfilNormalizado] || null;
+    };
+
+    const getValorBuscaUsuarioEdicao = (membro, index, usuariosDisponiveis) => {
+        if (Object.prototype.hasOwnProperty.call(buscasUsuariosEdicao, index)) {
+            return buscasUsuariosEdicao[index];
+        }
+
+        if (membro?.nome) {
+            return membro.nome;
+        }
+
+        if (membro?.user_id) {
+            const usuarioSelecionado = (usuariosDisponiveis || []).find(
+                (usuario) => String(usuario.id) === String(membro.user_id),
+            );
+            if (usuarioSelecionado) {
+                return getNomeUsuario(usuarioSelecionado);
+            }
+        }
+
+        return '';
+    };
+
+    const getUsuariosFiltradosLinhaEdicao = (usuariosDisponiveis, valorBusca) => {
+        const termo = normalizarTexto((valorBusca || '').trim());
+        if (termo.length < 3) {
+            return [];
+        }
+
+        return (usuariosDisponiveis || [])
+            .filter((usuario) => {
+                const nome = normalizarTexto(getNomeUsuario(usuario));
+                const username = normalizarTexto(usuario?.username || '');
+                const email = normalizarTexto(usuario?.email || '');
+
+                return (
+                    nome.includes(termo) ||
+                    username.includes(termo) ||
+                    email.includes(termo)
+                );
+            })
+            .slice(0, 10);
+    };
+
     return (
-        <Modal show={show} onHide={onClose} centered size="lg">
+        <Modal
+            show={show}
+            onHide={onClose}
+            centered
+            size="xl"
+            dialogClassName="modal-editar-atracao-expandido"
+        >
             <Modal.Header closeButton>
                 <Modal.Title style={{ color: '#00A44B' }}>Editar Submissão</Modal.Title>
             </Modal.Header>
@@ -119,8 +189,10 @@ export default function EditarAtracaoModal({
                                                     type="number"
                                                     min={1}
                                                     max={
-                                                        modalidadeEdicaoDetalhe.limite_vagas > 0
-                                                            ? modalidadeEdicaoDetalhe.limite_vagas
+                                                        (modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                            modalidadeEdicaoDetalhe.limite_vagas) > 0
+                                                            ? (modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                              modalidadeEdicaoDetalhe.limite_vagas)
                                                             : undefined
                                                     }
                                                     value={formEdicao.sugestao_vagas ?? ''}
@@ -139,8 +211,9 @@ export default function EditarAtracaoModal({
                                         )}
 
                                         <Form.Text className="text-muted">
-                                            {modalidadeEdicaoDetalhe.limite_vagas > 0
-                                                ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_vagas} vagas.`
+                                            {(modalidadeEdicaoDetalhe.limite_maximo_vagas ??
+                                                modalidadeEdicaoDetalhe.limite_vagas) > 0
+                                                ? `Limite definido para esta modalidade: ${modalidadeEdicaoDetalhe.limite_maximo_vagas ?? modalidadeEdicaoDetalhe.limite_vagas} vagas.`
                                                 : 'Esta modalidade não possui limite de vagas definido.'}
                                         </Form.Text>
                                     </div>
@@ -155,26 +228,18 @@ export default function EditarAtracaoModal({
                                 <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
                                     Nivel de Ensino
                                 </Form.Label>
-                                <div
-                                    style={{
-                                        backgroundColor: '#eeeeee',
-                                        borderRadius: '0.375rem',
-                                        padding: '0.75rem',
-                                        border: '1px solid #ced4da',
-                                    }}
+                                <Form.Select
+                                    value={String(formEdicao.nivel_ensino || '')}
+                                    onChange={(e) => selecionarNivelEnsinoEdicao(e.target.value)}
+                                    style={{ backgroundColor: '#eeeeee' }}
                                 >
+                                    <option value="">Selecione um nível de ensino</option>
                                     {opcoesEdicao.niveis_ensino.map((opt) => (
-                                        <Form.Check
-                                            key={opt.value}
-                                            type="checkbox"
-                                            id={`edicao-nivel-${opt.value}`}
-                                            label={opt.label}
-                                            checked={normalizarNiveisEnsino(formEdicao.nivel_ensino).includes(opt.value)}
-                                            onChange={() => toggleNivelEnsinoEdicao(opt.value)}
-                                            className="mb-1"
-                                        />
+                                        <option key={opt.value} value={String(opt.value)}>
+                                            {opt.label}
+                                        </option>
                                     ))}
-                                </div>
+                                </Form.Select>
                             </Form.Group>
                         </Col>
                         <Col md={6}>
@@ -254,32 +319,6 @@ export default function EditarAtracaoModal({
                         </Col>
                     </Row>
 
-                    <Row>
-                        <Col md={12}>
-                            <Form.Group className="mb-3">
-                                <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
-                                    Status de Avaliação
-                                </Form.Label>
-                                <Form.Select
-                                    value={formEdicao.status || 'PREVISTA'}
-                                    onChange={(e) =>
-                                        setFormEdicao((prev) => ({
-                                            ...prev,
-                                            status: e.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="RASCUNHO">RASCUNHO</option>
-                                    <option value="PREVISTA">SUBMETIDA</option>
-                                    <option value="CONFIRMADA">CONFIRMADA</option>
-                                    <option value="EM_ANDAMENTO">EM ANDAMENTO</option>
-                                    <option value="ENCERRADA">ENCERRADA</option>
-                                    <option value="CANCELADA">CANCELADA</option>
-                                </Form.Select>
-                            </Form.Group>
-                        </Col>
-                    </Row>
-
                     <hr />
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <Form.Label className="fw-bold mb-0" style={{ color: '#00A44B' }}>
@@ -313,24 +352,87 @@ export default function EditarAtracaoModal({
                                             <td>
                                                 {(() => {
                                                     const usuariosDisponiveis = getUsuariosDisponiveisLinhaEdicao(index);
+                                                    const valorBusca = getValorBuscaUsuarioEdicao(
+                                                        membro,
+                                                        index,
+                                                        usuariosDisponiveis,
+                                                    );
+                                                    const usuariosFiltrados = getUsuariosFiltradosLinhaEdicao(
+                                                        usuariosDisponiveis,
+                                                        valorBusca,
+                                                    );
+                                                    const podeExibirResultados = valorBusca.trim().length >= 3;
+
                                                     return (
-                                                        <Form.Select
-                                                            value={membro.user_id || ''}
-                                                            onChange={(e) =>
-                                                                handleMembroEdicaoChange(
-                                                                    index,
-                                                                    'user_id',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        >
-                                                            <option value="">Selecione o usuário</option>
-                                                            {usuariosDisponiveis.map((usuario) => (
-                                                                <option key={usuario.id} value={usuario.id}>
-                                                                    {getNomeUsuario(usuario)}
-                                                                </option>
-                                                            ))}
-                                                        </Form.Select>
+                                                        <div className="d-flex flex-column gap-2">
+                                                            <Form.Control
+                                                                type="text"
+                                                                value={valorBusca}
+                                                                onChange={(e) => {
+                                                                    const texto = e.target.value;
+                                                                    setBuscasUsuariosEdicao((prev) => ({
+                                                                        ...prev,
+                                                                        [index]: texto,
+                                                                    }));
+
+                                                                    if (membro.user_id) {
+                                                                        handleMembroEdicaoChange(index, 'user_id', '');
+                                                                    }
+                                                                }}
+                                                                placeholder="Digite nome, username ou e-mail"
+                                                            />
+
+                                                            {!membro.user_id &&
+                                                                podeExibirResultados &&
+                                                                usuariosFiltrados.length > 0 && (
+                                                                    <div
+                                                                        className="border rounded bg-white shadow-sm"
+                                                                        style={{ maxHeight: '220px', overflowY: 'auto' }}
+                                                                    >
+                                                                        {usuariosFiltrados.map((usuario) => (
+                                                                            <button
+                                                                                key={usuario.id}
+                                                                                type="button"
+                                                                                className="w-100 text-start border-0 px-3 py-2 bg-white"
+                                                                                style={{ borderBottom: '1px solid #eee' }}
+                                                                                onClick={() => {
+                                                                                    handleMembroEdicaoChange(
+                                                                                        index,
+                                                                                        'user_id',
+                                                                                        usuario.id,
+                                                                                    );
+                                                                                    setBuscasUsuariosEdicao((prev) => ({
+                                                                                        ...prev,
+                                                                                        [index]: getNomeUsuario(usuario),
+                                                                                    }));
+                                                                                }}
+                                                                            >
+                                                                                <div className="fw-semibold text-dark">
+                                                                                    {getNomeUsuario(usuario)}
+                                                                                </div>
+                                                                                {formatarPerfilAcesso(
+                                                                                    usuario.access_profile,
+                                                                                ) && (
+                                                                                    <div className="small text-muted">
+                                                                                        Perfil:{' '}
+                                                                                        {formatarPerfilAcesso(
+                                                                                            usuario.access_profile,
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+
+                                                            {!membro.user_id &&
+                                                                podeExibirResultados &&
+                                                                usuariosFiltrados.length === 0 && (
+                                                                    <Form.Text className="text-muted">
+                                                                        Nenhum usuário encontrado.
+                                                                    </Form.Text>
+                                                                )}
+                                                        </div>
                                                     );
                                                 })()}
                                             </td>

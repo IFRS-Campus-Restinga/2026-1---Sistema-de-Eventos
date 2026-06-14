@@ -21,7 +21,7 @@ class DashboardView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        atracoes = Atracao.objects.filter(evento=evento)
+        atracoes = Atracao.objects.filter(submissao__evento=evento)
         total = atracoes.count()
         desistencias = atracoes.filter(status=StatusAtracao.CANCELADA).count()
         sem_avaliador = atracoes.filter(status=StatusAtracao.PREVISTA).count()
@@ -29,10 +29,12 @@ class DashboardView(APIView):
         total_inscricoes = InscricaoEvento.objects.filter(evento=evento).count()
 
         areas = []
-        for area in atracoes.values_list("area_conhecimento", flat=True).distinct():
-            total_area = atracoes.filter(area_conhecimento=area).count()
+        for area in atracoes.values_list(
+            "submissao__area_conhecimento", flat=True
+        ).distinct():
+            total_area = atracoes.filter(submissao__area_conhecimento=area).count()
             avaliados_area = (
-                atracoes.filter(area_conhecimento=area)
+                atracoes.filter(submissao__area_conhecimento=area)
                 .exclude(status=StatusAtracao.PREVISTA)
                 .count()
             )

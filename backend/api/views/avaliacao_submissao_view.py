@@ -1,48 +1,102 @@
+from django.utils import timezone
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.avaliacao_submissao import AvaliacaoSubmissao
+from ..models.etapa_evento import EtapaEvento
+from ..models.submissao import Submissao
 from ..serializers.avaliacao_submissao_serializer import AvaliacaoSubmissaoSerializer
+from .perms_generic_view import PodeVerAvaliacaoSubmissao
 
 
 class AvaliacaoSubmissaoListView(APIView):
-    """View para listar e criar avaliações de submissões"""
-
     queryset = AvaliacaoSubmissao.objects.all()
     serializer_class = AvaliacaoSubmissaoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeVerAvaliacaoSubmissao]
 
     def get_serializer(self, *args, **kwargs):
         return AvaliacaoSubmissaoSerializer(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        """Lista todas as avaliações, com filtros opcionais"""
-        avaliacao = AvaliacaoSubmissao.objects.all()
+        self.check_permissions(request)
 
-        # Filtro por submissão
-        submissao_id = request.query_params.get("submissao_id")
+        avaliacoes = AvaliacaoSubmissao.objects.all()
+        submissao_id = request.query_params.get("submissao")
+        mine = request.query_params.get("mine")
+
         if submissao_id:
-            avaliacao = avaliacao.filter(submissao_id=submissao_id)
+            avaliacoes = avaliacoes.filter(submissao_id=submissao_id)
 
-        # Filtro por avaliador
-        avaliador_id = request.query_params.get("avaliador_id")
-        if avaliador_id:
-            avaliacao = avaliacao.filter(avaliador_id=avaliador_id)
+        # Filtro se o usuário quiser isolar estritamente o que é dele
+        if mine in ("1", "true", "True", "sim", "yes"):
+            if not request.user or not request.user.is_authenticated:
+                return Response({"erro": "Autenticação requerida"}, status=401)
+            avaliacoes = avaliacoes.filter(avaliador=request.user)
+        else:
+            # Segurança implícita: avaliadores sem privilégios administrativos
+            # caem na filtragem forçada do seu próprio ID para evitar vazamento
+            user = request.user
+            if not (user and user.is_authenticated):
+                return Response({"erro": "Autenticação requerida"}, status=401)
 
-        # Filtro por status
-        status_filtro = request.query_params.get("status")
-        if status_filtro:
-            avaliacao = avaliacao.filter(status_aprovacao=status_filtro)
+            is_admin_or_coordenador = (
+                user.is_superuser
+                or user.groups.filter(
+                    name__in=["Administrador", "Coordenador"]
+                ).exists()
+            )
+            if not is_admin_or_coordenador:
+                avaliacoes = avaliacoes.filter(avaliador=user)
 
-        serializer = AvaliacaoSubmissaoSerializer(avaliacao, many=True)
+        serializer = AvaliacaoSubmissaoSerializer(avaliacoes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
-        """Cria uma nova avaliação"""
         dados = request.data
-        serializer = AvaliacaoSubmissaoSerializer(data=dados)
+        if not request.user or not request.user.is_authenticated:
+            return Response({"erro": "Autenticação requerida"}, status=401)
+
+        submissao_id = dados.get("submissao")
+        if not submissao_id:
+            return Response({"erro": "Campo submissao é obrigatório"}, status=400)
+
+        try:
+            submissao = Submissao.objects.get(pk=submissao_id)
+        except Submissao.DoesNotExist:
+            return Response({"erro": "Submissão não encontrada"}, status=404)
+
+        # Validação do Guardian: O usuário logado recebeu permissão explícita para avaliar ESTA submissão?
+        if not request.user.has_perm("api.avaliar_submissao", submissao):
+            return Response(
+                {
+                    "erro": "Usuário não tem permissão de objeto para avaliar esta submissão"
+                },
+                status=403,
+            )
+
+        # Validação da Regra de Negócio Temporal: A etapa de Avaliação Prévia está vigente?
+        agora = timezone.now()
+        evento = getattr(submissao, "evento", None)
+        etapa_avaliacao = EtapaEvento.objects.filter(
+            evento=evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=agora,
+            data_fim__gte=agora,
+        ).first()
+
+        if not etapa_avaliacao:
+            return Response(
+                {
+                    "erro": "O período regulamentar de avaliação prévia para este evento não está aberto"
+                },
+                status=400,
+            )
+
+        serializer = AvaliacaoSubmissaoSerializer(
+            data=dados, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -50,9 +104,7 @@ class AvaliacaoSubmissaoListView(APIView):
 
 
 class AvaliacaoSubmissaoDetailView(APIView):
-    """View para detalhe, atualização e exclusão de avaliações"""
-
-    permission_classes = [AllowAny]
+    permission_classes = [PodeVerAvaliacaoSubmissao]
 
     def get_object(self, pk):
         try:
@@ -61,40 +113,65 @@ class AvaliacaoSubmissaoDetailView(APIView):
             return None
 
     def get(self, request, pk):
-        """Retorna detalhes de uma avaliação específica"""
         avaliacao = self.get_object(pk)
         if not avaliacao:
-            return Response(
-                {"erro": "Avaliação não encontrada"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"erro": "AvaliacaoSubmissao não encontrada"}, status=404)
 
+        self.check_object_permissions(request, avaliacao)
         serializer = AvaliacaoSubmissaoSerializer(avaliacao)
         return Response(serializer.data)
 
     def put(self, request, pk):
-        """Atualiza uma avaliação existente"""
         avaliacao = self.get_object(pk)
         if not avaliacao:
+            return Response({"erro": "AvaliacaoSubmissao não encontrada"}, status=404)
+
+        if not request.user or not request.user.is_authenticated:
+            return Response({"erro": "Autenticação requerida"}, status=401)
+
+        # Valida se o usuário é o dono do registro ou possui superpoderes
+        self.check_object_permissions(request, avaliacao)
+
+        if not request.user.has_perm("api.avaliar_submissao", avaliacao.submissao):
             return Response(
-                {"erro": "Avaliação não encontrada"}, status=status.HTTP_404_NOT_FOUND
+                {
+                    "erro": "Usuário perdeu ou não possui permissão ativa para avaliar esta submissão"
+                },
+                status=403,
             )
 
-        serializer = AvaliacaoSubmissaoSerializer(avaliacao, data=request.data)
+        # Validação de janela temporal idêntica para modificações e updates
+        agora = timezone.now()
+        evento = getattr(avaliacao.submissao, "evento", None)
+        etapa_avaliacao = EtapaEvento.objects.filter(
+            evento=evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=agora,
+            data_fim__gte=agora,
+        ).first()
+
+        if not etapa_avaliacao:
+            return Response(
+                {
+                    "erro": "Modificações bloqueadas: O período de avaliação prévia está encerrado ou fechado"
+                },
+                status=400,
+            )
+
+        serializer = AvaliacaoSubmissaoSerializer(
+            avaliacao, data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
-        """Deleta uma avaliação"""
         avaliacao = self.get_object(pk)
         if not avaliacao:
-            return Response(
-                {"erro": "Avaliação não encontrada"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"erro": "AvaliacaoSubmissao não encontrada"}, status=404)
 
+        self.check_object_permissions(request, avaliacao)
         avaliacao.delete()
-        return Response(
-            {"msg": "Avaliação deletada com sucesso"}, status=status.HTTP_204_NO_CONTENT
-        )
+        return Response({"msg": "Avaliação excluída com sucesso"}, status=204)
