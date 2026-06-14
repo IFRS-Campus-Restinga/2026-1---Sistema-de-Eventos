@@ -35,7 +35,7 @@ export default function ProgramacaoEvento() {
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
     const [trabalhoSelecionado, setTrabalhoSelecionado] = useState(null);
 
-    // 1️⃣ useEffect: ÚNICO lugar que puxa os dados e define áreas/etapas para evitar loops
+    
     useEffect(() => {
         async function carregarDadosIniciais() {
             if (!eventoId) return;
@@ -139,7 +139,7 @@ export default function ProgramacaoEvento() {
         }
     }
 
-    // 2️⃣ useEffect: Apenas filtra e agrupa na tela. (Sem mexer em estados de áreas, livre de loops!)
+    // useEffect: Apenas filtra e agrupa na tela. (Sem mexer em estados de áreas, livre de loops!)
     useEffect(() => {
         if (!sessoesRaw || sessoesRaw.length === 0) {
             setSessoesFiltradas([]);
@@ -288,10 +288,7 @@ export default function ProgramacaoEvento() {
 
 
                         <Col md={5} className="text-md-end d-flex gap-2 justify-content-md-end">
-                            <Button  as={Link} to="/adicionar_atracao" variant="outline-light" className="fw-bold px-3 py-2 small">Submeter trabalho</Button>
-                            <Button variant="light" className="fw-bold px-3 py-2 small text-dark">Inscrever em atrações</Button>
-                            
-                            
+                            <Button  as={Link} to="/adicionar_atracao" variant="outline-light" className="fw-bold px-3 py-2 small">Submeter trabalho</Button>   
                         </Col>
                     </Row>
                 </Container>
