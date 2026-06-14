@@ -495,7 +495,7 @@ export default function ProgramacaoEvento() {
 
                                     
 
-                                    <Button variant="primary" className="w-100 py-2 fw-bold text-white border-0" style={{ backgroundColor: verdeDestaque, borderRadius: '20px' }}>
+                                    <Button as={Link} to={`/inscrever_atracoes/${evento?.id}`} variant="primary" className="w-100 py-2 fw-bold text-white border-0" style={{ backgroundColor: verdeDestaque, borderRadius: '20px' }}>
                                         Me Inscrever na atração
                                     </Button>
                                 </div>
