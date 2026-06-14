@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from ..models.submissao import Submissao
 from ..models.perfil import Perfil
+from ..enumerations.status_submissao import StatusSubmissao
 from .perms_generic_view import PodeGerenciarAvaliadoresSubmissao
 
 User = get_user_model()
@@ -68,7 +69,7 @@ class SubmissaoAvaliadorView(APIView):
         )
 
     def patch(self, request, pk):
-        """Associa um avaliador (via perfil_id) a uma submissão de trabalho."""
+        """Associa um avaliador (via perfil_id) a uma submissão de trabalho e atualiza o status."""
         try:
             submissao = Submissao.objects.get(pk=pk)
             self.check_object_permissions(request, submissao)
@@ -97,6 +98,14 @@ class SubmissaoAvaliadorView(APIView):
         # Concede a permissão fina a nível de linha de banco de dados (Object-level permission)
         assign_perm(self.avaliador_submissao_perm, novo_avaliador, submissao)
 
+        # --- NOVA REGRA DE NEGÓCIO ---
+        # Se a submissão ainda está apenas como SUBMETIDA, evolui o status para EM_AVALIACAO
+        if submissao.status_submissao == StatusSubmissao.SUBMETIDA:
+            submissao.status_submissao = StatusSubmissao.EM_AVALIACAO
+            # Salvando apenas o campo alterado por performance e boa prática
+            submissao.save(update_fields=["status_submissao"])
+        # ------------------------------
+
         avaliadores_atualizados = get_users_with_perms(
             submissao,
             only_with_perms_in=["avaliar_submissao"],
@@ -107,6 +116,7 @@ class SubmissaoAvaliadorView(APIView):
             {
                 "msg": "Avaliador vinculado com sucesso à submissão",
                 "submissao_id": submissao.id,
+                "submissao_status": submissao.status_submissao,  # Bom incluir para o frontend saber que mudou
                 "avaliador_adicionado": {
                     "id": novo_avaliador.id,
                     "username": novo_avaliador.username,
