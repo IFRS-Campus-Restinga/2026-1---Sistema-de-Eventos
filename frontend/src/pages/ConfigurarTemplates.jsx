@@ -188,7 +188,7 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                 textoFechar="Voltar"
                 onFechar={() => setShowModalExcluir(false)}
                 textoAcao="Excluir"
-                onAcao={() => han(csrfToken)}
+                onAcao={() => handleDeletar(csrfToken)}
                 variante="danger"
             />
 
