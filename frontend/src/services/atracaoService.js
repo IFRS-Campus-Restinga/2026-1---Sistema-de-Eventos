@@ -209,7 +209,7 @@ export const buscarEventos = async () => {
 
 export const buscarUsuarios = async (q, options = {}) => {
     const mode = options?.mode || 'elegiveis';
-    const limit = options?.limit || 50;
+    const limit = options?.limit || 200;
 
     const endpoint =
         mode === 'servidores'

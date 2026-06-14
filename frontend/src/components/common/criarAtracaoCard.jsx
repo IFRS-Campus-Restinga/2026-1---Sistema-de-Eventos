@@ -26,6 +26,7 @@ export default function CriarAtracaoCard({
 }) {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [buscasUsuarios, setBuscasUsuarios] = useState({});
     const [habilitarSugestaoVagas, setHabilitarSugestaoVagas] = useState(
         formState.sugestao_vagas !== '' &&
         formState.sugestao_vagas !== null &&
@@ -380,6 +381,7 @@ export default function CriarAtracaoCard({
     };
 
     const usuarioLogadoId = usuarioLogado?.id;
+    const usuarioLogadoPerfilId = usuarioLogado?.perfil_id;
 
     const getUsuariosDisponiveisParaLinha = (index) => {
         const idsSelecionadosEmOutrasLinhas = new Set(
@@ -391,11 +393,72 @@ export default function CriarAtracaoCard({
 
         return (usuarios || []).filter((usuario) => {
             const idUsuario = String(usuario.id);
-            if (String(usuarioLogadoId || '') === idUsuario) {
+            const perfilUsuario = String(usuario?.perfil_id || '');
+            const bateId = String(usuarioLogadoId || '') === idUsuario;
+            const batePerfil =
+                String(usuarioLogadoPerfilId || '') !== '' &&
+                String(usuarioLogadoPerfilId || '') === perfilUsuario;
+
+            if (bateId || batePerfil) {
                 return false;
             }
             return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
         });
+    };
+
+    const normalizarTexto = (texto) =>
+        (texto || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+    const formatarPerfilAcesso = (perfil) => {
+        const perfilNormalizado = normalizarTexto(perfil);
+        const perfisConhecidos = {
+            aluno: 'Aluno',
+            servidor: 'Servidor',
+            convidado: 'Convidado',
+            administrador: 'Administrador',
+            admin: 'Administrador',
+        };
+
+        return perfisConhecidos[perfilNormalizado] || null;
+    };
+
+    const getUsuariosFiltradosParaLinha = (index, termoBusca) => {
+        const usuariosDisponiveis = getUsuariosDisponiveisParaLinha(index);
+        const termoNormalizado = normalizarTexto(termoBusca.trim());
+
+        if (termoNormalizado.length < 5) {
+            return [];
+        }
+
+        return usuariosDisponiveis
+            .filter((usuario) => {
+                const nome = normalizarTexto(getNomeUsuario(usuario));
+                const username = normalizarTexto(usuario?.username || '');
+                const email = normalizarTexto(usuario?.email || '');
+
+                return (
+                    nome.includes(termoNormalizado) ||
+                    username.includes(termoNormalizado) ||
+                    email.includes(termoNormalizado)
+                );
+            })
+            .slice(0, 10);
+    };
+
+    const getNomeUsuarioSelecionado = (membro) => {
+        if (!membro?.user_id) {
+            return '';
+        }
+
+        const usuarioEncontrado = (usuarios || []).find(
+            (usuario) => String(usuario.id) === String(membro.user_id),
+        );
+
+        return usuarioEncontrado ? getNomeUsuario(usuarioEncontrado) : (membro?.nome || '');
     };
 
     return (
@@ -477,28 +540,21 @@ export default function CriarAtracaoCard({
                         <Col md={4}>
                             <Form.Group className="mb-3">
                                 <Form.Label style={labelStyle}>Nível de Ensino *</Form.Label>
-                                <div
-                                    style={{
-                                        backgroundColor: '#eeeeee',
-                                        borderRadius: '0.375rem',
-                                        padding: '0.75rem',
-                                        ...getFieldStyle('nivel_ensino'),
-                                    }}
+                                <Form.Select
+                                    value={String(formState.nivel_ensino || '')}
+                                    onChange={(e) => selecionarNivelEnsino(e.target.value)}
+                                    onBlur={() => handleBlur('nivel_ensino')}
+                                    style={{ backgroundColor: '#eeeeee', ...getFieldStyle('nivel_ensino') }}
+                                    isValid={touched.nivel_ensino && !errors.nivel_ensino}
+                                    isInvalid={touched.nivel_ensino && errors.nivel_ensino}
                                 >
+                                    <option value="">Selecione um nível de ensino</option>
                                     {opcoes.niveis_ensino?.map((opt) => (
-                                        <Form.Check
-                                            key={opt.value}
-                                            type="radio"
-                                            name="nivel_ensino"
-                                            id={`nivel-${opt.value}`}
-                                            label={opt.label}
-                                            checked={String(formState.nivel_ensino || '') === String(opt.value)}
-                                            onChange={() => selecionarNivelEnsino(opt.value)}
-                                            onBlur={() => handleBlur('nivel_ensino')}
-                                            className="mb-1"
-                                        />
+                                        <option key={opt.value} value={String(opt.value)}>
+                                            {opt.label}
+                                        </option>
                                     ))}
-                                </div>
+                                </Form.Select>
                                 {touched.nivel_ensino && errors.nivel_ensino && (
                                     <Form.Text className="text-danger">{errors.nivel_ensino}</Form.Text>
                                 )}
@@ -661,21 +717,74 @@ export default function CriarAtracaoCard({
                                     <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         <td className="px-3 py-2" style={{ borderRight: '1px solid #dee2e6' }}>
                                             {(() => {
-                                                const usuariosDisponiveis = getUsuariosDisponiveisParaLinha(index);
+                                                const valorSelecionado = getNomeUsuarioSelecionado(membro);
+                                                const valorBusca = buscasUsuarios[index] ?? valorSelecionado;
+                                                const usuariosFiltrados = getUsuariosFiltradosParaLinha(index, valorBusca);
+                                                const podeExibirResultados = valorBusca.trim().length >= 3;
+
                                                 return (
-                                            <Form.Select
-                                                value={membro.user_id || ''}
-                                                onChange={(e) => handleMembroChange(index, 'user_id', e.target.value)}
-                                                style={{ border: '1px solid #dee2e6', borderRadius: '6px', fontSize: '0.95rem' }}
-                                                className="bg-white"
-                                            >
-                                                <option value="">Selecione o autor</option>
-                                                {usuariosDisponiveis.map((usuario) => (
-                                                    <option key={usuario.id} value={usuario.id}>
-                                                        {getNomeUsuario(usuario)}
-                                                    </option>
-                                                ))}
-                                            </Form.Select>
+                                                    <div className="d-flex flex-column gap-2">
+                                                        <Form.Control
+                                                            type="text"
+                                                            value={valorBusca}
+                                                            onChange={(e) => {
+                                                                const texto = e.target.value;
+                                                                setBuscasUsuarios((prev) => ({
+                                                                    ...prev,
+                                                                    [index]: texto,
+                                                                }));
+
+                                                                if (membro.user_id) {
+                                                                    handleMembroChange(index, 'user_id', '');
+                                                                }
+                                                            }}
+                                                            placeholder="Digite nome, username ou e-mail"
+                                                            style={{
+                                                                border: '1px solid #dee2e6',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.95rem',
+                                                            }}
+                                                            className="bg-white"
+                                                        />
+
+                                                        {!membro.user_id && podeExibirResultados && usuariosFiltrados.length > 0 && (
+                                                            <div
+                                                                className="border rounded bg-white shadow-sm"
+                                                                style={{ maxHeight: '220px', overflowY: 'auto' }}
+                                                            >
+                                                                {usuariosFiltrados.map((usuario) => (
+                                                                    <button
+                                                                        key={usuario.id}
+                                                                        type="button"
+                                                                        className="w-100 text-start border-0 px-3 py-2 bg-white"
+                                                                        style={{ borderBottom: '1px solid #eee' }}
+                                                                        onClick={() => {
+                                                                            handleMembroChange(index, 'user_id', usuario.id);
+                                                                            setBuscasUsuarios((prev) => ({
+                                                                                ...prev,
+                                                                                [index]: getNomeUsuario(usuario),
+                                                                            }));
+                                                                        }}
+                                                                    >
+                                                                        <div className="fw-semibold text-dark">
+                                                                            {getNomeUsuario(usuario)}
+                                                                        </div>
+                                                                        {formatarPerfilAcesso(usuario.access_profile) && (
+                                                                            <div className="small text-muted">
+                                                                                Perfil: {formatarPerfilAcesso(usuario.access_profile)}
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {!membro.user_id && podeExibirResultados && usuariosFiltrados.length === 0 && (
+                                                            <Form.Text className="text-muted">
+                                                                Nenhum usuário encontrado.
+                                                            </Form.Text>
+                                                        )}
+                                                    </div>
                                                 );
                                             })()}
                                         </td>

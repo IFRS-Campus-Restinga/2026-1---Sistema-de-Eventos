@@ -1,5 +1,9 @@
 from django.conf import settings
-from django.core.validators import MaxLengthValidator, MinLengthValidator, MinValueValidator
+from django.core.validators import (
+    MaxLengthValidator,
+    MinLengthValidator,
+    MinValueValidator,
+)
 from django.db import models
 from django.utils.text import slugify
 
@@ -105,6 +109,9 @@ class Submissao(Base):
         verbose_name = "Submissão"
         verbose_name_plural = "Submissões"
         ordering = ["-id"]
+        permissions = [
+            ("avaliar_submissao", "Pode realizar a avaliação de uma submissão"),
+        ]
 
     def __str__(self):
         return f"Submissão #{self.id} - {self.titulo}"
