@@ -32,7 +32,7 @@ def enviar_comunicado_geral(evento_id, atracoes_ids, assunto, mensagem_texto):
         raise ValueError("Nenhum e-mail válido encontrado nas atrações selecionadas.")
 
     try:
-        # 2. Iteramos sobre cada usuário para personalizar a mensagem
+        # Iteramos para montar mensagem com tags
         for usuario in destinatarios_dados:
             email = usuario["perfil__usuario__email"]
             primeiro_nome = usuario["perfil__usuario__first_name"] or ""
