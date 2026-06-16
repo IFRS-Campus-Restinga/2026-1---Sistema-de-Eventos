@@ -393,15 +393,12 @@ export default function CriarAtracaoCard({
 
         return (usuarios || []).filter((usuario) => {
             const idUsuario = String(usuario.id);
-            const perfilUsuario = String(usuario?.perfil_id || '');
-            const bateId = String(usuarioLogadoId || '') === idUsuario;
-            const batePerfil =
-                String(usuarioLogadoPerfilId || '') !== '' &&
-                String(usuarioLogadoPerfilId || '') === perfilUsuario;
+            const perfilAcesso = normalizarTexto(usuario?.access_profile || '');
 
-            if (bateId || batePerfil) {
+            if (perfilAcesso === 'administrador' || perfilAcesso === 'admin') {
                 return false;
             }
+
             return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
         });
     };
