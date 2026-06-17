@@ -781,9 +781,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 minute: '2-digit',
             });
         };
+        const { setNodeRef, isOver } = useDroppable({
+            id: `sessao-${sessao.id || sessao.tempId}`,
+        });
+
+        const vazio = !children || children.length === 0;
 
         return (
             <div
+                ref={setNodeRef}
                 className="mb-3 p-2 bg-white"
                 style={{
                     height: `${calcularAlturaSessao(
@@ -793,6 +799,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     borderRadius: '12px',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                     borderLeft: '6px solid #0d6efd',
+                    backgroundColor: isOver ? '#e6f7ff' : '',
                     display: 'flex',
                     flexDirection: 'column',
                 }}
@@ -814,14 +821,22 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
                 <div
                     style={{
-                        flex: 1,
+                        border: '2px dashed #ccc',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        minHeight: '60px',
+                        border: vazio ? '2px dashed #ccc' : 'none',
+                        display: vazio ? 'flex' : 'block',
+                        alignItems: vazio ? 'center' : 'initial',
+                        justifyContent: vazio ? 'center' : 'initial',
+                        textAlign: vazio ? 'center' : 'left',
+
+                        maxHeight: '100%',
                         overflowY: 'auto',
-                        minHeight: 0,
                     }}
                 >
-                    <SessaoDrop sessaoId={sessao.id || sessao.tempId}>
-                        {children}
-                    </SessaoDrop>
+                    {vazio && 'Arraste aqui'}
+                    {children}
                 </div>
             </div>
         );

@@ -77,6 +77,10 @@ export default function Dashboard() {
             .replace(/\b\w/g, (letra) => letra.toUpperCase());
     };
 
+    const possuiEtapaRealizacao = dashboard?.evento?.etapas?.some(
+        (etapa) => etapa.tipo_etapa === 'REALIZACAO_EVENTO',
+    );
+
     useEffect(() => {
         async function carregarDashboard() {
             // Se não veio ID na URL, resolve o redirecionamento e interrompe a execução
@@ -127,6 +131,7 @@ export default function Dashboard() {
         <>
             <div className="d-flex flex-column min-vh-100 bg-light">
                 <NavBar />
+                {console.log(dashboard)}
 
                 <main
                     className="flex-fill py-4 mx-auto w-100"
@@ -337,16 +342,42 @@ export default function Dashboard() {
                                             >
                                                 <Link
                                                     className="d-flex align-items-center p-3 btn btn-light"
+                                                    style={{
+                                                        opacity:
+                                                            !possuiEtapaRealizacao
+                                                                ? 0.65
+                                                                : 1,
+                                                        cursor: !possuiEtapaRealizacao
+                                                            ? 'not-allowed'
+                                                            : 'pointer',
+                                                    }}
+                                                    title={
+                                                        !possuiEtapaRealizacao
+                                                            ? 'O evento precisa possuir uma etapa de realização'
+                                                            : ''
+                                                    }
                                                     to={
+                                                        possuiEtapaRealizacao &&
                                                         eventoId
                                                             ? `/dashboard/${eventoId}/sessao_atribuir_data`
                                                             : '#'
                                                     }
+                                                    onClick={(e) => {
+                                                        if (
+                                                            !possuiEtapaRealizacao
+                                                        ) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
                                                 >
                                                     <IoCalendarOutline
                                                         size={20}
                                                         className="me-2"
-                                                        color="green"
+                                                        color={
+                                                            possuiEtapaRealizacao
+                                                                ? 'green'
+                                                                : 'gray'
+                                                        }
                                                     />
                                                     Configurar programação
                                                 </Link>
