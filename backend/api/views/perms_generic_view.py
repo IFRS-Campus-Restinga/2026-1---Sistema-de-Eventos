@@ -179,7 +179,30 @@ class PodeVerAvaliacaoSubmissao(BasePermission):
             return True
 
         # Restringe o avaliador comum às suas próprias avaliações executadas
-        return getattr(obj, "avaliador", None) == user
+        # Permite também que os autores, orientador ou membros da equipe
+        # relacionados à submissão vejam a avaliação.
+        if getattr(obj, "avaliador", None) == user:
+            return True
+
+        submissao = getattr(obj, "submissao", None)
+        if not submissao:
+            return False
+
+        # orientador
+        if getattr(submissao, "orientador", None) == user:
+            return True
+
+        # autoria registrada (usuários do sistema)
+        try:
+            if (
+                hasattr(submissao, "autorias")
+                and submissao.autorias.filter(usuario=user).exists()
+            ):
+                return True
+        except Exception:
+            pass
+
+        return False
 
 
 class PodeGerenciarAvaliadoresSubmissao(IsGroupAndObjectPerm):

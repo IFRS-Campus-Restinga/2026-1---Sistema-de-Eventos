@@ -10,6 +10,7 @@ import {
     Row,
     Spinner,
 } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
 import {
     MdAddCircle,
     MdArrowBack,
@@ -41,6 +42,11 @@ import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
 import { getCurrentUser } from '../services/authService';
+import {
+    listarAvaliacoesSubmissao,
+    listarItensAvaliacaoSubmissao,
+    pegarCriteriosSubmissaoPorModalidade,
+} from '../services/avaliacaoSubmissaoService';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -63,7 +69,7 @@ export default function ListarAtracoes() {
     const [usuarioLogado, setUsuarioLogado] = useState(null);
     const [bloqueioExclusao, setBloqueioExclusao] = useState({});
     const [bloqueioEdicao, setBloqueioEdicao] = useState({});
-    
+
     // Filtros e ordenação
     const [filtroStatus, setFiltroStatus] = useState('');
     const [filtroAutor, setFiltroAutor] = useState('');
@@ -93,13 +99,21 @@ export default function ListarAtracoes() {
     const [eventosEdicao, setEventosEdicao] = useState([]);
     const [usuariosEdicao, setUsuariosEdicao] = useState([]);
     const [eventoEdicaoDetalhe, setEventoEdicaoDetalhe] = useState(null);
-    const [modalidadeEdicaoDetalhe, setModalidadeEdicaoDetalhe] = useState(null);
-    const [habilitarSugestaoVagasEdicao, setHabilitarSugestaoVagasEdicao] = useState(false);
+    const [modalidadeEdicaoDetalhe, setModalidadeEdicaoDetalhe] =
+        useState(null);
+    const [habilitarSugestaoVagasEdicao, setHabilitarSugestaoVagasEdicao] =
+        useState(false);
     const [usuarioLogadoEdicao, setUsuarioLogadoEdicao] = useState(null);
+    const [mostrarModalAvaliacoes, setMostrarModalAvaliacoes] = useState(false);
+    const [avaliacoesLista, setAvaliacoesLista] = useState([]);
+    const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
+    const [avaliacoesItensMap, setAvaliacoesItensMap] = useState({});
 
     const eventoFiltroId = getSelectedEventoId();
     const gruposUsuarioNormalizados = useMemo(() => {
-        const grupos = Array.isArray(usuarioLogado?.groups) ? usuarioLogado.groups : [];
+        const grupos = Array.isArray(usuarioLogado?.groups)
+            ? usuarioLogado.groups
+            : [];
         return grupos
             .map((group) => (typeof group === 'string' ? group : group?.name))
             .filter(Boolean)
@@ -110,17 +124,23 @@ export default function ListarAtracoes() {
         if (!eventoFiltroId) return null;
 
         return (
-            eventosEdicao.find((evento) => String(evento.id) === String(eventoFiltroId)) ||
-            null
+            eventosEdicao.find(
+                (evento) => String(evento.id) === String(eventoFiltroId),
+            ) || null
         );
     }, [eventosEdicao, eventoFiltroId]);
 
     const contarPalavras = (texto) =>
-        texto?.trim().split(/\s+/).filter((palavra) => palavra.length > 0).length || 0;
+        texto
+            ?.trim()
+            .split(/\s+/)
+            .filter((palavra) => palavra.length > 0).length || 0;
 
     const normalizarNiveisEnsino = (valor) => {
         if (Array.isArray(valor)) {
-            const primeiroValido = valor.find((item) => String(item || '').trim() !== '');
+            const primeiroValido = valor.find(
+                (item) => String(item || '').trim() !== '',
+            );
             return primeiroValido ? String(primeiroValido).trim() : '';
         }
 
@@ -128,10 +148,12 @@ export default function ListarAtracoes() {
             return '';
         }
 
-        return String(valor)
-            .split(',')
-            .map((item) => item.trim())
-            .find((item) => item !== '') || '';
+        return (
+            String(valor)
+                .split(',')
+                .map((item) => item.trim())
+                .find((item) => item !== '') || ''
+        );
     };
 
     const mostrarAlerta = useCallback((mensagem, variacao = 'danger') => {
@@ -186,7 +208,12 @@ export default function ListarAtracoes() {
 
     useEffect(() => {
         const carregarOpcoesEdicao = async () => {
-            const [dadosOpcoes, dadosEventos, dadosUsuarios, dadosUsuarioLogado] = await Promise.allSettled([
+            const [
+                dadosOpcoes,
+                dadosEventos,
+                dadosUsuarios,
+                dadosUsuarioLogado,
+            ] = await Promise.allSettled([
                 buscarOpcoesAtracao(),
                 buscarEventos(),
                 buscarUsuarios(),
@@ -237,7 +264,10 @@ export default function ListarAtracoes() {
                 const detalhe = await buscarEventoPorId(formEdicao.evento);
                 setEventoEdicaoDetalhe(detalhe);
             } catch (error) {
-                console.error('Erro ao carregar detalhe do evento na edicao:', error);
+                console.error(
+                    'Erro ao carregar detalhe do evento na edicao:',
+                    error,
+                );
                 setEventoEdicaoDetalhe(null);
             }
         };
@@ -256,7 +286,10 @@ export default function ListarAtracoes() {
                 const detalhe = await pegarModalidade(formEdicao.modalidade);
                 setModalidadeEdicaoDetalhe(detalhe);
             } catch (error) {
-                console.error('Erro ao carregar detalhe da modalidade na edicao:', error);
+                console.error(
+                    'Erro ao carregar detalhe da modalidade na edicao:',
+                    error,
+                );
                 setModalidadeEdicaoDetalhe(null);
             }
         };
@@ -332,14 +365,17 @@ export default function ListarAtracoes() {
             usuarioLogado?.is_superuser ||
                 usuarioLogado?.is_staff ||
                 ['admin', 'administrador'].includes(
-                    String(usuarioLogado?.group || '').trim().toLowerCase(),
+                    String(usuarioLogado?.group || '')
+                        .trim()
+                        .toLowerCase(),
                 ) ||
                 gruposUsuarioNormalizados.includes('admin') ||
                 gruposUsuarioNormalizados.includes('administrador'),
         );
 
     // Função para determinar se usuário é coordenador
-    const isCoordenador = () => gruposUsuarioNormalizados.includes('coordenador');
+    const isCoordenador = () =>
+        gruposUsuarioNormalizados.includes('coordenador');
 
     // Função para determinar se usuário é avaliador
     const isAvaliador = () => gruposUsuarioNormalizados.includes('avaliador');
@@ -347,15 +383,26 @@ export default function ListarAtracoes() {
     const getMinhaAutoria = (item) => {
         if (isAdmin()) return null;
 
-        const autorias = Array.isArray(item?.autorias) && item.autorias.length > 0
-            ? item.autorias
-            : (Array.isArray(item?.equipe) ? item.equipe : []);
+        const autorias =
+            Array.isArray(item?.autorias) && item.autorias.length > 0
+                ? item.autorias
+                : Array.isArray(item?.equipe)
+                  ? item.equipe
+                  : [];
 
         const usuarioId = String(usuarioLogado?.id || '').trim();
-        const usuarioNome = String(usuarioLogado?.username || usuarioLogado?.nome || '').trim().toLowerCase();
+        const usuarioNome = String(
+            usuarioLogado?.username || usuarioLogado?.nome || '',
+        )
+            .trim()
+            .toLowerCase();
 
         const autoriaEncontrada = autorias.find((autoria) => {
-            const idsPossiveis = [autoria?.usuario, autoria?.user_id, autoria?.perfil_usuario]
+            const idsPossiveis = [
+                autoria?.usuario,
+                autoria?.user_id,
+                autoria?.perfil_usuario,
+            ]
                 .map((valor) => String(valor || '').trim())
                 .filter(Boolean);
 
@@ -363,7 +410,9 @@ export default function ListarAtracoes() {
                 return true;
             }
 
-            const nomeAutoria = String(autoria?.nome || '').trim().toLowerCase();
+            const nomeAutoria = String(autoria?.nome || '')
+                .trim()
+                .toLowerCase();
             return usuarioNome && nomeAutoria === usuarioNome;
         });
 
@@ -379,7 +428,9 @@ export default function ListarAtracoes() {
     };
 
     const getCoresAutoria = (tipoAutoria) => {
-        const tipo = String(tipoAutoria || '').trim().toUpperCase();
+        const tipo = String(tipoAutoria || '')
+            .trim()
+            .toUpperCase();
         const mapa = {
             AUTOR: { fundo: '#1D4ED8', texto: '#FFFFFF' },
             COAUTOR: { fundo: '#0F766E', texto: '#FFFFFF' },
@@ -401,7 +452,34 @@ export default function ListarAtracoes() {
     // Função para determinar se coordenador gerencia o evento
     const coordenadorGerenciaEvento = (item) => {
         if (!isCoordenador()) return false;
-        return usuarioLogado?.eventos_coordenados?.includes(item.evento) || false;
+        return (
+            usuarioLogado?.eventos_coordenados?.includes(item.evento) || false
+        );
+    };
+
+    const eventoTemAvaliacaoPreviaAberta = (item) => {
+        const evento = (eventosEdicao || []).find(
+            (eventoItem) => String(eventoItem.id) === String(item.evento),
+        );
+
+        if (!evento || !Array.isArray(evento.etapas)) {
+            return false;
+        }
+
+        const agora = new Date();
+        return evento.etapas.some((etapa) => {
+            if (
+                String(etapa.tipo_etapa || '').toUpperCase() !==
+                'AVALIACAO_PREVIA'
+            ) {
+                return false;
+            }
+            const inicio = etapa.data_inicio
+                ? new Date(etapa.data_inicio)
+                : null;
+            const fim = etapa.data_fim ? new Date(etapa.data_fim) : null;
+            return inicio && fim && inicio <= agora && agora <= fim;
+        });
     };
 
     const normalizarStatusParaPermissao = (status) => {
@@ -413,25 +491,40 @@ export default function ListarAtracoes() {
         if (isAdmin()) return true;
 
         const status = normalizarStatusParaPermissao(item.status);
-        const statusPermitidosCoordenador = ['PREVISTA', 'SUBMETIDA', 'CONFIRMADA', 'A_APRESENTAR', 'RASCUNHO'];
-        const statusPermitidosUsuario = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
+        const statusPermitidosCoordenador = [
+            'PREVISTA',
+            'SUBMETIDA',
+            'CONFIRMADA',
+            'A_APRESENTAR',
+            'RASCUNHO',
+        ];
+        const statusPermitidosUsuario = ['RASCUNHO'];
 
         if (isCoordenador()) {
-            if (!coordenadorGerenciaEvento(item) && !isAutor(item)) return false;
+            if (!coordenadorGerenciaEvento(item) && !isAutor(item))
+                return false;
             return statusPermitidosCoordenador.includes(status);
         }
 
         if (!isAutor(item)) return false;
-        return statusPermitidosUsuario.includes(status);
+        if (statusPermitidosUsuario.includes(status)) {
+            return true;
+        }
+
+        if (status === 'APROVADO_COM_RESSALVAS') {
+            return eventoTemAvaliacaoPreviaAberta(item);
+        }
+
+        return false;
     };
 
     // Função para validar se pode excluir
     const podeExcluir = (item) => {
         if (!podeEditar(item)) return false; // Se não pode editar, não pode excluir
-        
+
         const status = normalizarStatusParaPermissao(item.status);
         const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
-        
+
         return statusPermitidos.includes(status);
     };
 
@@ -443,7 +536,9 @@ export default function ListarAtracoes() {
         const statusPermitidos = ['PREVISTA', 'SUBMETIDA', 'RASCUNHO'];
 
         if (!statusPermitidos.includes(status)) {
-            return `Exclusão não permitida para itens com status "${getStatusConfig(status).label}".`;
+            return `Exclusão não permitida para itens com status "${
+                getStatusConfig(status).label
+            }".`;
         }
 
         return null;
@@ -481,7 +576,9 @@ export default function ListarAtracoes() {
             .toLowerCase();
 
     const getEventoNome = (eventoId) => {
-        const evento = (eventosEdicao || []).find((item) => String(item.id) === String(eventoId));
+        const evento = (eventosEdicao || []).find(
+            (item) => String(item.id) === String(eventoId),
+        );
         return evento?.nome || `ID ${eventoId}`;
     };
 
@@ -511,9 +608,33 @@ export default function ListarAtracoes() {
         }
 
         const stopwords = new Set([
-            'para', 'como', 'entre', 'sobre', 'com', 'sem', 'dos', 'das', 'que',
-            'uma', 'um', 'nos', 'nas', 'por', 'ser', 'sao', 'são', 'seu', 'sua',
-            'seus', 'suas', 'tambem', 'também', 'mais', 'menos', 'muito', 'muita',
+            'para',
+            'como',
+            'entre',
+            'sobre',
+            'com',
+            'sem',
+            'dos',
+            'das',
+            'que',
+            'uma',
+            'um',
+            'nos',
+            'nas',
+            'por',
+            'ser',
+            'sao',
+            'são',
+            'seu',
+            'sua',
+            'seus',
+            'suas',
+            'tambem',
+            'também',
+            'mais',
+            'menos',
+            'muito',
+            'muita',
         ]);
 
         const termosResumo = String(item?.resumo || '')
@@ -587,7 +708,9 @@ export default function ListarAtracoes() {
         // Aplicar filtro de status
         if (filtroStatus) {
             resultado = resultado.filter(
-                (item) => (item.status || '').toUpperCase() === filtroStatus.toUpperCase()
+                (item) =>
+                    (item.status || '').toUpperCase() ===
+                    filtroStatus.toUpperCase(),
             );
         }
 
@@ -595,9 +718,10 @@ export default function ListarAtracoes() {
         if (filtroAutor) {
             resultado = resultado.filter((item) => {
                 const autorias = item.autorias || item.equipe || [];
-                return autorias.some(
-                    (autoria) =>
-                        normalizarTexto(autoria.nome || '').includes(normalizarTexto(filtroAutor))
+                return autorias.some((autoria) =>
+                    normalizarTexto(autoria.nome || '').includes(
+                        normalizarTexto(filtroAutor),
+                    ),
                 );
             });
         }
@@ -606,20 +730,30 @@ export default function ListarAtracoes() {
         if (filtroModalidade) {
             const modalidadeSelecionada = (opcoesEdicao.modalidades || []).find(
                 (modalidade) =>
-                    String(modalidade?.value ?? modalidade?.id ?? '') === String(filtroModalidade),
+                    String(modalidade?.value ?? modalidade?.id ?? '') ===
+                    String(filtroModalidade),
             );
 
             const termoModalidadeSelecionada = normalizarTexto(
-                modalidadeSelecionada?.label || modalidadeSelecionada?.nome || '',
+                modalidadeSelecionada?.label ||
+                    modalidadeSelecionada?.nome ||
+                    '',
             );
 
             resultado = resultado.filter((item) => {
-                const modalidadeItem = String(item?.modalidade ?? item?.modalidade_id ?? '');
+                const modalidadeItem = String(
+                    item?.modalidade ?? item?.modalidade_id ?? '',
+                );
                 const modalidadePorNome = normalizarTexto(
-                    item?.tipo || item?.modalidade_display || item?.modalidade_nome || '',
+                    item?.tipo ||
+                        item?.modalidade_display ||
+                        item?.modalidade_nome ||
+                        '',
                 );
 
-                const batePorId = modalidadeItem !== '' && modalidadeItem === String(filtroModalidade);
+                const batePorId =
+                    modalidadeItem !== '' &&
+                    modalidadeItem === String(filtroModalidade);
                 const batePorNome =
                     termoModalidadeSelecionada !== '' &&
                     modalidadePorNome.includes(termoModalidadeSelecionada);
@@ -632,24 +766,32 @@ export default function ListarAtracoes() {
         if (filtroNivel) {
             resultado = resultado.filter((item) => {
                 const nivel = normalizarNiveisEnsino(item.nivel_ensino);
-                return normalizarTexto(nivel).includes(normalizarTexto(filtroNivel));
+                return normalizarTexto(nivel).includes(
+                    normalizarTexto(filtroNivel),
+                );
             });
         }
 
         // Aplicar filtro de evento
         if (filtroEvento) {
             resultado = resultado.filter(
-                (item) => item.evento === parseInt(filtroEvento, 10)
+                (item) => item.evento === parseInt(filtroEvento, 10),
             );
         }
 
         // Aplicar ordenação
         if (ordenacao === 'titulo') {
-            resultado.sort((a, b) => (a.titulo || '').localeCompare(b.titulo || ''));
+            resultado.sort((a, b) =>
+                (a.titulo || '').localeCompare(b.titulo || ''),
+            );
         } else if (ordenacao === 'autor') {
             resultado.sort((a, b) => {
-                const autorA = ((a.autorias || a.equipe || [])[0]?.nome || '').toLowerCase();
-                const autorB = ((b.autorias || b.equipe || [])[0]?.nome || '').toLowerCase();
+                const autorA = (
+                    (a.autorias || a.equipe || [])[0]?.nome || ''
+                ).toLowerCase();
+                const autorB = (
+                    (b.autorias || b.equipe || [])[0]?.nome || ''
+                ).toLowerCase();
                 return autorA.localeCompare(autorB);
             });
         } else if (ordenacao === 'status') {
@@ -659,7 +801,9 @@ export default function ListarAtracoes() {
                 return statusA.localeCompare(statusB);
             });
         } else if (ordenacao === 'modalidade') {
-            resultado.sort((a, b) => (a.modalidade || '').localeCompare(b.modalidade || ''));
+            resultado.sort((a, b) =>
+                (a.modalidade || '').localeCompare(b.modalidade || ''),
+            );
         } else if (ordenacao === 'nivel') {
             resultado.sort((a, b) => {
                 const nivelA = normalizarNiveisEnsino(a.nivel_ensino);
@@ -692,9 +836,20 @@ export default function ListarAtracoes() {
 
     useEffect(() => {
         setPaginaAtual(1);
-    }, [termoBusca, filtroStatus, filtroAutor, filtroModalidade, filtroNivel, filtroEvento, ordenacao]);
+    }, [
+        termoBusca,
+        filtroStatus,
+        filtroAutor,
+        filtroModalidade,
+        filtroNivel,
+        filtroEvento,
+        ordenacao,
+    ]);
 
-    const totalPaginas = Math.max(1, Math.ceil(atracoesFiltradas.length / ITENS_POR_PAGINA));
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(atracoesFiltradas.length / ITENS_POR_PAGINA),
+    );
     const paginaAtualValida = Math.min(paginaAtual, totalPaginas);
     const indiceInicial = (paginaAtualValida - 1) * ITENS_POR_PAGINA;
     const atracoesPaginadas = atracoesFiltradas.slice(
@@ -704,9 +859,12 @@ export default function ListarAtracoes() {
 
     const abrirModalEdicao = (atracao) => {
         const sugestaoAtual = atracao.sugestao_vagas ?? '';
-        const fonteAutoria = Array.isArray(atracao.autorias) && atracao.autorias.length > 0
-            ? atracao.autorias
-            : (Array.isArray(atracao.equipe) ? atracao.equipe : []);
+        const fonteAutoria =
+            Array.isArray(atracao.autorias) && atracao.autorias.length > 0
+                ? atracao.autorias
+                : Array.isArray(atracao.equipe)
+                  ? atracao.equipe
+                  : [];
 
         setFormEdicao({
             id: atracao.id,
@@ -735,11 +893,13 @@ export default function ListarAtracoes() {
                 funcao:
                     membro.funcao === 'COLABORADOR'
                         ? 'COAUTOR'
-                        : (membro.funcao || membro.tipo || ''),
+                        : membro.funcao || membro.tipo || '',
             })),
         });
         setHabilitarSugestaoVagasEdicao(
-            sugestaoAtual !== '' && sugestaoAtual !== null && sugestaoAtual !== undefined,
+            sugestaoAtual !== '' &&
+                sugestaoAtual !== null &&
+                sugestaoAtual !== undefined,
         );
         setMostrarModalEdicao(true);
     };
@@ -762,7 +922,9 @@ export default function ListarAtracoes() {
         if (!nomeNormalizado) return '';
 
         const usuarioEncontrado = (usuariosEdicao || []).find(
-            (usuario) => getNomeUsuario(usuario).trim().toLowerCase() === nomeNormalizado,
+            (usuario) =>
+                getNomeUsuario(usuario).trim().toLowerCase() ===
+                nomeNormalizado,
         );
 
         return (
@@ -777,7 +939,12 @@ export default function ListarAtracoes() {
             ...prev,
             equipe: [
                 ...(prev.equipe || []),
-                { user_id: '', nome: '', instituicao_curso: '', funcao: 'COAUTOR' },
+                {
+                    user_id: '',
+                    nome: '',
+                    instituicao_curso: '',
+                    funcao: 'COAUTOR',
+                },
             ],
         }));
     };
@@ -801,9 +968,13 @@ export default function ListarAtracoes() {
                 equipeAtualizada[index] = {
                     ...equipeAtualizada[index],
                     user_id: valor,
-                    nome: usuarioSelecionado ? getNomeUsuario(usuarioSelecionado) : '',
+                    nome: usuarioSelecionado
+                        ? getNomeUsuario(usuarioSelecionado)
+                        : '',
                     instituicao_curso: usuarioSelecionado
-                        ? (usuarioSelecionado.nivel_ensino_display || usuarioSelecionado.nivel_ensino || '')
+                        ? usuarioSelecionado.nivel_ensino_display ||
+                          usuarioSelecionado.nivel_ensino ||
+                          ''
                         : '',
                 };
             } else {
@@ -834,7 +1005,11 @@ export default function ListarAtracoes() {
             );
         }
 
-        return getNivelEnsinoUsuario(membro?.nome) || membro?.instituicao_curso || '';
+        return (
+            getNivelEnsinoUsuario(membro?.nome) ||
+            membro?.instituicao_curso ||
+            ''
+        );
     };
 
     const getUsuariosDisponiveisLinhaEdicao = (index) => {
@@ -861,8 +1036,16 @@ export default function ListarAtracoes() {
 
         const nivelEnsinoVazio = !String(formEdicao.nivel_ensino || '').trim();
 
-        if (!formEdicao.titulo || !formEdicao.evento || !formEdicao.modalidade || nivelEnsinoVazio || !formEdicao.area_conhecimento) {
-            mostrarAlerta('Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.');
+        if (
+            !formEdicao.titulo ||
+            !formEdicao.evento ||
+            !formEdicao.modalidade ||
+            nivelEnsinoVazio ||
+            !formEdicao.area_conhecimento
+        ) {
+            mostrarAlerta(
+                'Preencha titulo, evento, modalidade, nivel de ensino e area de conhecimento.',
+            );
             return;
         }
 
@@ -880,7 +1063,10 @@ export default function ListarAtracoes() {
             return;
         }
 
-        if ((formEdicao.palavras_chave || '').length > LIMITS_EDICAO.palavrasChave.maxChars) {
+        if (
+            (formEdicao.palavras_chave || '').length >
+            LIMITS_EDICAO.palavrasChave.maxChars
+        ) {
             mostrarAlerta(
                 `Palavras-chave deve ter no máximo ${LIMITS_EDICAO.palavrasChave.maxChars} caracteres.`,
             );
@@ -891,7 +1077,9 @@ export default function ListarAtracoes() {
             (membro) => String(membro?.user_id || '').trim() !== '',
         );
         if (equipeComUsuario.length === 0) {
-            mostrarAlerta('Adicione pelo menos um membro com usuário selecionado na equipe.');
+            mostrarAlerta(
+                'Adicione pelo menos um membro com usuário selecionado na equipe.',
+            );
             return;
         }
 
@@ -912,7 +1100,12 @@ export default function ListarAtracoes() {
             setSalvandoEdicao(true);
             await editarAtracao(formEdicao.id, formEdicao);
 
-            mostrarAlerta(`${ehSubmissoes ? 'Submissão' : 'Atração'} atualizado com sucesso.`, 'success');
+            mostrarAlerta(
+                `${
+                    ehSubmissoes ? 'Submissão' : 'Atração'
+                } atualizado com sucesso.`,
+                'success',
+            );
             setMostrarModalEdicao(false);
             await carregarAtracoes();
         } catch (error) {
@@ -931,13 +1124,68 @@ export default function ListarAtracoes() {
 
         try {
             await excluirAtracao(atracaoSelecionada.id);
-            mostrarAlerta(`${ehSubmissoes ? 'Submissão' : 'Atração'} excluído com sucesso.`, 'success');
+            mostrarAlerta(
+                `${
+                    ehSubmissoes ? 'Submissão' : 'Atração'
+                } excluído com sucesso.`,
+                'success',
+            );
             setMostrarModalExclusao(false);
             setAtracaoSelecionada(null);
             await carregarAtracoes();
         } catch (error) {
             console.error('Erro ao excluir:', error);
-            mostrarAlerta(`Não foi possível excluir o ${ehSubmissoes ? 'submissão' : 'atração'}.`);
+            mostrarAlerta(
+                `Não foi possível excluir o ${
+                    ehSubmissoes ? 'submissão' : 'atração'
+                }.`,
+            );
+        }
+    };
+
+    const abrirModalAvaliacoes = async (atracao) => {
+        if (!atracao?.id) return;
+        setMostrarModalAvaliacoes(true);
+        setCarregandoAvaliacoes(true);
+        try {
+            const dados = await listarAvaliacoesSubmissao({
+                submissao: atracao.id,
+            });
+            const avals = dados || [];
+            setAvaliacoesLista(avals);
+
+            // buscar criterios e itens para cada avaliação
+            const criterios = await pegarCriteriosSubmissaoPorModalidade();
+
+            const itensPorAvaliacaoEntries = await Promise.all(
+                avals.map(async (a) => {
+                    try {
+                        const itens = await listarItensAvaliacaoSubmissao(a.id);
+                        const itensComCriterio = (itens || []).map((it) => ({
+                            ...it,
+                            criterio_nome:
+                                (criterios || []).find(
+                                    (c) => c.id === it.criterio_avaliacao,
+                                )?.nome || `Critério ${it.criterio_avaliacao}`,
+                        }));
+                        return [a.id, itensComCriterio];
+                    } catch (e) {
+                        return [a.id, []];
+                    }
+                }),
+            );
+
+            const mapa = Object.fromEntries(itensPorAvaliacaoEntries);
+            setAvaliacoesItensMap(mapa);
+        } catch (error) {
+            console.error('Erro ao carregar avaliações:', error);
+            mostrarAlerta(
+                'Não foi possível carregar as avaliações desta submissão.',
+            );
+            setAvaliacoesLista([]);
+            setAvaliacoesItensMap({});
+        } finally {
+            setCarregandoAvaliacoes(false);
         }
     };
 
@@ -960,8 +1208,13 @@ export default function ListarAtracoes() {
                             <Row className="pt-5 pb-2">
                                 <Col className="d-flex align-items-center justify-content-center">
                                     <MdEvent color="#00A44B" size={35} />
-                                    <h3 className="fw-bold ms-2 mb-0" style={{ color: '#00A44B' }}>
-                                        {ehSubmissoes ? 'Gerenciar Submissões' : 'Gerenciar Atrações'}
+                                    <h3
+                                        className="fw-bold ms-2 mb-0"
+                                        style={{ color: '#00A44B' }}
+                                    >
+                                        {ehSubmissoes
+                                            ? 'Gerenciar Submissões'
+                                            : 'Gerenciar Atrações'}
                                     </h3>
                                 </Col>
                             </Row>
@@ -970,380 +1223,683 @@ export default function ListarAtracoes() {
                             {/* Filtros e Ordenação */}
                             <div
                                 className="mb-4 p-3 rounded-4"
-                                style={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}
+                                style={{
+                                    backgroundColor: '#f8f9fa',
+                                    border: '1px solid #e9ecef',
+                                }}
                             >
                                 <Row className="g-3 align-items-end">
-                                <Col md={12} lg={7}>
-                                    <Form.Group>
-                                        <Form.Label className="fw-bold" style={{ color: '#00A44B', fontWeight: 700 }}>
-                                            Buscar {ehSubmissoes ? 'submissão' : 'atração'}
-                                        </Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            value={termoBusca}
-                                            onChange={(e) => setTermoBusca(e.target.value)}
-                                            placeholder={`Digite titulo, tipo, local ou status`}
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={12} lg={5}>
-                                    <Form.Group>
-                                        <Form.Label className="fw-bold" style={{ color: '#000', fontWeight: 700 }}>
-                                            Ordenar por
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={ordenacao}
-                                            onChange={(e) => setOrdenacao(e.target.value)}
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        >
-                                            <option value="criacao">Criação (Recente)</option>
-                                            <option value="titulo">Título</option>
-                                            <option value="autor">Autor</option>
-                                            <option value="status">Status</option>
-                                            <option value="modalidade">Modalidade</option>
-                                            <option value="nivel">Nível de Ensino</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
+                                    <Col md={12} lg={7}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                className="fw-bold"
+                                                style={{
+                                                    color: '#00A44B',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Buscar{' '}
+                                                {ehSubmissoes
+                                                    ? 'submissão'
+                                                    : 'atração'}
+                                            </Form.Label>
+                                            <Form.Control
+                                                type="text"
+                                                value={termoBusca}
+                                                onChange={(e) =>
+                                                    setTermoBusca(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder={`Digite titulo, tipo, local ou status`}
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={12} lg={5}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                className="fw-bold"
+                                                style={{
+                                                    color: '#000',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Ordenar por
+                                            </Form.Label>
+                                            <Form.Select
+                                                value={ordenacao}
+                                                onChange={(e) =>
+                                                    setOrdenacao(e.target.value)
+                                                }
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            >
+                                                <option value="criacao">
+                                                    Criação (Recente)
+                                                </option>
+                                                <option value="titulo">
+                                                    Título
+                                                </option>
+                                                <option value="autor">
+                                                    Autor
+                                                </option>
+                                                <option value="status">
+                                                    Status
+                                                </option>
+                                                <option value="modalidade">
+                                                    Modalidade
+                                                </option>
+                                                <option value="nivel">
+                                                    Nível de Ensino
+                                                </option>
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
                                 </Row>
                             </div>
 
                             {/* Filtros Avançados */}
                             <div
                                 className="mb-4 p-3 rounded-4"
-                                style={{ backgroundColor: '#ffffff', border: '1px solid #e9ecef' }}
+                                style={{
+                                    backgroundColor: '#ffffff',
+                                    border: '1px solid #e9ecef',
+                                }}
                             >
                                 <Row className="g-3 align-items-end">
-                                <Col md={6} lg={3}>
-                                    <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
-                                            Status
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtroStatus}
-                                            onChange={(e) => setFiltroStatus(e.target.value)}
-                                            size="sm"
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        >
-                                            <option value="">Todos</option>
-                                            {ehSubmissoes ? (
-                                                <>
-                                                    <option value="RASCUNHO">Rascunho</option>
-                                                    <option value="PREVISTA">Submetida</option>
-                                                    <option value="EM_AVALIACAO">Em Avaliação</option>
-                                                    <option value="REJEITADO">Rejeitada</option>
-                                                    <option value="APROVADO_COM_RESSALVAS">Aceito com Ressalvas</option>
-                                                    <option value="ACEITA">Aceita</option>
-                                                    <option value="CANCELADA">Cancelada</option>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <option value="A_APRESENTAR">A Apresentar</option>
-                                                    <option value="EM_ANDAMENTO">Em Andamento</option>
-                                                    <option value="ENCERRADA">Encerrada</option>
-                                                    <option value="CANCELADA">Cancelada</option>
-                                                    <option value="EM_AVALIACAO">Em Avaliação</option>
-                                                    <option value="FINALIZADA">Finalizada</option>
-                                                </>
-                                            )}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6} lg={3}>
-                                    <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
-                                            Modalidade
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtroModalidade}
-                                            onChange={(e) => setFiltroModalidade(e.target.value)}
-                                            size="sm"
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        >
-                                            <option value="">Todas</option>
-                                            {opcoesEdicao.modalidades?.map((modalidade) => (
-                                                <option key={modalidade.value || modalidade.id} value={modalidade.value || modalidade.id}>
-                                                    {modalidade.label || modalidade.nome}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6} lg={3}>
-                                    <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
-                                            Nível
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtroNivel}
-                                            onChange={(e) => setFiltroNivel(e.target.value)}
-                                            size="sm"
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        >
-                                            <option value="">Todos</option>
-                                            {opcoesEdicao.niveis_ensino?.map((nivel) => (
-                                                <option key={nivel.value || nivel.id} value={nivel.value || nivel.id}>
-                                                    {nivel.label || nivel.nome}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6} lg={3}>
-                                    <Form.Group>
-                                        <Form.Label style={{ fontSize: '0.85rem', color: '#000', fontWeight: 700 }}>
-                                            Evento
-                                        </Form.Label>
-                                        <Form.Select
-                                            value={filtroEvento}
-                                            onChange={(e) => setFiltroEvento(e.target.value)}
-                                            size="sm"
-                                            style={{
-                                                backgroundColor: '#eeeeee',
-                                                border: '1px solid #ced4da',
-                                            }}
-                                        >
-                                            <option value="">Todos</option>
-                                            {eventosEdicao?.map((evento) => (
-                                                <option key={evento.id} value={evento.id}>
-                                                    {evento.nome}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                                {filtroStatus || filtroModalidade || filtroNivel || filtroEvento ? (
-                                    <Col md={6} lg={3} className="d-flex align-items-end">
-                                        <Button
-                                            variant="outline-secondary"
-                                            size="sm"
-                                            onClick={() => {
-                                                setFiltroStatus('');
-                                                setFiltroModalidade('');
-                                                setFiltroNivel('');
-                                                setFiltroEvento('');
-                                            }}
-                                            className="w-100"
-                                        >
-                                            Limpar Filtros
-                                        </Button>
+                                    <Col md={6} lg={3}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                style={{
+                                                    fontSize: '0.85rem',
+                                                    color: '#000',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Status
+                                            </Form.Label>
+                                            <Form.Select
+                                                value={filtroStatus}
+                                                onChange={(e) =>
+                                                    setFiltroStatus(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                size="sm"
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            >
+                                                <option value="">Todos</option>
+                                                {ehSubmissoes ? (
+                                                    <>
+                                                        <option value="RASCUNHO">
+                                                            Rascunho
+                                                        </option>
+                                                        <option value="PREVISTA">
+                                                            Submetida
+                                                        </option>
+                                                        <option value="EM_AVALIACAO">
+                                                            Em Avaliação
+                                                        </option>
+                                                        <option value="REJEITADO">
+                                                            Rejeitada
+                                                        </option>
+                                                        <option value="APROVADO_COM_RESSALVAS">
+                                                            Aceito com Ressalvas
+                                                        </option>
+                                                        <option value="ACEITA">
+                                                            Aceita
+                                                        </option>
+                                                        <option value="CANCELADA">
+                                                            Cancelada
+                                                        </option>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <option value="A_APRESENTAR">
+                                                            A Apresentar
+                                                        </option>
+                                                        <option value="EM_ANDAMENTO">
+                                                            Em Andamento
+                                                        </option>
+                                                        <option value="ENCERRADA">
+                                                            Encerrada
+                                                        </option>
+                                                        <option value="CANCELADA">
+                                                            Cancelada
+                                                        </option>
+                                                        <option value="EM_AVALIACAO">
+                                                            Em Avaliação
+                                                        </option>
+                                                        <option value="FINALIZADA">
+                                                            Finalizada
+                                                        </option>
+                                                    </>
+                                                )}
+                                            </Form.Select>
+                                        </Form.Group>
                                     </Col>
-                                ) : null}
+                                    <Col md={6} lg={3}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                style={{
+                                                    fontSize: '0.85rem',
+                                                    color: '#000',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Modalidade
+                                            </Form.Label>
+                                            <Form.Select
+                                                value={filtroModalidade}
+                                                onChange={(e) =>
+                                                    setFiltroModalidade(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                size="sm"
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            >
+                                                <option value="">Todas</option>
+                                                {opcoesEdicao.modalidades?.map(
+                                                    (modalidade) => (
+                                                        <option
+                                                            key={
+                                                                modalidade.value ||
+                                                                modalidade.id
+                                                            }
+                                                            value={
+                                                                modalidade.value ||
+                                                                modalidade.id
+                                                            }
+                                                        >
+                                                            {modalidade.label ||
+                                                                modalidade.nome}
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} lg={3}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                style={{
+                                                    fontSize: '0.85rem',
+                                                    color: '#000',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Nível
+                                            </Form.Label>
+                                            <Form.Select
+                                                value={filtroNivel}
+                                                onChange={(e) =>
+                                                    setFiltroNivel(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                size="sm"
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            >
+                                                <option value="">Todos</option>
+                                                {opcoesEdicao.niveis_ensino?.map(
+                                                    (nivel) => (
+                                                        <option
+                                                            key={
+                                                                nivel.value ||
+                                                                nivel.id
+                                                            }
+                                                            value={
+                                                                nivel.value ||
+                                                                nivel.id
+                                                            }
+                                                        >
+                                                            {nivel.label ||
+                                                                nivel.nome}
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} lg={3}>
+                                        <Form.Group>
+                                            <Form.Label
+                                                style={{
+                                                    fontSize: '0.85rem',
+                                                    color: '#000',
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                Evento
+                                            </Form.Label>
+                                            <Form.Select
+                                                value={filtroEvento}
+                                                onChange={(e) =>
+                                                    setFiltroEvento(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                size="sm"
+                                                style={{
+                                                    backgroundColor: '#eeeeee',
+                                                    border: '1px solid #ced4da',
+                                                }}
+                                            >
+                                                <option value="">Todos</option>
+                                                {eventosEdicao?.map(
+                                                    (evento) => (
+                                                        <option
+                                                            key={evento.id}
+                                                            value={evento.id}
+                                                        >
+                                                            {evento.nome}
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    {filtroStatus ||
+                                    filtroModalidade ||
+                                    filtroNivel ||
+                                    filtroEvento ? (
+                                        <Col
+                                            md={6}
+                                            lg={3}
+                                            className="d-flex align-items-end"
+                                        >
+                                            <Button
+                                                variant="outline-secondary"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setFiltroStatus('');
+                                                    setFiltroModalidade('');
+                                                    setFiltroNivel('');
+                                                    setFiltroEvento('');
+                                                }}
+                                                className="w-100"
+                                            >
+                                                Limpar Filtros
+                                            </Button>
+                                        </Col>
+                                    ) : null}
                                 </Row>
                             </div>
 
                             {carregando ? (
                                 <div className="text-center py-5">
-                                    <Spinner animation="border" variant="success" />
-                                    <p className="mt-2 text-muted">Buscando {ehSubmissoes ? 'submissões' : 'atrações'} no sistema...</p>
+                                    <Spinner
+                                        animation="border"
+                                        variant="success"
+                                    />
+                                    <p className="mt-2 text-muted">
+                                        Buscando{' '}
+                                        {ehSubmissoes
+                                            ? 'submissões'
+                                            : 'atrações'}{' '}
+                                        no sistema...
+                                    </p>
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
                                     {atracoesFiltradas?.length > 0 ? (
-                                        atracoesPaginadas.map((atracao, index) => {
-                                            const podeEditarItem = podeEditar(atracao);
-                                            const podeExcluirItem = podeExcluir(atracao);
-                                            const motivoBloqueio = bloqueioExclusao[atracao.id];
-                                            const podeAcessarAvaliacao =
-                                                isAdmin() || isCoordenador() || isAvaliador();
-                                            const isUsuarioComum =
-                                                !isAdmin() && !isCoordenador() && !isAvaliador();
-                                            const minhaAutoria = getMinhaAutoria(atracao);
+                                        atracoesPaginadas.map(
+                                            (atracao, index) => {
+                                                const podeEditarItem =
+                                                    podeEditar(atracao);
+                                                const podeExcluirItem =
+                                                    podeExcluir(atracao);
+                                                const motivoBloqueio =
+                                                    bloqueioExclusao[
+                                                        atracao.id
+                                                    ];
+                                                const podeAcessarAvaliacao =
+                                                    isAdmin() ||
+                                                    isCoordenador() ||
+                                                    isAvaliador();
+                                                const isUsuarioComum =
+                                                    !isAdmin() &&
+                                                    !isCoordenador() &&
+                                                    !isAvaliador();
+                                                const minhaAutoria =
+                                                    getMinhaAutoria(atracao);
 
-                                            return (
-                                                <ListGroup.Item
-                                                    key={atracao.id || index}
-                                                    className="d-flex justify-content-between align-items-center mb-3 rounded-4 p-3"
-                                                    style={{
-                                                        borderLeft: `10px solid ${getStatusBorderColor(atracao.status)}`,
-                                                        backgroundColor: '#fff',
-                                                        boxShadow: '0 0.125rem 0.35rem rgba(0, 0, 0, 0.08)',
-                                                    }}
-                                                >
-                                                    <div className="d-flex flex-column flex-grow-1">
-                                                        <div className="fs-5 fw-bold text-dark mb-1">{atracao.titulo}</div>
-                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-1">
-                                                            <span className="d-flex align-items-center gap-1">
-                                                                <MdInfoOutline /> <strong>Modalidade:</strong> {atracao.tipo || '-'}
-                                                            </span>
-                                                            <span className="d-flex align-items-center gap-1">
-                                                                <MdSchool /> <strong>Nível:</strong> {atracao.nivel_ensino_display || atracao.nivel_ensino || '-'}
-                                                            </span>
-                                                            <span className="d-flex align-items-center gap-1">
-                                                                <MdEvent /> <strong>Evento:</strong> {getEventoNome(atracao.evento)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="d-flex flex-wrap gap-3 text-muted small mb-2">
-                                                            <span className="d-flex align-items-center gap-1">
-                                                                <MdPerson /> <strong>Autor:</strong> {atracao.autor_nome || '-'}
-                                                            </span>
-                                                            {getTermosDestaque(atracao).length > 0 && (
+                                                return (
+                                                    <ListGroup.Item
+                                                        key={
+                                                            atracao.id || index
+                                                        }
+                                                        className="d-flex justify-content-between align-items-center mb-3 rounded-4 p-3"
+                                                        style={{
+                                                            borderLeft: `10px solid ${getStatusBorderColor(
+                                                                atracao.status,
+                                                            )}`,
+                                                            backgroundColor:
+                                                                '#fff',
+                                                            boxShadow:
+                                                                '0 0.125rem 0.35rem rgba(0, 0, 0, 0.08)',
+                                                        }}
+                                                    >
+                                                        <div className="d-flex flex-column flex-grow-1">
+                                                            <div className="fs-5 fw-bold text-dark mb-1">
+                                                                {atracao.titulo}
+                                                            </div>
+                                                            <div className="d-flex flex-wrap gap-3 text-muted small mb-1">
                                                                 <span className="d-flex align-items-center gap-1">
-                                                                    <MdLocalOffer /> <strong>Termos:</strong> {getTermosDestaque(atracao).join(', ')}
+                                                                    <MdInfoOutline />{' '}
+                                                                    <strong>
+                                                                        Modalidade:
+                                                                    </strong>{' '}
+                                                                    {atracao.tipo ||
+                                                                        '-'}
                                                                 </span>
-                                                            )}
-                                                            {atracao.orientador_nome ? (
                                                                 <span className="d-flex align-items-center gap-1">
-                                                                    <MdPerson /> <strong>Orientador:</strong> {atracao.orientador_nome}
+                                                                    <MdSchool />{' '}
+                                                                    <strong>
+                                                                        Nível:
+                                                                    </strong>{' '}
+                                                                    {atracao.nivel_ensino_display ||
+                                                                        atracao.nivel_ensino ||
+                                                                        '-'}
                                                                 </span>
-                                                            ) : null}
-                                                            {formatarDataHoraCurta(atracao.data_hora_inicio) ? (
                                                                 <span className="d-flex align-items-center gap-1">
-                                                                    <MdCalendarToday /> <strong>Início:</strong> {formatarDataHoraCurta(atracao.data_hora_inicio)}
-                                                                </span>
-                                                            ) : null}
-                                                        </div>
-                                                        {minhaAutoria && (
-                                                            <div className="mb-2">
-                                                                <span
-                                                                    className="badge rounded px-2 py-1"
-                                                                    style={{
-                                                                        backgroundColor: getCoresAutoria(minhaAutoria).fundo,
-                                                                        color: getCoresAutoria(minhaAutoria).texto,
-                                                                        fontSize: '0.7rem',
-                                                                    }}
-                                                                >
-                                                                    {minhaAutoria}
+                                                                    <MdEvent />{' '}
+                                                                    <strong>
+                                                                        Evento:
+                                                                    </strong>{' '}
+                                                                    {getEventoNome(
+                                                                        atracao.evento,
+                                                                    )}
                                                                 </span>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                            <div className="d-flex flex-wrap gap-3 text-muted small mb-2">
+                                                                <span className="d-flex align-items-center gap-1">
+                                                                    <MdPerson />{' '}
+                                                                    <strong>
+                                                                        Autor:
+                                                                    </strong>{' '}
+                                                                    {atracao.autor_nome ||
+                                                                        '-'}
+                                                                </span>
+                                                                {getTermosDestaque(
+                                                                    atracao,
+                                                                ).length >
+                                                                    0 && (
+                                                                    <span className="d-flex align-items-center gap-1">
+                                                                        <MdLocalOffer />{' '}
+                                                                        <strong>
+                                                                            Termos:
+                                                                        </strong>{' '}
+                                                                        {getTermosDestaque(
+                                                                            atracao,
+                                                                        ).join(
+                                                                            ', ',
+                                                                        )}
+                                                                    </span>
+                                                                )}
+                                                                {atracao.orientador_nome ? (
+                                                                    <span className="d-flex align-items-center gap-1">
+                                                                        <MdPerson />{' '}
+                                                                        <strong>
+                                                                            Orientador:
+                                                                        </strong>{' '}
+                                                                        {
+                                                                            atracao.orientador_nome
+                                                                        }
+                                                                    </span>
+                                                                ) : null}
+                                                                {formatarDataHoraCurta(
+                                                                    atracao.data_hora_inicio,
+                                                                ) ? (
+                                                                    <span className="d-flex align-items-center gap-1">
+                                                                        <MdCalendarToday />{' '}
+                                                                        <strong>
+                                                                            Início:
+                                                                        </strong>{' '}
+                                                                        {formatarDataHoraCurta(
+                                                                            atracao.data_hora_inicio,
+                                                                        )}
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                            {minhaAutoria && (
+                                                                <div className="mb-2">
+                                                                    <span
+                                                                        className="badge rounded px-2 py-1"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                getCoresAutoria(
+                                                                                    minhaAutoria,
+                                                                                )
+                                                                                    .fundo,
+                                                                            color: getCoresAutoria(
+                                                                                minhaAutoria,
+                                                                            )
+                                                                                .texto,
+                                                                            fontSize:
+                                                                                '0.7rem',
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            minhaAutoria
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
 
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <Badge
-                                                            pill
-                                                            bg={getStatusConfig(atracao.status).bg}
-                                                            className="px-3 py-2"
-                                                            style={{
-                                                                minWidth: '130px',
-                                                                textAlign: 'center',
-                                                                fontSize: '0.78rem',
-                                                                lineHeight: '1rem',
-                                                                letterSpacing: '0.02em',
-                                                            }}
-                                                        >
-                                                            {getStatusConfig(atracao.status).label}
-                                                        </Badge>
-
-                                                        <Dropdown align="end">
-                                                            <Dropdown.Toggle
-                                                                variant="primary"
-                                                                id={`acoes-${atracao.id}`}
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <Badge
+                                                                pill
+                                                                bg={
+                                                                    getStatusConfig(
+                                                                        atracao.status,
+                                                                    ).bg
+                                                                }
+                                                                className="px-3 py-2"
                                                                 style={{
-                                                                    backgroundColor: '#003366',
-                                                                    borderColor: '#003366',
-                                                                    color: '#fff',
-                                                                    minWidth: '94px',
-                                                                    fontWeight: 600,
+                                                                    minWidth:
+                                                                        '130px',
+                                                                    textAlign:
+                                                                        'center',
+                                                                    fontSize:
+                                                                        '0.78rem',
+                                                                    lineHeight:
+                                                                        '1rem',
+                                                                    letterSpacing:
+                                                                        '0.02em',
                                                                 }}
                                                             >
-                                                                Ações
-                                                            </Dropdown.Toggle>
+                                                                {
+                                                                    getStatusConfig(
+                                                                        atracao.status,
+                                                                    ).label
+                                                                }
+                                                            </Badge>
 
-                                                            <Dropdown.Menu>
-                                                                <Dropdown.Item
-                                                                    onClick={() => abrirModalEdicao(atracao)}
-                                                                    disabled={!podeEditarItem}
+                                                            <Dropdown align="end">
+                                                                <Dropdown.Toggle
+                                                                    variant="primary"
+                                                                    id={`acoes-${atracao.id}`}
+                                                                    style={{
+                                                                        backgroundColor:
+                                                                            '#003366',
+                                                                        borderColor:
+                                                                            '#003366',
+                                                                        color: '#fff',
+                                                                        minWidth:
+                                                                            '94px',
+                                                                        fontWeight: 600,
+                                                                    }}
                                                                 >
-                                                                    Editar
-                                                                </Dropdown.Item>
+                                                                    Ações
+                                                                </Dropdown.Toggle>
 
-                                                                {!isUsuarioComum && (
-                                                                    <>
-                                                                        {ehSubmissoes ? (
-                                                                            <Dropdown.Item
-                                                                                onClick={() =>
-                                                                                    navigate(
-                                                                                        `/avaliar_submissao?submissao_id=${atracao.id}&evento_id=${atracao.evento || ''}`,
-                                                                                    )
-                                                                                }
-                                                                                disabled={!podeAcessarAvaliacao}
-                                                                            >
-                                                                                Avaliar Submissão
-                                                                            </Dropdown.Item>
-                                                                        ) : (
-                                                                            <Dropdown.Item
-                                                                                onClick={() =>
-                                                                                    navigate(
-                                                                                        `/avaliar_atracao?atracao_id=${atracao.id}`,
-                                                                                    )
-                                                                                }
-                                                                                disabled={!podeAcessarAvaliacao}
-                                                                            >
-                                                                                Avaliar Atração
-                                                                            </Dropdown.Item>
-                                                                        )}
+                                                                <Dropdown.Menu>
+                                                                    <Dropdown.Item
+                                                                        onClick={() =>
+                                                                            abrirModalEdicao(
+                                                                                atracao,
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            !podeEditarItem
+                                                                        }
+                                                                    >
+                                                                        Editar
+                                                                    </Dropdown.Item>
+                                                                    {ehSubmissoes && (
+                                                                        <Dropdown.Item
+                                                                            onClick={() =>
+                                                                                abrirModalAvaliacoes(
+                                                                                    atracao,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Ver
+                                                                            Avaliações
+                                                                        </Dropdown.Item>
+                                                                    )}
 
-                                                                        {ehSubmissoes ? (
-                                                                            <Dropdown.Item
-                                                                                onClick={() =>
-                                                                                    navigate(
-                                                                                        `/gerenciar_avaliadores_submissoes?evento_id=${atracao.evento || ''}`,
-                                                                                    )
-                                                                                }
-                                                                                disabled={!isAdmin()}
-                                                                            >
-                                                                                Gerenciar Avaliadores
-                                                                            </Dropdown.Item>
-                                                                        ) : (
-                                                                            <Dropdown.Item
-                                                                                onClick={() =>
-                                                                                    navigate(
-                                                                                        `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                Ver Inscritos
-                                                                            </Dropdown.Item>
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
+                                                                    {!isUsuarioComum && (
+                                                                        <>
+                                                                            {ehSubmissoes ? (
+                                                                                <Dropdown.Item
+                                                                                    onClick={() =>
+                                                                                        navigate(
+                                                                                            `/avaliar_submissao?submissao_id=${
+                                                                                                atracao.id
+                                                                                            }&evento_id=${
+                                                                                                atracao.evento ||
+                                                                                                ''
+                                                                                            }`,
+                                                                                        )
+                                                                                    }
+                                                                                    disabled={
+                                                                                        !podeAcessarAvaliacao
+                                                                                    }
+                                                                                >
+                                                                                    Avaliar
+                                                                                    Submissão
+                                                                                </Dropdown.Item>
+                                                                            ) : (
+                                                                                <Dropdown.Item
+                                                                                    onClick={() =>
+                                                                                        navigate(
+                                                                                            `/avaliar_atracao?atracao_id=${atracao.id}`,
+                                                                                        )
+                                                                                    }
+                                                                                    disabled={
+                                                                                        !podeAcessarAvaliacao
+                                                                                    }
+                                                                                >
+                                                                                    Avaliar
+                                                                                    Atração
+                                                                                </Dropdown.Item>
+                                                                            )}
 
-                                                        <Button
-                                                            variant="danger"
-                                                            className="d-flex align-items-center gap-1"
-                                                            onClick={() => {
-                                                                setAtracaoSelecionada(atracao);
-                                                                setMostrarModalExclusao(true);
-                                                            }}
-                                                            disabled={!podeExcluirItem}
-                                                            title={motivoBloqueio || ''}
-                                                            style={{
-                                                                backgroundColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
-                                                                borderColor: podeExcluirItem ? '#dc3545' : '#adb5bd',
-                                                                color: '#fff',
-                                                            }}
-                                                        >
-                                                            <MdDelete /> Excluir
-                                                        </Button>
-                                                    </div>
-                                                </ListGroup.Item>
-                                            );
-                                        })
+                                                                            {ehSubmissoes ? (
+                                                                                <Dropdown.Item
+                                                                                    onClick={() =>
+                                                                                        navigate(
+                                                                                            `/gerenciar_avaliadores_submissoes?evento_id=${
+                                                                                                atracao.evento ||
+                                                                                                ''
+                                                                                            }`,
+                                                                                        )
+                                                                                    }
+                                                                                    disabled={
+                                                                                        !isAdmin()
+                                                                                    }
+                                                                                >
+                                                                                    Gerenciar
+                                                                                    Avaliadores
+                                                                                </Dropdown.Item>
+                                                                            ) : (
+                                                                                <Dropdown.Item
+                                                                                    onClick={() =>
+                                                                                        navigate(
+                                                                                            `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    Ver
+                                                                                    Inscritos
+                                                                                </Dropdown.Item>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </Dropdown.Menu>
+                                                            </Dropdown>
+
+                                                            <Button
+                                                                variant="danger"
+                                                                className="d-flex align-items-center gap-1"
+                                                                onClick={() => {
+                                                                    setAtracaoSelecionada(
+                                                                        atracao,
+                                                                    );
+                                                                    setMostrarModalExclusao(
+                                                                        true,
+                                                                    );
+                                                                }}
+                                                                disabled={
+                                                                    !podeExcluirItem
+                                                                }
+                                                                title={
+                                                                    motivoBloqueio ||
+                                                                    ''
+                                                                }
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        podeExcluirItem
+                                                                            ? '#dc3545'
+                                                                            : '#adb5bd',
+                                                                    borderColor:
+                                                                        podeExcluirItem
+                                                                            ? '#dc3545'
+                                                                            : '#adb5bd',
+                                                                    color: '#fff',
+                                                                }}
+                                                            >
+                                                                <MdDelete />{' '}
+                                                                Excluir
+                                                            </Button>
+                                                        </div>
+                                                    </ListGroup.Item>
+                                                );
+                                            },
+                                        )
                                     ) : (
                                         <div className="text-center py-5 border rounded bg-white">
                                             <p className="text-muted mb-0">
                                                 {atracoes.length > 0
-                                                    ? `Nenhuma ${ehSubmissoes ? 'submissão' : 'atração'} encontrada para o termo informado.`
-                                                    : `Nenhuma ${ehSubmissoes ? 'submissão' : 'atração'} cadastrada até o momento.`}
+                                                    ? `Nenhuma ${
+                                                          ehSubmissoes
+                                                              ? 'submissão'
+                                                              : 'atração'
+                                                      } encontrada para o termo informado.`
+                                                    : `Nenhuma ${
+                                                          ehSubmissoes
+                                                              ? 'submissão'
+                                                              : 'atração'
+                                                      } cadastrada até o momento.`}
                                             </p>
                                         </div>
                                     )}
@@ -1357,31 +1913,41 @@ export default function ListarAtracoes() {
                                         size="sm"
                                         className="me-2"
                                         onClick={() =>
-                                            setPaginaAtual((pagina) => Math.max(1, pagina - 1))
+                                            setPaginaAtual((pagina) =>
+                                                Math.max(1, pagina - 1),
+                                            )
                                         }
                                         disabled={paginaAtualValida === 1}
                                     >
                                         Anterior
                                     </Button>
 
-                                    {Array.from({ length: totalPaginas }, (_, index) => {
-                                        const numeroPagina = index + 1;
-                                        return (
-                                            <Button
-                                                key={`page-${numeroPagina}`}
-                                                variant={
-                                                    numeroPagina === paginaAtualValida
-                                                        ? 'success'
-                                                        : 'outline-success'
-                                                }
-                                                size="sm"
-                                                className="mx-1"
-                                                onClick={() => setPaginaAtual(numeroPagina)}
-                                            >
-                                                {numeroPagina}
-                                            </Button>
-                                        );
-                                    })}
+                                    {Array.from(
+                                        { length: totalPaginas },
+                                        (_, index) => {
+                                            const numeroPagina = index + 1;
+                                            return (
+                                                <Button
+                                                    key={`page-${numeroPagina}`}
+                                                    variant={
+                                                        numeroPagina ===
+                                                        paginaAtualValida
+                                                            ? 'success'
+                                                            : 'outline-success'
+                                                    }
+                                                    size="sm"
+                                                    className="mx-1"
+                                                    onClick={() =>
+                                                        setPaginaAtual(
+                                                            numeroPagina,
+                                                        )
+                                                    }
+                                                >
+                                                    {numeroPagina}
+                                                </Button>
+                                            );
+                                        },
+                                    )}
 
                                     <Button
                                         variant="success"
@@ -1389,26 +1955,38 @@ export default function ListarAtracoes() {
                                         className="ms-2"
                                         onClick={() =>
                                             setPaginaAtual((pagina) =>
-                                                Math.min(totalPaginas, pagina + 1),
+                                                Math.min(
+                                                    totalPaginas,
+                                                    pagina + 1,
+                                                ),
                                             )
                                         }
-                                        disabled={paginaAtualValida === totalPaginas}
+                                        disabled={
+                                            paginaAtualValida === totalPaginas
+                                        }
                                     >
                                         Proximo
                                     </Button>
-
                                 </div>
                             )}
 
                             <div className="mt-4">
                                 <Button
                                     as={Link}
-                                    to={ehSubmissoes ? '/adicionar_submissao' : '/adicionar_atracao'}
+                                    to={
+                                        ehSubmissoes
+                                            ? '/adicionar_submissao'
+                                            : '/adicionar_atracao'
+                                    }
                                     variant="success"
                                     className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                                    style={{ backgroundColor: '#00A44B', border: 'none' }}
+                                    style={{
+                                        backgroundColor: '#00A44B',
+                                        border: 'none',
+                                    }}
                                 >
-                                    <MdAddCircle size={20} /> Novo{ehSubmissoes ? 'a Submissão' : 'a Atração'}
+                                    <MdAddCircle size={20} /> Novo
+                                    {ehSubmissoes ? 'a Submissão' : 'a Atração'}
                                 </Button>
                             </div>
                         </Container>
@@ -1425,6 +2003,90 @@ export default function ListarAtracoes() {
                     </div>
                 </Container>
 
+                <Modal
+                    show={mostrarModalAvaliacoes}
+                    onHide={() => setMostrarModalAvaliacoes(false)}
+                    size="lg"
+                    centered
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title>Avaliações</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {carregandoAvaliacoes ? (
+                            <div className="text-center py-3">
+                                <Spinner animation="border" variant="success" />
+                            </div>
+                        ) : avaliacoesLista.length === 0 ? (
+                            <p className="text-muted">
+                                Nenhuma avaliação disponível para esta
+                                submissão.
+                            </p>
+                        ) : (
+                            <div>
+                                {avaliacoesLista.map((a, idx) => (
+                                    <div key={a.id} className="mb-3">
+                                        <h6 className="mb-1">
+                                            Avaliador {idx + 1}
+                                        </h6>
+                                        <div className="small text-muted mb-1">
+                                            <strong>Status:</strong>{' '}
+                                            {a.status_aprovacao || '-'} •{' '}
+                                            <strong>Nota:</strong>{' '}
+                                            {a.nota_final ?? '-'} •{' '}
+                                            <strong>Data:</strong>{' '}
+                                            {formatarDataHoraCurta(
+                                                a.data_avaliacao,
+                                            ) || '-'}
+                                        </div>
+                                        <div>
+                                            {a.parecer || (
+                                                <span className="text-muted">
+                                                    Sem parecer.
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {avaliacoesItensMap[a.id] &&
+                                        avaliacoesItensMap[a.id].length > 0 ? (
+                                            <div className="mt-2">
+                                                <strong>
+                                                    Itens de Avaliação:
+                                                </strong>
+                                                <ul className="mb-2">
+                                                    {avaliacoesItensMap[
+                                                        a.id
+                                                    ].map((it) => (
+                                                        <li
+                                                            key={it.id}
+                                                            className="small"
+                                                        >
+                                                            {it.criterio_nome} —{' '}
+                                                            <strong>
+                                                                {it.nota}
+                                                            </strong>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : null}
+
+                                        <hr />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setMostrarModalAvaliacoes(false)}
+                        >
+                            Fechar
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+
                 <EditarAtracaoModal
                     show={mostrarModalEdicao}
                     formEdicao={formEdicao}
@@ -1432,7 +2094,9 @@ export default function ListarAtracoes() {
                     opcoesEdicao={opcoesEdicao}
                     modalidadeEdicaoDetalhe={modalidadeEdicaoDetalhe}
                     habilitarSugestaoVagasEdicao={habilitarSugestaoVagasEdicao}
-                    setHabilitarSugestaoVagasEdicao={setHabilitarSugestaoVagasEdicao}
+                    setHabilitarSugestaoVagasEdicao={
+                        setHabilitarSugestaoVagasEdicao
+                    }
                     contarPalavras={contarPalavras}
                     LIMITS_EDICAO={LIMITS_EDICAO}
                     normalizarNiveisEnsino={normalizarNiveisEnsino}
@@ -1442,7 +2106,9 @@ export default function ListarAtracoes() {
                     usuariosEdicao={usuariosEdicao}
                     getNomeUsuario={getNomeUsuario}
                     getNivelEnsinoMembroEdicao={getNivelEnsinoMembroEdicao}
-                    getUsuariosDisponiveisLinhaEdicao={getUsuariosDisponiveisLinhaEdicao}
+                    getUsuariosDisponiveisLinhaEdicao={
+                        getUsuariosDisponiveisLinhaEdicao
+                    }
                     handleAdicionarMembroEdicao={handleAdicionarMembroEdicao}
                     handleRemoverMembroEdicao={handleRemoverMembroEdicao}
                     handleMembroEdicaoChange={handleMembroEdicaoChange}
@@ -1455,7 +2121,9 @@ export default function ListarAtracoes() {
             <ModalPopup
                 show={mostrarModalExclusao}
                 titulo="Aviso!"
-                tituloSecundario={`Excluir ${ehSubmissoes ? 'Submissão' : 'Atração'}`}
+                tituloSecundario={`Excluir ${
+                    ehSubmissoes ? 'Submissão' : 'Atração'
+                }`}
                 onAcao={handleConfirmarExclusao}
                 onFechar={() => setMostrarModalExclusao(false)}
                 textoAcao="Excluir"

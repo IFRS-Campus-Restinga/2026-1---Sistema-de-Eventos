@@ -109,6 +109,11 @@ class AtracaoDetailView(APIView):
             if possui_status_permitido(atracao, STATUS_EDICAO_COORDENADOR):
                 return True, ""
 
+            if usuario_eh_autor(
+                user, atracao
+            ) and self._autor_pode_editar_com_ressalvas(atracao):
+                return True, ""
+
             return (
                 False,
                 "Coordenador só pode editar com status PREVISTA, SUBMETIDA, RASCUNHO ou CONFIRMADA.",
@@ -120,7 +125,31 @@ class AtracaoDetailView(APIView):
         if possui_status_permitido(atracao, STATUS_EDICAO_USUARIO):
             return True, ""
 
+        if self._autor_pode_editar_com_ressalvas(atracao):
+            return True, ""
+
         return False, "Aluno/Servidor só pode editar submissão/atração em RASCUNHO."
+
+    def _autor_pode_editar_com_ressalvas(self, atracao):
+        submissao = getattr(atracao, "submissao", None)
+        status_submissao = getattr(submissao, "status_submissao", None)
+        if status_submissao != StatusSubmissao.APROVADO_COM_RESSALVAS:
+            return False
+
+        return self._etapa_avaliacao_previa_aberta(atracao)
+
+    def _etapa_avaliacao_previa_aberta(self, atracao):
+        evento = getattr(getattr(atracao, "submissao", None), "evento", None)
+        if not evento:
+            return False
+
+        now = timezone.now()
+        return EtapaEvento.objects.filter(
+            evento=evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=now,
+            data_fim__gte=now,
+        ).exists()
 
     @staticmethod
     def _atracao_esta_programada(atracao):
