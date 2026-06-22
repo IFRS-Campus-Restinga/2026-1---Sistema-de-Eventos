@@ -21,7 +21,7 @@ import {
     MdInfoOutline,
     MdPlace,
 } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Alerta from '../components/common/Alerta';
 import Card from '../components/common/Card';
 import ModalPopup from '../components/common/ModalPopup';
@@ -67,18 +67,18 @@ export default function InscricaoAtracoes() {
     });
 
     const navigate = useNavigate();
-    const eventoFiltroId = getSelectedEventoId();
+    const { eventoId } = useParams();
     const [eventoSelecionadoLista, setEventoSelecionadoLista] = useState(null);
 
     useEffect(() => {
         const carregarEvento = async () => {
-            if (!eventoFiltroId) {
+            if (!eventoId) {
                 setEventoSelecionadoLista(null);
                 return;
             }
 
             try {
-                const ev = await buscarEventoPorId(eventoFiltroId);
+                const ev = await buscarEventoPorId(eventoId);
                 setEventoSelecionadoLista(ev);
             } catch (err) {
                 console.error('Erro ao carregar evento selecionado:', err);
@@ -87,7 +87,7 @@ export default function InscricaoAtracoes() {
         };
 
         carregarEvento();
-    }, [eventoFiltroId]);
+    }, [eventoId]);
     const {
         criarInscricao,
         usuarioLogado,
@@ -115,7 +115,8 @@ export default function InscricaoAtracoes() {
     const carregarAtracoes = useCallback(async () => {
         try {
             setCarregando(true);
-            const eventoId = getSelectedEventoId();
+            if (!eventoId) return;
+
             const dados = await listarAtracoes(eventoId);
             setAtracoes(dados);
             setAlerta((prev) => ({
@@ -135,7 +136,7 @@ export default function InscricaoAtracoes() {
         } finally {
             setCarregando(false);
         }
-    }, [mostrarAlerta]);
+    }, [eventoId, mostrarAlerta]);
 
     useEffect(() => {
         carregarAtracoes();
@@ -359,7 +360,7 @@ export default function InscricaoAtracoes() {
                                         style={{ color: '#00A44B' }}
                                     >
                                         {eventoSelecionadoLista?.nome ||
-                                            `ID ${eventoFiltroId}`}{' '}
+                                            `ID ${eventoId}`}{' '}
                                     </h3>
                                 </Col>
                             </Row>
@@ -403,20 +404,13 @@ export default function InscricaoAtracoes() {
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
-                                    {/** mostra apenas atrações do tipo oficina */}
+                                    {/* Alterado de '> 0' para '>= 0' para listar mesmo se for 0 */}
                                     {atracoesFiltradas?.filter(
-                                        (a) =>
-                                            (a.tipo || '')
-                                                .toString()
-                                                .toLowerCase() === 'oficina',
+                                        (a) => a.sugestao_vagas >= 0,
                                     ).length > 0 ? (
                                         atracoesFiltradas
                                             .filter(
-                                                (a) =>
-                                                    (a.tipo || '')
-                                                        .toString()
-                                                        .toLowerCase() ===
-                                                    'oficina',
+                                                (a) => a.sugestao_vagas >= 0,
                                             )
                                             .map((atracao, index) => (
                                                 <ListGroup.Item
@@ -449,13 +443,19 @@ export default function InscricaoAtracoes() {
                                                                 }
                                                             </span>
                                                             <span className="d-flex align-items-center gap-1">
-                                                                <VscAccount />{' '}
+                                                                <VscAccount />
                                                                 <strong>
                                                                     Vagas:
                                                                 </strong>{' '}
-                                                                {
+                                                                {/* Mostra "Esgotado" se for 0 */}
+                                                                {atracao.sugestao_vagas ===
+                                                                0 ? (
+                                                                    <Badge bg="danger">
+                                                                        Esgotado
+                                                                    </Badge>
+                                                                ) : (
                                                                     atracao.sugestao_vagas
-                                                                }
+                                                                )}
                                                             </span>
                                                         </div>
                                                     </div>
