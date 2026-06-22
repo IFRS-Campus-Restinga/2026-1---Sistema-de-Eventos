@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Button } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -30,8 +30,12 @@ export default function GerenciarAvaliacoesSubmissoes() {
         usuarios,
         manualBusca,
         setManualBusca,
+        sugestoes,
         selecionadasSugestoes,
         setSelecionadasSugestoes,
+        onBuscarUsuarios,
+        atribuirAutomaticamente,
+        existemSubmissoesElegiveisParaAtribuicao,
         salvarAtribuicoes,
         fecharModalAtribuicao,
         avaliadoresContagemMap,
@@ -171,6 +175,19 @@ export default function GerenciarAvaliacoesSubmissoes() {
                             />
                         </Col>
                     </Row>
+                    <Row className={`${!isMobile ? 'w-75' : 'w-100'} px-3`}>
+                        <Col className="d-flex justify-content-end mb-3">
+                            <Button
+                                variant="success"
+                                onClick={atribuirAutomaticamente}
+                                disabled={
+                                    !existemSubmissoesElegiveisParaAtribuicao
+                                }
+                            >
+                                Atribuir automaticamente
+                            </Button>
+                        </Col>
+                    </Row>
                     <Row
                         className={`${
                             !isMobile
@@ -205,8 +222,8 @@ export default function GerenciarAvaliacoesSubmissoes() {
                 selecionada={selecionada}
                 manualBusca={manualBusca}
                 onManualBuscaChange={setManualBusca}
-                onBuscarUsuarios={() => {}}
-                sugestoes={[]}
+                onBuscarUsuarios={onBuscarUsuarios}
+                sugestoes={sugestoes}
                 usuarios={usuarios}
                 selecionadasSugestoes={selecionadasSugestoes}
                 toggleSelecao={(perfilId) => {
@@ -220,26 +237,6 @@ export default function GerenciarAvaliacoesSubmissoes() {
                 modalidadesMap={modalidadesMap}
                 onSalvar={salvarAtribuicoes}
                 onFechar={fecharModalAtribuicao}
-            />
-
-            <ModalDetalhesAvaliacao
-                avaliacaoModal={avaliacaoModal}
-                criteriosMap={criteriosMap}
-                onFechar={fecharAvaliacao}
-                modalidadesMap={modalidadesMap}
-            />
-
-            <ModalPopup
-                show={modalHomologar.show}
-                onFechar={fecharModalHomologar}
-                titulo="Confirmar homologação"
-                tituloSecundario={
-                    modalHomologar.submissao?.titulo
-                        ? `Submissão: ${modalHomologar.submissao.titulo}`
-                        : 'Deseja homologar esta submissão?'
-                }
-                texto="Ao confirmar, esta submissão será homologada e convertida em Atração."
-                textoFechar="Cancelar"
                 textoAcao="Confirmar"
                 onAcao={confirmarHomologar}
                 variante="success"

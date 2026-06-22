@@ -116,15 +116,42 @@ export const contarDesignacoes = (listaComAvaliadores) => {
     return contagemMap;
 };
 
-export const gerarSugestoesPorArea = (listaUsuarios, atracao) => {
-    return (listaUsuarios || []).filter((usr) => {
+const normalizarTexto = (valor) => {
+    if (valor === null || valor === undefined) return '';
+    return String(valor)
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .replace(/_/g, ' ')
+        .trim()
+        .toLowerCase();
+};
+
+const obterAreaTrabalho = (trabalho) => {
+    const area = trabalho.area_conhecimento || trabalho.modalidade;
+    if (area && typeof area === 'object') {
         return (
-            (usr.area_conhecimento &&
-                usr.area_conhecimento ===
-                    (atracao.area_conhecimento || atracao.modalidade)) ||
-            (usr.areas &&
-                Array.isArray(usr.areas) &&
-                usr.areas.includes(atracao.area_conhecimento))
+            area.area_conhecimento ||
+            area.nome ||
+            area.titulo ||
+            area.descricao ||
+            area.id ||
+            ''
         );
+    }
+    return area;
+};
+
+export const gerarSugestoesPorArea = (listaUsuarios, atracao) => {
+    const areaTrabalho = normalizarTexto(obterAreaTrabalho(atracao));
+    if (!areaTrabalho) return [];
+
+    return (listaUsuarios || []).filter((usr) => {
+        const areaUsuario = normalizarTexto(usr.area_conhecimento);
+        if (areaUsuario === areaTrabalho) return true;
+
+        const areasUsuario = Array.isArray(usr.areas) ? usr.areas : [];
+        return areasUsuario
+            .map(normalizarTexto)
+            .some((area) => area === areaTrabalho);
     });
 };

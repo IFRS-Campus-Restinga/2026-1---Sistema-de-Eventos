@@ -1,4 +1,4 @@
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Button } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -46,6 +46,8 @@ export default function GerenciarAvaliacoesAtracoes({}) {
         selecionadasSugestoes,
         toggleSelecao,
         onBuscarUsuarios,
+        atribuirAutomaticamente,
+        existemAtracoesElegiveisParaAtribuicao,
         salvarAtribuicoes,
         fecharModalAtribuicao,
         avaliacaoModal,
@@ -115,6 +117,19 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                 mostrarArea={true}
                                 mostrarOrdenacao={true}
                             />
+                        </Col>
+                    </Row>
+                    <Row className={`${!isMobile ? 'w-75' : 'w-100'} px-3`}>
+                        <Col className="d-flex justify-content-end mb-3">
+                            <Button
+                                variant="success"
+                                onClick={atribuirAutomaticamente}
+                                disabled={
+                                    !existemAtracoesElegiveisParaAtribuicao
+                                }
+                            >
+                                Atribuir automaticamente
+                            </Button>
                         </Col>
                     </Row>
                     <Row

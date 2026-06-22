@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSubmissaoAvaliador from './useSubmissaoAvaliador';
 import service from '../services/gerenciarAvaliadoresSubmissaoService';
 import {
@@ -10,6 +10,7 @@ import {
     filtrarAtracoes as filtrarSubmissoes,
     ordenarAtracoesPorMedia as ordenarSubmissoesPorMedia,
     contarDesignacoes,
+    gerarSugestoesPorArea,
 } from '../utils/gerenciarAvaliadoresHelpers';
 
 export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
@@ -25,9 +26,12 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
     const [areaOptions] = useState([]);
 
     const [selecionada, setSelecionada] = useState(null);
+    const [manualBusca, setManualBusca] = useState('');
+    const [sugestoes, setSugestoes] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [selecionadasSugestoes, setSelecionadasSugestoes] = useState([]);
     const [avaliadoresAtuais, setAvaliadoresAtuais] = useState([]);
+    const [carregandoAutomatico, setCarregandoAutomatico] = useState(false);
     const [eventosMap, setEventosMap] = useState({});
     const [modalidadesMap, setModalidadesMap] = useState({});
     const [criteriosMap, setCriteriosMap] = useState({});
@@ -63,6 +67,183 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
         }
     };
 
+    const extrairDadosParticipacao = (submissao) => {
+        const fontesAutoria =
+            Array.isArray(submissao?.autorias) && submissao.autorias.length
+                ? submissao.autorias
+                : Array.isArray(submissao?.equipe) && submissao.equipe.length
+                  ? submissao.equipe
+                  : [];
+
+        const ids = new Set();
+        const nomes = new Set();
+
+        fontesAutoria.forEach((autor) => {
+            [
+                autor?.perfil_id,
+                autor?.user_id,
+                autor?.usuario_id,
+                autor?.id,
+            ].forEach((valor) => {
+                if (valor != null && valor !== '') {
+                    ids.add(String(valor));
+                }
+            });
+
+            const nome =
+                autor?.nome ||
+                autor?.full_name ||
+                autor?.usuario_nome ||
+                autor?.autor ||
+                autor?.autor_nome ||
+                autor?.user_nome;
+            if (nome) {
+                nomes.add(String(nome).trim().toLowerCase());
+            }
+        });
+
+        return { ids, nomes };
+    };
+
+    const usuarioEAutorOuCoautor = (usuario, autorData) => {
+        const perfilId = usuario.perfil_id || usuario.id;
+        if (perfilId && autorData.ids.has(String(perfilId))) {
+            return true;
+        }
+        const nome = String(
+            usuario.nome || usuario.full_name || usuario.user_nome || '',
+        )
+            .trim()
+            .toLowerCase();
+        return nome && autorData.nomes.has(nome);
+    };
+
+    const obterEventoIdTrabalho = (trabalho) => {
+        const evento = trabalho?.evento;
+        return evento && typeof evento === 'object' ? evento.id : evento;
+    };
+
+    const trabalhoElegivelParaAtribuicao = (trabalho) => {
+        const status = trabalho?.status_submissao || trabalho?.status;
+        const statusValido = ![
+            'CONVERTIDA_EM_ATRACAO',
+            'HOMOLOGADA',
+            'REPROVADA',
+            'APROVADA',
+            'CANCELADA',
+        ].includes(status);
+        const eventoId = obterEventoIdTrabalho(trabalho);
+        const etapaAtiva = eventoId
+            ? eventosMap[String(eventoId)] === true
+            : false;
+        return statusValido && etapaAtiva;
+    };
+
+    const existemSubmissoesElegiveisParaAtribuicao = useMemo(
+        () => (submissoes || []).some(trabalhoElegivelParaAtribuicao),
+        [submissoes, eventosMap],
+    );
+
+    const criarRecomendadosAutomaticos = (submissao, usuariosLista) => {
+        const autorData = extrairDadosParticipacao(submissao);
+        const atuaisSet = new Set(
+            (submissao.avaliadores || []).map((av) =>
+                String(av.perfil_id || av.id),
+            ),
+        );
+
+        const limiteRaw =
+            typeof submissao.modalidade === 'object'
+                ? submissao.modalidade?.limite_avaliadores
+                : modalidadesMap?.[submissao.modalidade]?.limite_avaliadores;
+        const limite = Number(limiteRaw);
+        const target = Number.isFinite(limite) && limite > 0 ? limite : 2;
+
+        const candidatos = (usuariosLista || []).filter((u) => {
+            const pid = u.perfil_id || u.id;
+            if (!pid) return false;
+            if (atuaisSet.has(String(pid))) return false;
+            if (usuarioEAutorOuCoautor(u, autorData)) return false;
+            return true;
+        });
+
+        const sugestoesArea = gerarSugestoesPorArea(candidatos, submissao);
+        const sugestoesAreaIds = new Set(
+            sugestoesArea.map((u) => String(u.perfil_id || u.id)),
+        );
+
+        const outros = candidatos.filter(
+            (u) => !sugestoesAreaIds.has(String(u.perfil_id || u.id)),
+        );
+
+        const ordenarPorCarga = (a, b) => {
+            const aId = String(a.perfil_id || a.id);
+            const bId = String(b.perfil_id || b.id);
+            return (
+                (avaliadoresContagemMap[aId] || 0) -
+                (avaliadoresContagemMap[bId] || 0)
+            );
+        };
+
+        sugestoesArea.sort(ordenarPorCarga);
+        outros.sort(ordenarPorCarga);
+
+        return [...sugestoesArea, ...outros]
+            .slice(0, target)
+            .map((u) => String(u.perfil_id || u.id));
+    };
+
+    const toggleSelecao = (perfilId) => {
+        setSelecionadasSugestoes((prev) => {
+            if (prev.includes(perfilId)) {
+                return prev.filter((p) => p !== perfilId);
+            }
+            return [...prev, perfilId];
+        });
+    };
+
+    const onBuscarUsuarios = async () => {
+        const texto = (manualBusca || '').trim();
+        await carregarUsuarios(texto);
+    };
+
+    const atribuirAutomaticamente = async () => {
+        if (carregandoAutomatico || !Array.isArray(submissoes)) return;
+        setCarregandoAutomatico(true);
+        try {
+            const usuariosCarregados = await carregarUsuarios();
+            const trabalhos = (submissoes || []).filter(
+                trabalhoElegivelParaAtribuicao,
+            );
+
+            for (const submissao of trabalhos) {
+                const recomendados = criarRecomendadosAutomaticos(
+                    submissao,
+                    usuariosCarregados,
+                );
+                for (const pid of recomendados) {
+                    await adicionarAvaliador(submissao.id, pid);
+                }
+            }
+
+            await carregarLista();
+            setAlerta({
+                mensagem: 'Atribuição automática executada com sucesso.',
+                variacao: 'success',
+                reacao: Date.now(),
+            });
+        } catch (e) {
+            setAlerta({
+                mensagem:
+                    'Falha ao executar a atribuição automática. Tente novamente.',
+                variacao: 'danger',
+                reacao: Date.now(),
+            });
+        } finally {
+            setCarregandoAutomatico(false);
+        }
+    };
+
     const carregarEventosMap = async () => {
         try {
             const evts = await service.listarEventos();
@@ -75,8 +256,8 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
                     (e) => e.tipo_etapa === 'AVALIACAO_PREVIA',
                 );
 
-                if (!etapa || !etapa.data_fim || !etapa.data_inicio) {
-                    map[evt.id] = true;
+                if (!etapa || !etapa.data_inicio || !etapa.data_fim) {
+                    map[evt.id] = false;
                     return;
                 }
 
@@ -314,7 +495,11 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
         const pids = currentAvs.map((x) => x.perfil_id || x.id).filter(Boolean);
         setAvaliadoresAtuais(pids);
         setSelecionadasSugestoes(pids);
-        await carregarUsuarios();
+
+        const usuariosCarregados = await carregarUsuarios();
+        setSugestoes(
+            gerarSugestoesPorArea(usuariosCarregados, submissao).slice(0, 6),
+        );
     };
 
     const salvarAtribuicoes = async () => {
@@ -444,8 +629,16 @@ export default function useGerenciarAvaliadoresSubmissoes(eventoId) {
         exibirModal,
         selecionada,
         usuarios,
+        manualBusca,
+        setManualBusca,
+        sugestoes,
         selecionadasSugestoes,
         setSelecionadasSugestoes,
+        toggleSelecao,
+        onBuscarUsuarios,
+        atribuirAutomaticamente,
+        carregandoAutomatico,
+        existemSubmissoesElegiveisParaAtribuicao,
         salvarAtribuicoes,
         fecharModalAtribuicao: () => setExibirModal(false),
         avaliadoresContagemMap,
