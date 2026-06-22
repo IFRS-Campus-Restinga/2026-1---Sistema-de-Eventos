@@ -237,7 +237,20 @@ export default function GerenciarAvaliacoesSubmissoes() {
                 modalidadesMap={modalidadesMap}
                 onSalvar={salvarAtribuicoes}
                 onFechar={fecharModalAtribuicao}
-                textoAcao="Confirmar"
+            />
+
+            <ModalPopup
+                show={modalHomologar.show}
+                onFechar={fecharModalHomologar}
+                titulo="Confirmar homologação"
+                tituloSecundario={
+                    modalHomologar.submissao?.titulo
+                        ? `Submissão: ${modalHomologar.submissao.titulo}`
+                        : 'Deseja homologar esta submissão?'
+                }
+                texto="Ao confirmar, esta submissão será homologada e aprovada oficialmente."
+                textoFechar="Cancelar"
+                textoAcao="Homologar"
                 onAcao={confirmarHomologar}
                 variante="success"
                 size="lg"
