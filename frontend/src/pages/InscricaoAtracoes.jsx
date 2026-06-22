@@ -1,3 +1,5 @@
+import { VscAccount } from 'react-icons/vsc';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Badge,
@@ -183,6 +185,7 @@ export default function InscricaoAtracoes() {
                 atracao.titulo,
                 atracao.tipo,
                 atracao.local_atracao,
+                atracao.sugestao_vagas,
             ]
                 .map((valor) => normalizarTexto(valor))
                 .join(' ');
@@ -443,6 +446,15 @@ export default function InscricaoAtracoes() {
                                                                 </strong>{' '}
                                                                 {
                                                                     atracao.local_atracao
+                                                                }
+                                                            </span>
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <VscAccount />{' '}
+                                                                <strong>
+                                                                    Vagas:
+                                                                </strong>{' '}
+                                                                {
+                                                                    atracao.sugestao_vagas
                                                                 }
                                                             </span>
                                                         </div>
