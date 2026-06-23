@@ -13,6 +13,7 @@ class AtracaoProgramacaoSerializer(serializers.Serializer):
     tipo = serializers.SerializerMethodField()
     area_conhecimento = serializers.SerializerMethodField()
     autor = serializers.SerializerMethodField()
+    sugestao_vagas = serializers.SerializerMethodField()
 
     @staticmethod
     def _submissao(obj):
@@ -46,6 +47,10 @@ class AtracaoProgramacaoSerializer(serializers.Serializer):
     def get_area_conhecimento(self, obj):
         submissao = self._submissao(obj)
         return getattr(submissao, "area_conhecimento", "")
+
+    def get_sugestao_vagas(self, obj):
+        submissao = self._submissao(obj)
+        return getattr(submissao, "sugestao_vagas", None)
 
     def get_autor(self, obj):
         submissao = self._submissao(obj)
