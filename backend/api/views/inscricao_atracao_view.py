@@ -69,7 +69,7 @@ class InscricaoAtracaoListView(APIView):
                 submissao = atracao.submissao.__class__.objects.select_for_update().get(
                     pk=atracao.submissao.pk
                 )
-                if submissao.sugestao_vagas <= 0:
+                if submissao.vagas_disponiveis <= 0:
                     return Response(
                         {"erro": "Esta atração não possui mais vagas disponíveis."},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -77,7 +77,7 @@ class InscricaoAtracaoListView(APIView):
 
                 serializer.save()
 
-                submissao.sugestao_vagas = F("sugestao_vagas") - 1
+                submissao.vagas_disponiveis = F("vagas_disponiveis") - 1
 
                 submissao.save()
 
@@ -181,7 +181,7 @@ class InscricaoAtracaoDetailView(APIView):
                     pk=inscricao.atracao.submissao.pk
                 )
 
-                submissao.sugestao_vagas = F("sugestao_vagas") + 1
+                submissao.vagas_disponiveis = F("vagas_disponiveis") + 1
                 submissao.save()
 
                 inscricao.delete()

@@ -406,11 +406,11 @@ export default function InscricaoAtracoes() {
                                 <ListGroup variant="flush">
                                     {/* Alterado de '> 0' para '>= 0' para listar mesmo se for 0 */}
                                     {atracoesFiltradas?.filter(
-                                        (a) => a.sugestao_vagas >= 0,
+                                        (a) => a.vagas_disponiveis >= 0,
                                     ).length > 0 ? (
                                         atracoesFiltradas
                                             .filter(
-                                                (a) => a.sugestao_vagas >= 0,
+                                                (a) => a.vagas_disponiveis >= 0,
                                             )
                                             .map((atracao, index) => (
                                                 <ListGroup.Item

@@ -91,6 +91,13 @@ class Submissao(Base):
         blank=True,
         validators=[MinValueValidator(1)],
     )
+    vagas_disponiveis = models.IntegerField(
+        verbose_name="Vagas Disponíveis",
+        help_text="Quantidade de vagas disponíveis para esta submissão",
+        null=True,
+        blank=True,
+        default=0,
+    )
 
     slug = models.SlugField(
         max_length=100,
@@ -142,4 +149,8 @@ class Submissao(Base):
     def save(self, *args, **kwargs):
         if self.slug is None or self.slug == "":
             self.slug = self._gerar_slug_unico()
+
+        if not self.pk:
+            self.vagas_disponiveis = self.sugestao_vagas
+
         super().save(*args, **kwargs)
