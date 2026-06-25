@@ -5,6 +5,8 @@ export default function EditarAtracaoModal({
     show = false,
     formEdicao,
     setFormEdicao,
+    permitirEdicaoStatus = false,
+    opcoesStatus = [],
     opcoesEdicao,
     modalidadeEdicaoDetalhe,
     habilitarSugestaoVagasEdicao,
@@ -137,7 +139,7 @@ export default function EditarAtracaoModal({
                         />
                     </Form.Group>
 
-                    <Row>
+                    <Row className="g-3">
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
@@ -220,6 +222,34 @@ export default function EditarAtracaoModal({
                                 )}
                             </Form.Group>
                         </Col>
+                        {permitirEdicaoStatus && (
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                        Status
+                                    </Form.Label>
+                                    <Form.Select
+                                        value={formEdicao.status || ''}
+                                        onChange={(e) =>
+                                            setFormEdicao((prev) => ({
+                                                ...prev,
+                                                status: e.target.value,
+                                            }))
+                                        }
+                                        style={{ backgroundColor: '#eeeeee' }}
+                                    >
+                                        {opcoesStatus.map((statusOpcao) => (
+                                            <option
+                                                key={statusOpcao.value}
+                                                value={statusOpcao.value}
+                                            >
+                                                {statusOpcao.label}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        )}
                     </Row>
 
                     <Row>

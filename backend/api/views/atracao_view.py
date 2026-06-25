@@ -258,6 +258,16 @@ class AtracaoDetailView(APIView):
                 {"detail": "Atração não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        status_recebido = request.data.get("status", None)
+        if status_recebido is not None:
+            status_atual = str(getattr(atracao, "status", "") or "").strip().upper()
+            status_novo = str(status_recebido or "").strip().upper()
+            if status_novo and status_novo != status_atual and not is_admin(request.user):
+                return Response(
+                    {"detail": "Somente administrador pode alterar status da atração."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         # Se a submissão foi REPROVADA, bloquear alterações na atração
         submissao = getattr(atracao, "submissao", None)
         status_submissao = getattr(submissao, "status_submissao", None)

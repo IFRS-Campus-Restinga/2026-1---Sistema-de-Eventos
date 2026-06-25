@@ -14,13 +14,18 @@ import {
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
 import Alerta from '../components/common/Alerta';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
 import { useState, useEffect } from 'react';
 import { getCurrentUser } from '../services/authService';
 
 export default function AdicionarAtracao() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const ehFluxoAtracaoDireta = location.pathname === '/adicionar_atracao';
+    const destinoLista = ehFluxoAtracaoDireta
+        ? '/listar_atracoes'
+        : '/listar_submissoes';
 
     const [formState, setFormState] = useState({
         titulo: '',
@@ -56,6 +61,40 @@ export default function AdicionarAtracao() {
         variacao: 'danger',
         reacao: 0,
     });
+
+    const gruposUsuarioNormalizados = Array.isArray(usuarioLogado?.groups)
+        ? usuarioLogado.groups
+              .map((group) =>
+                  typeof group === 'string' ? group : group?.name,
+              )
+              .filter(Boolean)
+              .map((group) => String(group).trim().toLowerCase())
+        : [];
+
+    const adminPodeEditarStatus = Boolean(
+        usuarioLogado?.is_superuser ||
+            usuarioLogado?.is_staff ||
+            ['admin', 'administrador'].includes(
+                String(usuarioLogado?.group || '')
+                    .trim()
+                    .toLowerCase(),
+            ) ||
+            gruposUsuarioNormalizados.includes('administrador') ||
+            gruposUsuarioNormalizados.includes('admin'),
+    );
+
+    const opcoesStatusFormulario = ehFluxoAtracaoDireta
+        ? [
+              { value: 'CONFIRMADA', label: 'A Apresentar' },
+              { value: 'EM_ANDAMENTO', label: 'Em Andamento' },
+              { value: 'ENCERRADA', label: 'Encerrada' },
+              { value: 'CANCELADA', label: 'Cancelada' },
+          ]
+        : [
+              { value: 'PREVISTA', label: 'Submetida' },
+              { value: 'EM_ANDAMENTO', label: 'Em Avaliação' },
+              { value: 'CANCELADA', label: 'Cancelada' },
+          ];
 
     const mostrarAlerta = (mensagem, variacao = 'danger') =>
         setAlerta((prev) => ({
@@ -235,7 +274,7 @@ export default function AdicionarAtracao() {
             await salvarRascunho(dadosRascunho);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_submissoes'), 1500);
+            setTimeout(() => navigate(destinoLista), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
             const msg =
@@ -279,17 +318,27 @@ export default function AdicionarAtracao() {
 
         try {
             setIsLoading(true);
+            const statusPadrao = ehFluxoAtracaoDireta ? 'CONFIRMADA' : 'PREVISTA';
+            const statusSelecionado = adminPodeEditarStatus
+                ? formState.status || statusPadrao
+                : statusPadrao;
             const dadosSubmissao = {
                 ...formState,
                 area_conhecimento: normalizarAreaConhecimentoPayload(
                     formState.area_conhecimento,
                 ),
-                status: 'PREVISTA',
+                status: statusSelecionado,
+                fluxo_direto_atracao: ehFluxoAtracaoDireta,
             };
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
-            mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_submissoes'), 1500);
+            mostrarAlerta(
+                ehFluxoAtracaoDireta
+                    ? 'Atração criada com sucesso!'
+                    : 'Trabalho submetido com sucesso!',
+                'success',
+            );
+            setTimeout(() => navigate(destinoLista), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
             const msg =
@@ -318,6 +367,8 @@ export default function AdicionarAtracao() {
                             <CriarAtracaoCard
                                 formState={formState}
                                 setFormState={setFormState}
+                                permitirEdicaoStatus={adminPodeEditarStatus}
+                                opcoesStatus={opcoesStatusFormulario}
                                 opcoes={opcoes}
                                 eventos={eventos}
                                 eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}

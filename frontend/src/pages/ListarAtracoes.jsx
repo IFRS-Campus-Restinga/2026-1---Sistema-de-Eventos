@@ -38,7 +38,13 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
-import { listarSubmissoes } from '../services/submissoesService';
+import {
+    editarSubmissao,
+    excluirSubmissao,
+    homologarSubmissao,
+    listarSubmissoes,
+    reprovarSubmissao,
+} from '../services/submissoesService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
@@ -358,6 +364,19 @@ export default function ListarAtracoes() {
         return mapa[statusNormalizado] || '#6c757d';
     };
 
+    const opcoesStatusEdicao = ehSubmissoes
+        ? [
+                            { value: '', label: 'Selecione uma ação' },
+              { value: 'APROVADA', label: 'Aceita' },
+              { value: 'REPROVADA', label: 'Rejeitada' },
+          ]
+        : [
+              { value: 'CONFIRMADA', label: 'A Apresentar' },
+              { value: 'EM_ANDAMENTO', label: 'Em Andamento' },
+              { value: 'ENCERRADA', label: 'Encerrada' },
+              { value: 'CANCELADA', label: 'Cancelada' },
+          ];
+
     // Função para determinar se usuário é admin
     const isAdmin = () =>
         Boolean(
@@ -519,6 +538,8 @@ export default function ListarAtracoes() {
 
     // Função para validar se pode excluir
     const podeExcluir = (item) => {
+        if (isAdmin()) return true;
+
         if (!podeEditar(item)) return false; // Se não pode editar, não pode excluir
 
         const status = normalizarStatusParaPermissao(item.status);
@@ -749,7 +770,7 @@ export default function ListarAtracoes() {
             id: atracao.id,
             titulo: atracao.titulo || '',
             resumo: atracao.resumo || '',
-            status: atracao.status || 'PREVISTA',
+            status: ehSubmissoes ? '' : atracao.status || 'PREVISTA',
             palavras_chave: atracao.palavras_chave || '',
             modalidade: atracao.modalidade || '',
             nivel_ensino: normalizarNiveisEnsino(atracao.nivel_ensino),
@@ -977,7 +998,36 @@ export default function ListarAtracoes() {
 
         try {
             setSalvandoEdicao(true);
-            await editarAtracao(formEdicao.id, formEdicao);
+            if (ehSubmissoes) {
+                const statusDestino = String(formEdicao.status || '').toUpperCase();
+
+                if (!statusDestino) {
+                    await editarSubmissao(formEdicao.id, formEdicao);
+                } else if (
+                    [
+                        'APROVADA',
+                        'APROVADO',
+                        'ACEITA',
+                        'CONFIRMADA',
+                        'CONVERTIDA_EM_ATRACAO',
+                    ].includes(statusDestino)
+                ) {
+                    await homologarSubmissao(formEdicao.id, formEdicao);
+                } else if (
+                    ['REPROVADA', 'REPROVADO', 'REJEITADA', 'REJEITADO'].includes(
+                        statusDestino,
+                    )
+                ) {
+                    await reprovarSubmissao(formEdicao.id, formEdicao);
+                } else {
+                    await editarSubmissao(formEdicao.id, {
+                        ...formEdicao,
+                        status_submissao: statusDestino,
+                    });
+                }
+            } else {
+                await editarAtracao(formEdicao.id, formEdicao);
+            }
 
             mostrarAlerta(
                 `${
@@ -1002,7 +1052,11 @@ export default function ListarAtracoes() {
         if (!atracaoSelecionada?.id) return;
 
         try {
-            await excluirAtracao(atracaoSelecionada.id);
+            if (ehSubmissoes) {
+                await excluirSubmissao(atracaoSelecionada.id);
+            } else {
+                await excluirAtracao(atracaoSelecionada.id);
+            }
             mostrarAlerta(
                 `${
                     ehSubmissoes ? 'Submissão' : 'Atração'
@@ -1930,6 +1984,8 @@ export default function ListarAtracoes() {
                     show={mostrarModalEdicao}
                     formEdicao={formEdicao}
                     setFormEdicao={setFormEdicao}
+                    permitirEdicaoStatus={isAdmin()}
+                    opcoesStatus={opcoesStatusEdicao}
                     opcoesEdicao={opcoesEdicao}
                     modalidadeEdicaoDetalhe={modalidadeEdicaoDetalhe}
                     habilitarSugestaoVagasEdicao={habilitarSugestaoVagasEdicao}

@@ -313,6 +313,7 @@ def _sincronizar_dados_submissao(
 
 
 def criar_atracao_com_submissao(validated_data, campos_submissao, usuario_solicitante=None):
+    fluxo_direto_atracao = bool(validated_data.pop('fluxo_direto_atracao', False))
     equipe_data = validated_data.pop('equipe_json', [])
     autoria_data = validated_data.pop('autoria_json', [])
     respostas_campos_data = validated_data.pop('respostas_campos_json', {})
@@ -325,9 +326,14 @@ def criar_atracao_com_submissao(validated_data, campos_submissao, usuario_solici
     dados_submissao = extrair_dados_submissao(validated_data, submissao_payload, campos_submissao)
     submissao = None
     evento_referencia = dados_submissao.get('evento')
+    status_submissao = (
+        StatusSubmissao.CONVERTIDA_EM_ATRACAO
+        if fluxo_direto_atracao
+        else StatusSubmissao.SUBMETIDA
+    )
     if any(_valor_esta_preenchido(valor) for valor in dados_submissao.values()):
         submissao = Submissao.objects.create(
-            status_submissao=StatusSubmissao.SUBMETIDA,
+            status_submissao=status_submissao,
             **dados_submissao,
         )
 

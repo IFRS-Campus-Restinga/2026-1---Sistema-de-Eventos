@@ -13,6 +13,8 @@ const LIMITS = {
 
 export default function CriarAtracaoCard({
     formState, setFormState,
+    permitirEdicaoStatus = false,
+    opcoesStatus = [],
     opcoes,
     eventos,
     eventoSelecionadoDetalhe,
@@ -534,6 +536,29 @@ export default function CriarAtracaoCard({
                                 </Form.Group>
                             )}
                         </Col>
+                        {permitirEdicaoStatus && (
+                            <Col md={4}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label style={labelStyle}>Status</Form.Label>
+                                    <Form.Select
+                                        value={formState.status || ''}
+                                        onChange={(e) =>
+                                            handleChange('status', e.target.value)
+                                        }
+                                        style={{ backgroundColor: '#eeeeee' }}
+                                    >
+                                        {opcoesStatus.map((statusOpcao) => (
+                                            <option
+                                                key={statusOpcao.value}
+                                                value={statusOpcao.value}
+                                            >
+                                                {statusOpcao.label}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        )}
                         <Col md={4}>
                             <Form.Group className="mb-3">
                                 <Form.Label style={labelStyle}>Nível de Ensino *</Form.Label>

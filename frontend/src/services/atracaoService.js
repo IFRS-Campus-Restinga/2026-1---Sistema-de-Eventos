@@ -3,6 +3,7 @@ import { pegarTokenCsrf } from './csrfService';
 import { API_URL } from '../config';
 
 const CAMPOS_ATRACAO = [
+    'fluxo_direto_atracao',
     'titulo',
     'resumo',
     'palavras_chave',

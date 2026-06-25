@@ -23,6 +23,9 @@ User = get_user_model()
 
 
 class AtracaoSerializer(serializers.ModelSerializer):
+    fluxo_direto_atracao = serializers.BooleanField(
+        write_only=True, required=False, default=False
+    )
     titulo = serializers.CharField(source="submissao.titulo")
     resumo = serializers.CharField(
         source="submissao.resumo", required=False, allow_blank=True, allow_null=True
@@ -104,6 +107,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         model = Atracao
         fields = [
             "id",
+            "fluxo_direto_atracao",
             "titulo",
             "resumo",
             "palavras_chave",
