@@ -27,6 +27,8 @@ export default function EditarAtracaoModal({
     onSalvar,
 }) {
     const [buscasUsuariosEdicao, setBuscasUsuariosEdicao] = useState({});
+    const modalidadePermiteSugestaoVagas =
+        modalidadeEdicaoDetalhe?.requer_controle_vagas === true;
 
     const normalizarTexto = (texto) =>
         (texto || '')
@@ -162,7 +164,7 @@ export default function EditarAtracaoModal({
                                     ))}
                                 </Form.Select>
 
-                                {modalidadeEdicaoDetalhe && (
+                                {modalidadeEdicaoDetalhe && modalidadePermiteSugestaoVagas && (
                                     <div className="mt-2">
                                         <Form.Check
                                             type="checkbox"

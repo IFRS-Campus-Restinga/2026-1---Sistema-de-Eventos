@@ -85,6 +85,7 @@ export default function AdicionarAtracao() {
 
     const opcoesStatusFormulario = ehFluxoAtracaoDireta
         ? [
+              { value: 'RASCUNHO', label: 'Rascunho' },
               { value: 'CONFIRMADA', label: 'A Apresentar' },
               { value: 'EM_ANDAMENTO', label: 'Em Andamento' },
               { value: 'ENCERRADA', label: 'Encerrada' },
@@ -217,7 +218,11 @@ export default function AdicionarAtracao() {
         const carregarDetalheModalidade = async () => {
             if (!formState.modalidade) {
                 setModalidadeSelecionadaDetalhe(null);
-                setFormState((prev) => ({ ...prev, respostas_campos: {} }));
+                setFormState((prev) => ({
+                    ...prev,
+                    respostas_campos: {},
+                    sugestao_vagas: '',
+                }));
                 return;
             }
 
@@ -247,6 +252,9 @@ export default function AdicionarAtracao() {
 
                     return {
                         ...prev,
+                        sugestao_vagas: detalheModalidade?.requer_controle_vagas
+                            ? prev.sugestao_vagas
+                            : '',
                         respostas_campos: respostasFiltradas,
                     };
                 });
@@ -267,6 +275,7 @@ export default function AdicionarAtracao() {
                 formState.area_conhecimento,
             ),
             status: 'RASCUNHO',
+            fluxo_direto_atracao: ehFluxoAtracaoDireta,
         };
 
         try {

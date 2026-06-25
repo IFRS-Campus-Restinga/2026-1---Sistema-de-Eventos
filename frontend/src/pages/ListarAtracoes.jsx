@@ -302,6 +302,20 @@ export default function ListarAtracoes() {
         carregarDetalheModalidadeEdicao();
     }, [mostrarModalEdicao, formEdicao.modalidade]);
 
+    useEffect(() => {
+        if (!mostrarModalEdicao || !modalidadeEdicaoDetalhe) {
+            return;
+        }
+
+        if (modalidadeEdicaoDetalhe.requer_controle_vagas !== true) {
+            setHabilitarSugestaoVagasEdicao(false);
+            setFormEdicao((prev) => ({
+                ...prev,
+                sugestao_vagas: '',
+            }));
+        }
+    }, [mostrarModalEdicao, modalidadeEdicaoDetalhe]);
+
     const getStatusConfig = (status) => {
         const statusNormalizado = (status || '').toUpperCase();
 
@@ -371,6 +385,7 @@ export default function ListarAtracoes() {
               { value: 'REPROVADA', label: 'Rejeitada' },
           ]
         : [
+              { value: 'RASCUNHO', label: 'Rascunho' },
               { value: 'CONFIRMADA', label: 'A Apresentar' },
               { value: 'EM_ANDAMENTO', label: 'Em Andamento' },
               { value: 'ENCERRADA', label: 'Encerrada' },

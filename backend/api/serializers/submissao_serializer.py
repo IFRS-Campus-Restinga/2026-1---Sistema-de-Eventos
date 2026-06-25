@@ -137,6 +137,48 @@ class SubmissaoSerializer(serializers.ModelSerializer):
 
         return retorno
 
+    def validate(self, attrs):
+        modalidade = attrs.get("modalidade", getattr(self.instance, "modalidade", None))
+        sugestao_vagas = attrs.get(
+            "sugestao_vagas",
+            getattr(self.instance, "sugestao_vagas", None),
+        )
+
+        if modalidade and not getattr(modalidade, "requer_controle_vagas", False):
+            if "sugestao_vagas" in attrs and sugestao_vagas not in (None, ""):
+                raise serializers.ValidationError(
+                    {
+                        "sugestao_vagas": "Esta modalidade não permite sugestão de vagas."
+                    }
+                )
+            attrs["sugestao_vagas"] = None
+            return attrs
+
+        limite_modalidade = None
+        if modalidade:
+            limite_modalidade = getattr(
+                modalidade,
+                "limite_maximo_vagas",
+                getattr(modalidade, "limite_vagas", None),
+            )
+
+        if (
+            sugestao_vagas is not None
+            and limite_modalidade is not None
+            and limite_modalidade > 0
+            and sugestao_vagas > limite_modalidade
+        ):
+            raise serializers.ValidationError(
+                {
+                    "sugestao_vagas": (
+                        f"A sugestão de vagas não pode ultrapassar o limite da modalidade "
+                        f"({limite_modalidade})."
+                    )
+                }
+            )
+
+        return attrs
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
 

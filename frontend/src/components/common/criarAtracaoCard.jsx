@@ -3,7 +3,7 @@ import { MdEdit, MdSchool, MdAttachFile, MdSearch, MdDelete, MdArrowBack, MdLoca
 import { BsCheckCircle, BsPlusCircleFill } from 'react-icons/bs';
 import { FaUsers } from 'react-icons/fa';
 import SecaoFormulario from './secaoFormulario';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const LIMITS = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -34,6 +34,27 @@ export default function CriarAtracaoCard({
         formState.sugestao_vagas !== null &&
         formState.sugestao_vagas !== undefined,
     );
+
+    const modalidadePermiteSugestaoVagas =
+        modalidadeSelecionadaDetalhe?.requer_controle_vagas === true;
+
+    useEffect(() => {
+        if (!modalidadeSelecionadaDetalhe) {
+            return;
+        }
+
+        if (!modalidadePermiteSugestaoVagas) {
+            setHabilitarSugestaoVagas(false);
+            setFormState((prev) => ({
+                ...prev,
+                sugestao_vagas: '',
+            }));
+        }
+    }, [
+        modalidadeSelecionadaDetalhe,
+        modalidadePermiteSugestaoVagas,
+        setFormState,
+    ]);
 
     const countWords = (text) =>
         text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
@@ -486,7 +507,7 @@ export default function CriarAtracaoCard({
                                     <Form.Text className="text-danger">{errors.modalidade}</Form.Text>
                                 )}
                             </Form.Group>
-                            {modalidadeSelecionadaDetalhe && (
+                            {modalidadeSelecionadaDetalhe && modalidadePermiteSugestaoVagas && (
                                 <Form.Group className="mt-2">
                                     <Form.Check
                                         type="checkbox"

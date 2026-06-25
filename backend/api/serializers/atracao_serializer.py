@@ -227,6 +227,23 @@ class AtracaoSerializer(serializers.ModelSerializer):
         )
         sugestao_vagas = submissao_data.get("sugestao_vagas")
         limite_modalidade = None
+        requer_controle_vagas = (
+            bool(getattr(modalidade, "requer_controle_vagas", False))
+            if modalidade
+            else False
+        )
+
+        if not requer_controle_vagas:
+            if sugestao_vagas not in (None, ""):
+                raise serializers.ValidationError(
+                    {
+                        "sugestao_vagas": (
+                            "Esta modalidade não permite sugestão de vagas."
+                        )
+                    }
+                )
+            submissao_data["sugestao_vagas"] = None
+
         if modalidade:
             limite_modalidade = getattr(
                 modalidade,
