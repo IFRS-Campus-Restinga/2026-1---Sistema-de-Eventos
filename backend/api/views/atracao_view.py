@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import (
     assign_perm,
@@ -41,22 +42,50 @@ class AtracaoListView(APIView):
     permission_classes = [AllowAny]
 
     def _base_queryset(self):
-        return Atracao.objects.filter(submissao__isnull=False).select_related(
+        return Atracao.objects.filter(
+            submissao__isnull=False,
+            submissao__status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO,
+        ).select_related(
             "submissao",
             "submissao__modalidade",
             "submissao__evento",
             "espaco",
         )
 
+    ORDENACAO_MAP = {
+        "criacao": "-id",
+        "titulo": "submissao__titulo",
+        "modalidade": "submissao__modalidade__nome",
+        "status": "status",
+    }
+
     def get(self, request):
         evento_id = request.query_params.get("evento")
+        busca = request.query_params.get("busca")
+        status_param = request.query_params.get("status")
+        modalidade_id = request.query_params.get("modalidade")
+        ordenar = request.query_params.get("ordenar", "criacao")
+
+        atracoes = self._base_queryset()
 
         if evento_id:
-            atracoes = self._base_queryset().filter(
-                submissao__evento_id=evento_id
-            )  # atrações de um evento específico
-        else:
-            atracoes = self._base_queryset()  # retorna todas as atrações
+            atracoes = atracoes.filter(submissao__evento_id=evento_id)
+
+        if busca:
+            atracoes = atracoes.filter(
+                Q(submissao__titulo__icontains=busca)
+                | Q(submissao__resumo__icontains=busca)
+                | Q(submissao__palavras_chave__icontains=busca)
+            )
+
+        if status_param:
+            atracoes = atracoes.filter(status=status_param)
+
+        if modalidade_id:
+            atracoes = atracoes.filter(submissao__modalidade_id=modalidade_id)
+
+        campo_ordem = self.ORDENACAO_MAP.get(ordenar, self.ORDENACAO_MAP["criacao"])
+        atracoes = atracoes.order_by(campo_ordem)
 
         serializer = AtracaoSerializer(atracoes, many=True)
         return Response(serializer.data)
@@ -75,7 +104,10 @@ class AtracaoDetailView(APIView):
     permission_classes = [AllowAny]
 
     def _base_queryset(self):
-        return Atracao.objects.filter(submissao__isnull=False).select_related(
+        return Atracao.objects.filter(
+            submissao__isnull=False,
+            submissao__status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO,
+        ).select_related(
             "submissao",
             "submissao__modalidade",
             "submissao__evento",

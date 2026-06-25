@@ -38,6 +38,7 @@ import {
     excluirAtracao,
     listarAtracoes,
 } from '../services/atracaoService';
+import { listarSubmissoes } from '../services/submissoesService';
 import { getSelectedEventoId } from '../utils/selectedEvento';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
@@ -75,7 +76,6 @@ export default function ListarAtracoes() {
     const [filtroAutor, setFiltroAutor] = useState('');
     const [filtroModalidade, setFiltroModalidade] = useState('');
     const [filtroNivel, setFiltroNivel] = useState('');
-    const [filtroEvento, setFiltroEvento] = useState('');
     const [ordenacao, setOrdenacao] = useState('criacao');
     const [paginaAtual, setPaginaAtual] = useState(1);
 
@@ -169,26 +169,25 @@ export default function ListarAtracoes() {
         try {
             setCarregando(true);
             const eventoId = getSelectedEventoId();
-            const dados = await listarAtracoes(eventoId);
+            const params = {
+                ...(filtroStatus && { status: filtroStatus }),
+                ...(filtroModalidade && { modalidade: filtroModalidade }),
+                ...(termoBusca.trim() && { busca: termoBusca.trim() }),
+                ...(ordenacao && { ordenar: ordenacao }),
+            };
+            const dados = ehSubmissoes
+                ? await listarSubmissoes({ evento: eventoId, ...params })
+                : await listarAtracoes(eventoId, params);
             setAtracoes(dados);
-            setAlerta((prev) => ({
-                ...prev,
-                mensagem: '',
-            }));
+            setAlerta((prev) => ({ ...prev, mensagem: '' }));
         } catch (error) {
-            console.error('Erro ao buscar atrações:', error);
-            const status = error?.response?.status;
+            console.error('Erro ao buscar itens:', error);
             const detalhe = error?.response?.data?.detail;
-            const mensagem =
-                detalhe ||
-                (status
-                    ? `Não foi possível carregar as atrações (HTTP ${status}).`
-                    : 'Não foi possível carregar as atrações. Verifique backend e URL da API.');
-            mostrarAlerta(mensagem);
+            mostrarAlerta(detalhe || 'Não foi possível carregar os itens.');
         } finally {
             setCarregando(false);
         }
-    }, [mostrarAlerta]);
+    }, [mostrarAlerta, ehSubmissoes, filtroStatus, filtroModalidade, termoBusca, ordenacao]);
 
     useEffect(() => {
         carregarAtracoes();
@@ -647,74 +646,10 @@ export default function ListarAtracoes() {
         return [...new Set(termosResumo)].slice(0, maxTermos);
     };
 
-    const STATUS_SUBMISSOES = new Set([
-        'RASCUNHO',
-        'PREVISTA',
-        'SUBMETIDA',
-        'EM_AVALIACAO',
-        'REJEITADO',
-        'REPROVADA',
-        'REPROVADO',
-        'APROVADO_COM_RESSALVAS',
-        'ACEITA',
-        'APROVADA',
-        'APROVADO',
-        'CANCELADA',
-    ]);
-
-    const STATUS_ATRACOES = new Set([
-        'A_APRESENTAR',
-        'CONFIRMADA',
-        'EM_ANDAMENTO',
-        'ENCERRADA',
-        'CANCELADA',
-        'EM_AVALIACAO',
-        'FINALIZADA',
-        'CONVERTIDA_EM_ATRACAO',
-    ]);
-
     const atracoesFiltradas = useMemo(() => {
-        let resultado = [...atracoes].filter((item) => {
-            const statusBruto = (item.status || '').toUpperCase();
+        let resultado = [...atracoes];
 
-            if (ehSubmissoes) {
-                return STATUS_SUBMISSOES.has(statusBruto);
-            }
-
-            if (ehAtracoes) {
-                return STATUS_ATRACOES.has(statusBruto);
-            }
-
-            return true;
-        });
-
-        // Aplicar filtro de busca
-        const termo = normalizarTexto(termoBusca.trim());
-        if (termo) {
-            resultado = resultado.filter((atracao) => {
-                const conteudoBusca = [
-                    atracao.titulo,
-                    atracao.tipo,
-                    atracao.local_atracao,
-                    getStatusConfig(atracao.status).label,
-                ]
-                    .map((valor) => normalizarTexto(valor))
-                    .join(' ');
-
-                return conteudoBusca.includes(termo);
-            });
-        }
-
-        // Aplicar filtro de status
-        if (filtroStatus) {
-            resultado = resultado.filter(
-                (item) =>
-                    (item.status || '').toUpperCase() ===
-                    filtroStatus.toUpperCase(),
-            );
-        }
-
-        // Aplicar filtro de autor
+        // Filtro de autor (client-side, pois não tem suporte no backend ainda)
         if (filtroAutor) {
             resultado = resultado.filter((item) => {
                 const autorias = item.autorias || item.equipe || [];
@@ -726,43 +661,7 @@ export default function ListarAtracoes() {
             });
         }
 
-        // Aplicar filtro de modalidade
-        if (filtroModalidade) {
-            const modalidadeSelecionada = (opcoesEdicao.modalidades || []).find(
-                (modalidade) =>
-                    String(modalidade?.value ?? modalidade?.id ?? '') ===
-                    String(filtroModalidade),
-            );
-
-            const termoModalidadeSelecionada = normalizarTexto(
-                modalidadeSelecionada?.label ||
-                    modalidadeSelecionada?.nome ||
-                    '',
-            );
-
-            resultado = resultado.filter((item) => {
-                const modalidadeItem = String(
-                    item?.modalidade ?? item?.modalidade_id ?? '',
-                );
-                const modalidadePorNome = normalizarTexto(
-                    item?.tipo ||
-                        item?.modalidade_display ||
-                        item?.modalidade_nome ||
-                        '',
-                );
-
-                const batePorId =
-                    modalidadeItem !== '' &&
-                    modalidadeItem === String(filtroModalidade);
-                const batePorNome =
-                    termoModalidadeSelecionada !== '' &&
-                    modalidadePorNome.includes(termoModalidadeSelecionada);
-
-                return batePorId || batePorNome;
-            });
-        }
-
-        // Aplicar filtro de nível
+        // Filtro de nível (client-side)
         if (filtroNivel) {
             resultado = resultado.filter((item) => {
                 const nivel = normalizarNiveisEnsino(item.nivel_ensino);
@@ -772,15 +671,8 @@ export default function ListarAtracoes() {
             });
         }
 
-        // Aplicar filtro de evento
-        if (filtroEvento) {
-            resultado = resultado.filter(
-                (item) => item.evento === parseInt(filtroEvento, 10),
-            );
-        }
-
-        // Aplicar ordenação
-        if (ordenacao === 'titulo') {
+        // Ordenação local apenas para campos sem suporte backend
+        if (ordenacao === 'autor') {
             resultado.sort((a, b) =>
                 (a.titulo || '').localeCompare(b.titulo || ''),
             );
@@ -811,27 +703,15 @@ export default function ListarAtracoes() {
                 return nivelA.localeCompare(nivelB);
             });
         } else {
-            // Padrão: por criação (reverso)
-            resultado.sort((a, b) => {
-                const dataA = new Date(a.criado_em || a.created_at || 0);
-                const dataB = new Date(b.criado_em || b.created_at || 0);
-                return dataB - dataA;
-            });
+            // Ordenação por criacao vem do backend; nenhuma ordenação local adicional
         }
 
         return resultado;
     }, [
         atracoes,
-        ehSubmissoes,
-        ehAtracoes,
-        termoBusca,
-        filtroStatus,
         filtroAutor,
-        filtroModalidade,
         filtroNivel,
-        filtroEvento,
         ordenacao,
-        opcoesEdicao.modalidades,
     ]);
 
     useEffect(() => {
@@ -842,7 +722,6 @@ export default function ListarAtracoes() {
         filtroAutor,
         filtroModalidade,
         filtroNivel,
-        filtroEvento,
         ordenacao,
     ]);
 
@@ -1477,48 +1356,9 @@ export default function ListarAtracoes() {
                                             </Form.Select>
                                         </Form.Group>
                                     </Col>
-                                    <Col md={6} lg={3}>
-                                        <Form.Group>
-                                            <Form.Label
-                                                style={{
-                                                    fontSize: '0.85rem',
-                                                    color: '#000',
-                                                    fontWeight: 700,
-                                                }}
-                                            >
-                                                Evento
-                                            </Form.Label>
-                                            <Form.Select
-                                                value={filtroEvento}
-                                                onChange={(e) =>
-                                                    setFiltroEvento(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                size="sm"
-                                                style={{
-                                                    backgroundColor: '#eeeeee',
-                                                    border: '1px solid #ced4da',
-                                                }}
-                                            >
-                                                <option value="">Todos</option>
-                                                {eventosEdicao?.map(
-                                                    (evento) => (
-                                                        <option
-                                                            key={evento.id}
-                                                            value={evento.id}
-                                                        >
-                                                            {evento.nome}
-                                                        </option>
-                                                    ),
-                                                )}
-                                            </Form.Select>
-                                        </Form.Group>
-                                    </Col>
                                     {filtroStatus ||
                                     filtroModalidade ||
-                                    filtroNivel ||
-                                    filtroEvento ? (
+                                    filtroNivel ? (
                                         <Col
                                             md={6}
                                             lg={3}
@@ -1531,7 +1371,6 @@ export default function ListarAtracoes() {
                                                     setFiltroStatus('');
                                                     setFiltroModalidade('');
                                                     setFiltroNivel('');
-                                                    setFiltroEvento('');
                                                 }}
                                                 className="w-100"
                                             >

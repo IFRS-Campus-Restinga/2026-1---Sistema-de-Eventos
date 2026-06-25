@@ -122,9 +122,9 @@ const montarPayloadAtracao = (dados) => {
     return payload;
 };
 
-export const listarAtracoes = async (eventoId = null) => {
-    const params = eventoId ? { evento: eventoId } : {};
-    const response = await axios.get(`${API_URL}/api/atracoes/`, { params });
+export const listarAtracoes = async (eventoId = null, params = {}) => {
+    const queryParams = eventoId ? { evento: eventoId, ...params } : { ...params };
+    const response = await axios.get(`${API_URL}/api/atracoes/`, { params: queryParams });
     return response.data;
 };
 
