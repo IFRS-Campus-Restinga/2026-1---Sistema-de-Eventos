@@ -59,6 +59,7 @@ export default function InscricaoAtracoes() {
         orientador_nome: '',
         equipe_nomes: [],
         autorias: [],
+        vagas_disponiveis: 0,
     });
     const [alerta, setAlerta] = useState({
         mensagem: '',
@@ -186,7 +187,7 @@ export default function InscricaoAtracoes() {
                 atracao.titulo,
                 atracao.tipo,
                 atracao.local_atracao,
-                atracao.sugestao_vagas,
+                atracao.vagas_disponiveis,
             ]
                 .map((valor) => normalizarTexto(valor))
                 .join(' ');
@@ -218,6 +219,7 @@ export default function InscricaoAtracoes() {
             sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
+            vagas_disponiveis: atracao.vagas_disponiveis,
         });
         setMostrarModalEdicao(true);
     };
@@ -406,11 +408,16 @@ export default function InscricaoAtracoes() {
                                 <ListGroup variant="flush">
                                     {/* Alterado de '> 0' para '>= 0' para listar mesmo se for 0 */}
                                     {atracoesFiltradas?.filter(
-                                        (a) => a.vagas_disponiveis >= 0,
+                                        (a) =>
+                                            a.vagas_disponiveis != null &&
+                                            a.vagas_disponiveis >= 0,
                                     ).length > 0 ? (
                                         atracoesFiltradas
                                             .filter(
-                                                (a) => a.vagas_disponiveis >= 0,
+                                                (a) =>
+                                                    a.vagas_disponiveis !=
+                                                        null &&
+                                                    a.vagas_disponiveis >= 0,
                                             )
                                             .map((atracao, index) => (
                                                 <ListGroup.Item
@@ -448,13 +455,13 @@ export default function InscricaoAtracoes() {
                                                                     Vagas:
                                                                 </strong>{' '}
                                                                 {/* Mostra "Esgotado" se for 0 */}
-                                                                {atracao.sugestao_vagas ===
+                                                                {atracao.vagas_disponiveis ===
                                                                 0 ? (
                                                                     <Badge bg="danger">
                                                                         Esgotado
                                                                     </Badge>
                                                                 ) : (
-                                                                    atracao.sugestao_vagas
+                                                                    atracao.vagas_disponiveis
                                                                 )}
                                                             </span>
                                                         </div>

@@ -82,11 +82,16 @@ class AtracaoSerializer(serializers.ModelSerializer):
     sugestao_vagas = serializers.IntegerField(
         source="submissao.sugestao_vagas", required=False, allow_null=True
     )
+    vagas_disponiveis = serializers.IntegerField(
+        source="submissao.vagas_disponiveis", required=False, allow_null=True
+    )
     slug = serializers.CharField(source="submissao.slug", read_only=True)
     # Sobrescreve o ChoiceField automático do model para aceitar CSV/lista.
     nivel_ensino = serializers.CharField(
         source="submissao.nivel_ensino",
-        required=False, allow_blank=True, allow_null=True
+        required=False,
+        allow_blank=True,
+        allow_null=True,
     )
     area_conhecimento = serializers.CharField(
         source="submissao.area_conhecimento",
@@ -125,6 +130,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "evento",
             "status",
             "sugestao_vagas",
+            "vagas_disponiveis",
             "slug",
             "equipe",
             "equipe_json",
@@ -153,6 +159,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         "acessibilidade",
         "evento",
         "sugestao_vagas",
+        "vagas_disponiveis",
     )
 
     # aq a gnt pega e resolve os nomes pra apresentar na tela de inscrição em atrações
@@ -272,7 +279,11 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if espaco and evento:
             espaco_local_id = getattr(espaco, "local_id", None)
             evento_local_id = getattr(evento, "local_id", None)
-            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+            if (
+                espaco_local_id
+                and evento_local_id
+                and espaco_local_id != evento_local_id
+            ):
                 raise serializers.ValidationError(
                     {
                         "espaco": "O espaço selecionado precisa pertencer ao mesmo local do evento."
