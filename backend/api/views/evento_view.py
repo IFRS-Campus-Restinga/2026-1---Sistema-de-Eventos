@@ -12,11 +12,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.atracao import Atracao
-from ..models.submissao import Submissao
 from ..models.evento import Evento
 from ..models.perfil import Perfil
+from ..models.submissao import Submissao
 from ..serializers.evento_serializer import EventoSerializer
-from .perms_generic_view import PodeGerenciarEquipeEvento
+from .perms_generic_view import IsAdmin, PodeCoordenarEvento, PodeGerenciarEquipeEvento
 
 User = get_user_model()
 
@@ -45,8 +45,17 @@ def _serializar_usuarios(usuarios):
 
 
 class EventoListView(APIView):
-    permission_classes = [AllowAny]
     serializer_class = EventoSerializer
+
+    def get_permissions(self):
+        """
+        Aplica as regras dinamicamente por método HTTP:
+        - GET: Visto por todos (AllowAny)
+        - POST: Criado apenas pelo administrador (IsAdmin)
+        """
+        if self.request.method == "POST":
+            return [IsAdmin()]
+        return [AllowAny()]
 
     def get_serializer(self, *args, **kwargs):
         return EventoSerializer(*args, **kwargs)
@@ -115,7 +124,7 @@ class MeusEventosAvaliadorView(APIView):
 
 
 class EventoDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # pode ser visto por todos
 
     def get(self, request, pk):
         try:
@@ -128,7 +137,7 @@ class EventoDetailView(APIView):
 
 
 class EventoUpdateView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeCoordenarEvento]
 
     def put(self, request, pk):
         try:
@@ -145,7 +154,7 @@ class EventoUpdateView(APIView):
 
 
 class EventoDeleteView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeCoordenarEvento]
 
     def delete(self, request, pk):
         try:

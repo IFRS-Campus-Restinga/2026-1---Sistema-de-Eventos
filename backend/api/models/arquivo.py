@@ -1,5 +1,6 @@
-from django.db import models
 from django.contrib import admin
+from django.db import models
+
 from .evento import Evento
 
 
@@ -9,6 +10,13 @@ class Arquivo(models.Model):
     evento = models.ForeignKey(
         Evento, on_delete=models.CASCADE, related_name="arquivos", null=True, blank=True
     )
+
+    class Meta:
+        permissions = [
+            ("ver_arquivo", "Pode visualizar os arquivos"),
+            ("criar_arquivo", "Pode criar arquivos"),
+            ("excluir_arquivo", "Pode excluir arquivos"),
+        ]
 
     def __str__(self):
         return self.nome_arquivo

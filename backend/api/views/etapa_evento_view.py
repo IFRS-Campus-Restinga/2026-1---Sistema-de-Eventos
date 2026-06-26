@@ -1,16 +1,20 @@
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..models.etapa_evento import EtapaEvento
 from ..serializers.etapa_evento_serializer import EtapaEventoSerializer
+from .perms_generic_view import (
+    PodeAtribuirEtapaEvento,
+    PodeExcluirEtapaEvento,
+    PodeVerEtapaEvento,
+)
 
 
 class EtapaEventoListView(APIView):
     queryset = EtapaEvento.objects.all()
     serializer_class = EtapaEventoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PodeAtribuirEtapaEvento]  # modificado
 
     def get_serializer(self, *args, **kwargs):
         return EtapaEventoSerializer(*args, **kwargs)
@@ -21,6 +25,8 @@ class EtapaEventoListView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        self.check_permissions(request)
+
         dados = request.data
         serializer = EtapaEventoSerializer(data=dados)
         if serializer.is_valid():
@@ -30,7 +36,7 @@ class EtapaEventoListView(APIView):
 
 
 class EtapaEventoDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [PodeExcluirEtapaEvento, PodeVerEtapaEvento]  # modificado
 
     def get_object(self, pk):
         try:
@@ -43,6 +49,7 @@ class EtapaEventoDetailView(APIView):
         if not etapa:
             return Response({"erro": "EtapaEvento não encontrado"}, status=404)
 
+        self.check_object_permissions(request, etapa)
         serializer = EtapaEventoSerializer(etapa)
         return Response(serializer.data)
 
@@ -63,5 +70,6 @@ class EtapaEventoDetailView(APIView):
         if not etapa:
             return Response({"erro": "EtapaEvento não encontrado"}, status=404)
 
+        self.check_object_permissions(request, etapa)
         etapa.delete()
         return Response({"msg": "Deletado com sucesso"}, status=204)

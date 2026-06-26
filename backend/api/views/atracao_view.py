@@ -39,7 +39,8 @@ User = get_user_model()
 class AtracaoListView(APIView):
     """Lista todas as atrações e permite criar uma nova."""
 
-    permission_classes = [AllowAny]
+    # permission_classes = [PodeGerenciarAtracoes]
+    permission_classes = [IsAuthenticated]
 
     def _base_queryset(self):
         return Atracao.objects.filter(
@@ -96,11 +97,51 @@ class AtracaoListView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        """
+        user = request.user
+        dados = request.data
+        evento_id = dados.get("evento")
+
+        if not evento_id:
+            return Response(
+                {"erro": "O ID do evento é obrigatório para associar a atração."},
+                status=400,
+            )
+
+        try:
+            evento = Evento.objects.get(pk=evento_id)
+        except Evento.DoesNotExist:
+            return Response({"erro": "Evento não encontrado."}, status=404)
+
+        # Validação manual do Guardian antes de criar a Atração:
+        # O usuário tem permissão para gerenciar ESTE evento específico?
+        tem_permissao_evento = (
+            user.is_superuser
+            or user.groups.filter(name="Administrador").exists()
+            or user.has_perm("api.coordenar_evento", evento)
+            or user.has_perm("api.organiza_evento", evento)
+        )
+
+        if not tem_permissao_evento:
+            return Response(
+                {
+                    "erro": "Você não tem permissão de Organizador/Coordenador neste evento para criar atrações."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AtracaoSerializer(data=dados)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        """
 
 
 class AtracaoDetailView(APIView):
     """Recupera, atualiza ou remove uma atração específica."""
 
+    # permission_classes = [PodeGerenciarAtracoes]
     permission_classes = [AllowAny]
 
     def _base_queryset(self):
@@ -262,7 +303,11 @@ class AtracaoDetailView(APIView):
         if status_recebido is not None:
             status_atual = str(getattr(atracao, "status", "") or "").strip().upper()
             status_novo = str(status_recebido or "").strip().upper()
-            if status_novo and status_novo != status_atual and not is_admin(request.user):
+            if (
+                status_novo
+                and status_novo != status_atual
+                and not is_admin(request.user)
+            ):
                 return Response(
                     {"detail": "Somente administrador pode alterar status da atração."},
                     status=status.HTTP_403_FORBIDDEN,

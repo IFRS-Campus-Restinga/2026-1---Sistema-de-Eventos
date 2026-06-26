@@ -138,9 +138,9 @@ class SubmissaoListView(APIView):
         return str(value).strip().lower() in {"1", "true", "sim", "yes"}
 
     def _base_queryset(self):
-        return Submissao.objects.select_related("evento", "modalidade", "orientador").exclude(
-            status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO
-        )
+        return Submissao.objects.select_related(
+            "evento", "modalidade", "orientador"
+        ).exclude(status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO)
 
     def _scoped_queryset(self, request):
         user = request.user
@@ -239,11 +239,15 @@ class SubmissaoDetailView(APIView):
         return user.groups.filter(name="Coordenador").exists()
 
     def _coordenador_gerencia_evento(self, user, submissao):
-        return get_objects_for_user(
-            user,
-            "api.coordenar_evento",
-            klass=Evento,
-        ).filter(pk=submissao.evento_id).exists()
+        return (
+            get_objects_for_user(
+                user,
+                "api.coordenar_evento",
+                klass=Evento,
+            )
+            .filter(pk=submissao.evento_id)
+            .exists()
+        )
 
     def _usuario_eh_autor(self, user, submissao):
         return submissao.autorias.filter(usuario=user).exists()
@@ -255,39 +259,46 @@ class SubmissaoDetailView(APIView):
             return True
 
         if self._is_coordenador(user):
-            escopo = self._coordenador_gerencia_evento(user, submissao) or self._usuario_eh_autor(
+            escopo = self._coordenador_gerencia_evento(
                 user, submissao
-            )
+            ) or self._usuario_eh_autor(user, submissao)
             return escopo and status in self.STATUS_EXCLUSAO_COORDENADOR
 
-        return self._usuario_eh_autor(user, submissao) and status in self.STATUS_EXCLUSAO_USUARIO
+        return (
+            self._usuario_eh_autor(user, submissao)
+            and status in self.STATUS_EXCLUSAO_USUARIO
+        )
 
     def _pode_editar(self, user, submissao):
         if self._is_admin(user):
             return True
 
         if self._is_coordenador(user):
-            return self._coordenador_gerencia_evento(user, submissao) or self._usuario_eh_autor(
+            return self._coordenador_gerencia_evento(
                 user, submissao
-            )
+            ) or self._usuario_eh_autor(user, submissao)
 
         return self._usuario_eh_autor(user, submissao)
 
     def put(self, request, pk):
         try:
-            submissao = Submissao.objects.select_related("evento", "modalidade", "orientador").prefetch_related(
-                "autorias"
-            ).get(pk=pk)
+            submissao = (
+                Submissao.objects.select_related("evento", "modalidade", "orientador")
+                .prefetch_related("autorias")
+                .get(pk=pk)
+            )
         except Submissao.DoesNotExist:
             return Response({"erro": "Submissão não encontrada"}, status=404)
 
         if not self._pode_editar(request.user, submissao):
             return Response(
-                {"erro": "Você não tem permissão para editar esta submissão."},
+                {"erro": "issão para editar esta submissão."},
                 status=403,
             )
 
-        payload = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        payload = (
+            request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        )
 
         status_recebido = payload.get("status_submissao", payload.get("status"))
         if status_recebido is not None and not self._is_admin(request.user):
@@ -315,15 +326,17 @@ class SubmissaoDetailView(APIView):
 
     def delete(self, request, pk):
         try:
-            submissao = Submissao.objects.select_related("evento").prefetch_related("autorias").get(
-                pk=pk
+            submissao = (
+                Submissao.objects.select_related("evento")
+                .prefetch_related("autorias")
+                .get(pk=pk)
             )
         except Submissao.DoesNotExist:
             return Response({"erro": "Submissão não encontrada"}, status=404)
 
         if not self._pode_excluir(request.user, submissao):
             return Response(
-                {"erro": "Você não tem permissão para excluir esta submissão."},
+                {"erro": "issão para excluir esta submissão."},
                 status=403,
             )
 

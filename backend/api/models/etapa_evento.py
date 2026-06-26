@@ -40,6 +40,11 @@ class EtapaEvento(Base):
                 name="uniq_etapa_evento_tipo_etapa_evento",
             )
         ]
+        permissions = [
+            ("ver_etapa_evento", "Pode visualizar as etapas do evento"),
+            ("excluir_etapa_evento", "Pode excluir etapas do evento"),
+            ("atribuir_etapa_evento", "Pode atribuir etapas do evento"),
+        ]
 
     def clean(self):
         errors = {}
