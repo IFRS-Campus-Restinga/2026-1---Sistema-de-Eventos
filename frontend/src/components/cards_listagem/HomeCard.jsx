@@ -40,10 +40,22 @@ export default function HomeCard({
 }) {
     const etapaLabel = etapaAtual || 'Etapa atual';
     const mostrarBotaoInscricao = permiteInscricao || possuiInscricao;
+    const inscricaoCancelada =
+        Boolean(possuiInscricao) && statusInscricao === 'CANCELADA';
+    const botaoInscricaoDesabilitado =
+        Boolean(possuiInscricao) || inscricaoCancelada;
     const inscriptionButtonClass = `${getInscriptionButtonClass(
         possuiInscricao,
         statusInscricao,
     )} ${destaque ? '' : 'btn-sm'}`.trim();
+
+    const handleInscrever = () => {
+        if (inscricaoCancelada) {
+            return;
+        }
+
+        onInscrever?.();
+    };
 
     return (
         <article
@@ -121,11 +133,8 @@ export default function HomeCard({
                                     <button
                                         type="button"
                                         className={inscriptionButtonClass}
-                                        onClick={onInscrever}
-                                        disabled={
-                                            possuiInscricao &&
-                                            statusInscricao !== 'CANCELADA'
-                                        }
+                                        onClick={handleInscrever}
+                                        disabled={botaoInscricaoDesabilitado}
                                     >
                                         {getButtonLabel(
                                             possuiInscricao,
@@ -216,11 +225,8 @@ export default function HomeCard({
                             <button
                                 type="button"
                                 className={inscriptionButtonClass}
-                                onClick={onInscrever}
-                                disabled={
-                                    possuiInscricao &&
-                                    statusInscricao !== 'CANCELADA'
-                                }
+                                onClick={handleInscrever}
+                                disabled={botaoInscricaoDesabilitado}
                             >
                                 {getButtonLabel(
                                     possuiInscricao,
