@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import (
     assign_perm,
@@ -63,7 +64,7 @@ class AtracaoListView(APIView):
 
         if evento_id:
             atracoes = self._base_queryset().filter(
-                evento_id=evento_id
+                Q(submissao__evento_id=evento_id) | Q(evento_id=evento_id)
             )  # atrações de um evento específico
         else:
             atracoes = self._base_queryset()  # retorna todas as atrações

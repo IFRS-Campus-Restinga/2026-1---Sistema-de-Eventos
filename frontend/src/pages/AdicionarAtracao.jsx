@@ -23,9 +23,10 @@ export default function AdicionarAtracao() {
     const navigate = useNavigate();
     const location = useLocation();
     const ehFluxoAtracaoDireta = location.pathname === '/adicionar_atracao';
-    const destinoLista = ehFluxoAtracaoDireta
-        ? '/listar_atracoes'
-        : '/listar_submissoes';
+
+    const eventoDaState = location.state?.eventoId;
+    const eventoDaQuery = new URLSearchParams(location.search).get('evento_id')
+        || new URLSearchParams(location.search).get('evento');
 
     const [formState, setFormState] = useState({
         titulo: '',
@@ -83,7 +84,32 @@ export default function AdicionarAtracao() {
             gruposUsuarioNormalizados.includes('admin'),
     );
 
-    const opcoesStatusFormulario = ehFluxoAtracaoDireta
+    const podeUsarFluxoDiretoAtracao = Boolean(
+        usuarioLogado?.is_superuser ||
+            usuarioLogado?.is_staff ||
+            gruposUsuarioNormalizados.includes('coordenador') ||
+            gruposUsuarioNormalizados.includes('administrador') ||
+            gruposUsuarioNormalizados.includes('admin'),
+    );
+
+    const fluxoAtracaoDiretaHabilitado =
+        ehFluxoAtracaoDireta && podeUsarFluxoDiretoAtracao;
+
+    const destinoLista = (() => {
+        if (adminPodeEditarStatus) {
+            return fluxoAtracaoDiretaHabilitado
+                ? '/listar_atracoes'
+                : '/listar_submissoes';
+        }
+
+        if (formState.evento) {
+            return `/meus_eventos/${formState.evento}/participacoes`;
+        }
+
+        return '/meus_eventos';
+    })();
+
+    const opcoesStatusFormulario = fluxoAtracaoDiretaHabilitado
         ? [
               { value: 'RASCUNHO', label: 'Rascunho' },
               { value: 'CONFIRMADA', label: 'A Apresentar' },
@@ -155,9 +181,10 @@ export default function AdicionarAtracao() {
 
             if (dadosEventos.status === 'fulfilled') {
                 setEventos(dadosEventos.value);
-                const eventoSalvo = getSelectedEventoId();
-                if (eventoSalvo) {
-                    setFormState((prev) => ({ ...prev, evento: eventoSalvo }));
+                const eventoPrioritario =
+                    eventoDaState || eventoDaQuery || getSelectedEventoId();
+                if (eventoPrioritario) {
+                    setFormState((prev) => ({ ...prev, evento: String(eventoPrioritario) }));
                 }
             } else {
                 console.error('Erro ao carregar eventos:', dadosEventos.reason);
@@ -184,7 +211,7 @@ export default function AdicionarAtracao() {
             }
         };
         carregarDados();
-    }, []);
+    }, [eventoDaQuery, eventoDaState]);
 
     useEffect(() => {
         const carregarDetalheEventoSelecionado = async () => {
@@ -275,7 +302,7 @@ export default function AdicionarAtracao() {
                 formState.area_conhecimento,
             ),
             status: 'RASCUNHO',
-            fluxo_direto_atracao: ehFluxoAtracaoDireta,
+            fluxo_direto_atracao: fluxoAtracaoDiretaHabilitado,
         };
 
         try {
@@ -327,7 +354,9 @@ export default function AdicionarAtracao() {
 
         try {
             setIsLoading(true);
-            const statusPadrao = ehFluxoAtracaoDireta ? 'CONFIRMADA' : 'PREVISTA';
+            const statusPadrao = fluxoAtracaoDiretaHabilitado
+                ? 'CONFIRMADA'
+                : 'PREVISTA';
             const statusSelecionado = adminPodeEditarStatus
                 ? formState.status || statusPadrao
                 : statusPadrao;
@@ -337,12 +366,12 @@ export default function AdicionarAtracao() {
                     formState.area_conhecimento,
                 ),
                 status: statusSelecionado,
-                fluxo_direto_atracao: ehFluxoAtracaoDireta,
+                fluxo_direto_atracao: fluxoAtracaoDiretaHabilitado,
             };
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
             mostrarAlerta(
-                ehFluxoAtracaoDireta
+                fluxoAtracaoDiretaHabilitado
                     ? 'Atração criada com sucesso!'
                     : 'Trabalho submetido com sucesso!',
                 'success',

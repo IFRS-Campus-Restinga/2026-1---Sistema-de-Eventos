@@ -23,6 +23,7 @@ export default function EditarAtracaoModal({
     handleRemoverMembroEdicao,
     handleMembroEdicaoChange,
     salvandoEdicao = false,
+    somenteLeitura = false,
     onClose,
     onSalvar,
 }) {
@@ -101,9 +102,12 @@ export default function EditarAtracaoModal({
             dialogClassName="modal-editar-atracao-expandido"
         >
             <Modal.Header closeButton>
-                <Modal.Title style={{ color: '#00A44B' }}>Editar Submissão</Modal.Title>
+                <Modal.Title style={{ color: '#00A44B' }}>
+                    {somenteLeitura ? 'Detalhes da Submissão/Atração' : 'Editar Submissão'}
+                </Modal.Title>
             </Modal.Header>
             <Modal.Body>
+                <fieldset disabled={somenteLeitura}>
                 <Form>
                     <Form.Group className="mb-3">
                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
@@ -356,9 +360,11 @@ export default function EditarAtracaoModal({
                         <Form.Label className="fw-bold mb-0" style={{ color: '#00A44B' }}>
                             Membros da Equipe
                         </Form.Label>
-                        <Button variant="outline-primary" size="sm" onClick={handleAdicionarMembroEdicao}>
-                            Adicionar membro
-                        </Button>
+                        {!somenteLeitura && (
+                            <Button variant="outline-primary" size="sm" onClick={handleAdicionarMembroEdicao}>
+                                Adicionar membro
+                            </Button>
+                        )}
                     </div>
 
                     <div className="table-responsive">
@@ -507,6 +513,7 @@ export default function EditarAtracaoModal({
                                                 <Button
                                                     variant="outline-danger"
                                                     size="sm"
+                                                    disabled={somenteLeitura}
                                                     onClick={() => handleRemoverMembroEdicao(index)}
                                                 >
                                                     Remover
@@ -519,19 +526,22 @@ export default function EditarAtracaoModal({
                         </table>
                     </div>
                 </Form>
+                </fieldset>
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="outline-secondary" onClick={onClose}>
-                    Cancelar
+                    {somenteLeitura ? 'Fechar' : 'Cancelar'}
                 </Button>
-                <Button
-                    variant="success"
-                    style={{ backgroundColor: '#00A44B', border: 'none' }}
-                    disabled={salvandoEdicao}
-                    onClick={onSalvar}
-                >
-                    {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
-                </Button>
+                {!somenteLeitura && (
+                    <Button
+                        variant="success"
+                        style={{ backgroundColor: '#00A44B', border: 'none' }}
+                        disabled={salvandoEdicao}
+                        onClick={onSalvar}
+                    >
+                        {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );

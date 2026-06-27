@@ -50,7 +50,12 @@ const montarPayloadEdicaoSubmissao = (dados = {}) => {
     const statusNormalizado =
         payload.status_submissao ?? payload.status ?? dados?.status_submissao ?? dados?.status;
     if (statusNormalizado !== undefined && statusNormalizado !== null) {
-        payload.status_submissao = String(statusNormalizado).trim().toUpperCase();
+        const statusFormatado = String(statusNormalizado).trim().toUpperCase();
+        if (statusFormatado) {
+            payload.status_submissao = statusFormatado;
+        } else {
+            delete payload.status_submissao;
+        }
     }
     delete payload.status;
 

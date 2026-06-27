@@ -23,6 +23,7 @@ import {
 import { useParams, Link } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
+import { setSelectedEventoId } from '../utils/selectedEvento';
 
 // Importação dos seus services nativos
 import { buscarEventoPorId } from '../services/eventoService';
@@ -31,6 +32,10 @@ import { obterCorPorTag } from '../utils/themeTags';
 
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
+
+    const prepararEventoSelecionado = () => {
+        setSelectedEventoId(evento?.id || eventoId);
+    };
 
     const verdeIFRSOficial = '#004F2F';
     const verdeDestaque = '#008B47';
@@ -388,15 +393,17 @@ export default function ProgramacaoEvento() {
                                 to={`/inscrever_atracoes/${evento?.id}`}
                                 variant="outline-light"
                                 className="fw-bold px-3 py-2 small"
+                                onClick={prepararEventoSelecionado}
                             >
                                 Me Inscrever nas atrações
                             </Button>
 
                             <Button
                                 as={Link}
-                                to="/adicionar_atracao"
+                                to="/adicionar_submissao"
                                 variant="outline-light"
                                 className="fw-bold px-3 py-2 small"
+                                onClick={prepararEventoSelecionado}
                             >
                                 Submeter trabalho
                             </Button>

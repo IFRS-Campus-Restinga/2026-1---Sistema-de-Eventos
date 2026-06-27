@@ -68,21 +68,6 @@ export default function EventoCard({
                                 </span>
                             </Col>
                         </Row>
-                        <Row>
-                            <Col className="d-flex ms-md-5 m-0 mt-2">
-                                <span className="fw-bold">Descrição:</span>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col className="d-flex ms-md-5 m-0 mt-2">
-                                <span className="d-none d-md-flex fw-light text-break ">
-                                    {descricao}
-                                </span>
-                                <span className="d-flex d-md-none fw-light text-break w-100">
-                                    {descricao}
-                                </span>
-                            </Col>
-                        </Row>
                     </Col>
                     <Col className="d-none d-md-flex justify-content-end">
                         <Row className="d-flex flex-column gap-3 justify-content-center">

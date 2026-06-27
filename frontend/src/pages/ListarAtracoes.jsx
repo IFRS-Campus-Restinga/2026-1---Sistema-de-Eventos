@@ -71,6 +71,7 @@ export default function ListarAtracoes() {
     const [termoBusca, setTermoBusca] = useState('');
     const [salvandoEdicao, setSalvandoEdicao] = useState(false);
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
+    const [somenteLeituraModal, setSomenteLeituraModal] = useState(false);
     const [mostrarModalExclusao, setMostrarModalExclusao] = useState(false);
     const [atracaoSelecionada, setAtracaoSelecionada] = useState(null);
     const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -759,7 +760,7 @@ export default function ListarAtracoes() {
         indiceInicial + ITENS_POR_PAGINA,
     );
 
-    const abrirModalEdicao = (atracao) => {
+    const abrirModalEdicao = (atracao, somenteLeitura = false) => {
         const sugestaoAtual = atracao.sugestao_vagas ?? '';
         const fonteAutoria =
             Array.isArray(atracao.autorias) && atracao.autorias.length > 0
@@ -803,6 +804,7 @@ export default function ListarAtracoes() {
                 sugestaoAtual !== null &&
                 sugestaoAtual !== undefined,
         );
+        setSomenteLeituraModal(somenteLeitura);
         setMostrarModalEdicao(true);
     };
 
@@ -1486,6 +1488,28 @@ export default function ListarAtracoes() {
                                                         key={
                                                             atracao.id || index
                                                         }
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() =>
+                                                            abrirModalEdicao(
+                                                                atracao,
+                                                                true,
+                                                            )
+                                                        }
+                                                        onKeyDown={(event) => {
+                                                            if (
+                                                                event.key ===
+                                                                    'Enter' ||
+                                                                event.key ===
+                                                                    ' '
+                                                            ) {
+                                                                event.preventDefault();
+                                                                abrirModalEdicao(
+                                                                    atracao,
+                                                                    true,
+                                                                );
+                                                            }
+                                                        }}
                                                         className="d-flex justify-content-between align-items-center mb-3 rounded-4 p-3"
                                                         style={{
                                                             borderLeft: `10px solid ${getStatusBorderColor(
@@ -1495,6 +1519,7 @@ export default function ListarAtracoes() {
                                                                 '#fff',
                                                             boxShadow:
                                                                 '0 0.125rem 0.35rem rgba(0, 0, 0, 0.08)',
+                                                            cursor: 'pointer',
                                                         }}
                                                     >
                                                         <div className="d-flex flex-column flex-grow-1">
@@ -1634,7 +1659,14 @@ export default function ListarAtracoes() {
                                                                 }
                                                             </Badge>
 
-                                                            <Dropdown align="end">
+                                                            <Dropdown
+                                                                align="end"
+                                                                onClick={(
+                                                                    event,
+                                                                ) =>
+                                                                    event.stopPropagation()
+                                                                }
+                                                            >
                                                                 <Dropdown.Toggle
                                                                     variant="primary"
                                                                     id={`acoes-${atracao.id}`}
@@ -1654,11 +1686,12 @@ export default function ListarAtracoes() {
 
                                                                 <Dropdown.Menu>
                                                                     <Dropdown.Item
-                                                                        onClick={() =>
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
                                                                             abrirModalEdicao(
                                                                                 atracao,
-                                                                            )
-                                                                        }
+                                                                            );
+                                                                        }}
                                                                         disabled={
                                                                             !podeEditarItem
                                                                         }
@@ -1667,11 +1700,12 @@ export default function ListarAtracoes() {
                                                                     </Dropdown.Item>
                                                                     {ehSubmissoes && (
                                                                         <Dropdown.Item
-                                                                            onClick={() =>
+                                                                            onClick={(event) => {
+                                                                                event.stopPropagation();
                                                                                 abrirModalAvaliacoes(
                                                                                     atracao,
-                                                                                )
-                                                                            }
+                                                                                );
+                                                                            }}
                                                                         >
                                                                             Ver
                                                                             Avaliações
@@ -1682,7 +1716,8 @@ export default function ListarAtracoes() {
                                                                         <>
                                                                             {ehSubmissoes ? (
                                                                                 <Dropdown.Item
-                                                                                    onClick={() =>
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
                                                                                         navigate(
                                                                                             `/avaliar_submissao?submissao_id=${
                                                                                                 atracao.id
@@ -1690,8 +1725,8 @@ export default function ListarAtracoes() {
                                                                                                 atracao.evento ||
                                                                                                 ''
                                                                                             }`,
-                                                                                        )
-                                                                                    }
+                                                                                        );
+                                                                                    }}
                                                                                     disabled={
                                                                                         !podeAcessarAvaliacao
                                                                                     }
@@ -1701,11 +1736,12 @@ export default function ListarAtracoes() {
                                                                                 </Dropdown.Item>
                                                                             ) : (
                                                                                 <Dropdown.Item
-                                                                                    onClick={() =>
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
                                                                                         navigate(
                                                                                             `/avaliar_atracao?atracao_id=${atracao.id}`,
-                                                                                        )
-                                                                                    }
+                                                                                        );
+                                                                                    }}
                                                                                     disabled={
                                                                                         !podeAcessarAvaliacao
                                                                                     }
@@ -1717,14 +1753,15 @@ export default function ListarAtracoes() {
 
                                                                             {ehSubmissoes ? (
                                                                                 <Dropdown.Item
-                                                                                    onClick={() =>
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
                                                                                         navigate(
                                                                                             `/gerenciar_avaliadores_submissoes?evento_id=${
                                                                                                 atracao.evento ||
                                                                                                 ''
                                                                                             }`,
-                                                                                        )
-                                                                                    }
+                                                                                        );
+                                                                                    }}
                                                                                     disabled={
                                                                                         !isAdmin()
                                                                                     }
@@ -1734,11 +1771,12 @@ export default function ListarAtracoes() {
                                                                                 </Dropdown.Item>
                                                                             ) : (
                                                                                 <Dropdown.Item
-                                                                                    onClick={() =>
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
                                                                                         navigate(
                                                                                             `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
-                                                                                        )
-                                                                                    }
+                                                                                        );
+                                                                                    }}
                                                                                 >
                                                                                     Ver
                                                                                     Inscritos
@@ -1752,7 +1790,8 @@ export default function ListarAtracoes() {
                                                             <Button
                                                                 variant="danger"
                                                                 className="d-flex align-items-center gap-1"
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setAtracaoSelecionada(
                                                                         atracao,
                                                                     );
@@ -2016,7 +2055,11 @@ export default function ListarAtracoes() {
                     handleRemoverMembroEdicao={handleRemoverMembroEdicao}
                     handleMembroEdicaoChange={handleMembroEdicaoChange}
                     salvandoEdicao={salvandoEdicao}
-                    onClose={() => setMostrarModalEdicao(false)}
+                    somenteLeitura={somenteLeituraModal}
+                    onClose={() => {
+                        setMostrarModalEdicao(false);
+                        setSomenteLeituraModal(false);
+                    }}
                     onSalvar={handleSalvarEdicao}
                 />
             </main>
