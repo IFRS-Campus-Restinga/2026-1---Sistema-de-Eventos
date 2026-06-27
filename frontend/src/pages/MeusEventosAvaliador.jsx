@@ -3,8 +3,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import EventoCard from '../components/cards_listagem/EventoCard';
+import HomeCard from '../components/cards_listagem/HomeCard';
 import Alerta from '../components/common/Alerta';
+import {
+    formatarDataEvento,
+    obterStatusHome,
+} from '../utils/homeEventoHelpers';
 import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
 
 export default function MeusEventosAvaliador({ campus = 'Campus Restinga' }) {
@@ -45,28 +49,27 @@ export default function MeusEventosAvaliador({ campus = 'Campus Restinga' }) {
                         >
                             {eventos && eventos.length > 0 ? (
                                 eventos.map((evento) => (
-                                    <EventoCard
+                                    <HomeCard
                                         key={evento.id}
-                                        titulo={evento.nome}
-                                        data={`Carga Horária: ${evento.carga_horaria}h`}
-                                        faseAtual={
-                                            evento.status_evento ||
-                                            'Em andamento'
+                                        evento={evento}
+                                        destaque={true}
+                                        possuiInscricao={false}
+                                        statusInscricao={null}
+                                        permiteInscricao={false}
+                                        formatarData={formatarDataEvento}
+                                        etapaAtual={
+                                            obterStatusHome(evento)
+                                                ?.etapaAtual || 'Etapa atual'
                                         }
-                                        corFase={
-                                            evento.status_evento === 'Aberto'
-                                                ? '#106D47'
-                                                : '#6c757d'
-                                        }
-                                        descricao={evento?.descricao}
                                         textoBotao1="Ver Avaliações"
-                                        textoBotao2=""
                                         onClick1={() =>
                                             navigate(
                                                 `/minhas_avaliacoes?evento_id=${evento.id}`,
                                             )
                                         }
+                                        textoBotao2={''}
                                         desabilitarBotao2={true}
+                                        showDestaqueBadge={false}
                                     />
                                 ))
                             ) : (
