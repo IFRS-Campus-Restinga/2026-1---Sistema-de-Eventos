@@ -48,6 +48,7 @@ export default function EventosListar() {
     const [carregando, setCarregando] = useState(true);
     const [carregandoUsuario, setCarregandoUsuario] = useState(true);
     const [usuarioAtual, setUsuarioAtual] = useState(null);
+    const [usuarioCarregado, setUsuarioCarregado] = useState(false);
     const [mensagem, setMensagem] = useState('');
     const [alerta, setAlerta] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -73,6 +74,12 @@ export default function EventosListar() {
                 setUsuarioAtual(currentUser);
             } catch (e) {
                 console.log(e);
+                setUsuarioAtual(null);
+            } finally {
+                if (ativo) {
+                    setCarregandoUsuario(false);
+                    setUsuarioCarregado(true);
+                }
             }
         })();
 
@@ -88,15 +95,18 @@ export default function EventosListar() {
         : [];
 
     const grupo = usuarioAtual?.group;
+    const isCoordenador =
+        gruposUsuario.includes('Coordenador') || grupo === 'Coordenador';
 
     const podeVerQr = gruposUsuario.some((grupo) =>
         ['Administrador', 'Coordenador'].includes(grupo),
     );
 
     useEffect(() => {
+        if (!usuarioCarregado) return;
+
         const carregarEventos = async () => {
             try {
-                const isCoordenador = grupo === 'Coordenador';
                 const dados = isCoordenador
                     ? await listarMeusEventosCoordenador()
                     : await listarEventos();
@@ -111,7 +121,7 @@ export default function EventosListar() {
         };
 
         carregarEventos();
-    }, [grupo]);
+    }, [isCoordenador, usuarioCarregado]);
 
     const abrirQr = (evento) => {
         registrarEventoSelecionado(evento.id);
@@ -207,7 +217,7 @@ export default function EventosListar() {
                             <hr className="mb-4" />
 
                             {/* Loading */}
-                            {carregando ? (
+                            {carregando || carregandoUsuario ? (
                                 <div className="text-center py-5">
                                     <Spinner
                                         animation="border"
