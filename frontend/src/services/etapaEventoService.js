@@ -14,13 +14,17 @@ export const criarEtapa = async (dados) => {
 };
 
 export const listarEtapas = async () => {
-    const response = await axios.get(`${API_URL}/api/etapas_evento/`);
+    const response = await axios.get(`${API_URL}/api/etapas_evento/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
 export const obterEtapa = async (id) => {
     if (!id) return null;
-    const response = await axios.get(`${API_URL}/api/etapas_evento/${id}/`);
+    const response = await axios.get(`${API_URL}/api/etapas_evento/${id}/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -35,6 +39,7 @@ export const atualizarEtapa = async (id, dados) => {
         dados,
         {
             headers: { 'X-CSRFToken': csrfToken },
+            withCredentials: true,
         },
     );
     return response.data;
@@ -48,6 +53,7 @@ export const deletarEtapa = async (id) => {
 
     const response = await axios.delete(`${API_URL}/api/etapas_evento/${id}/`, {
         headers: { 'X-CSRFToken': csrfToken },
+        withCredentials: true,
     });
     return response.data;
 };

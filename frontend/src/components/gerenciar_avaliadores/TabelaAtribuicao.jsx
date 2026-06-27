@@ -300,7 +300,7 @@ export default function TabelaAtribuicao({
                                         disabled={statusLocked}
                                     >
                                         <FaCheckCircle className="me-1" />
-                                        Homologar
+                                        Aprovar
                                     </button>
                                 ) : (
                                     <span
@@ -312,7 +312,7 @@ export default function TabelaAtribuicao({
                                             className="btn btn-outline-secondary"
                                             disabled
                                         >
-                                            Homologar
+                                            Aprovar
                                         </button>
                                     </span>
                                 )}

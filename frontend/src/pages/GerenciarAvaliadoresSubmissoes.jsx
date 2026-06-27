@@ -250,7 +250,7 @@ export default function GerenciarAvaliacoesSubmissoes() {
                 }
                 texto="Ao confirmar, esta submissão será homologada e aprovada oficialmente."
                 textoFechar="Cancelar"
-                textoAcao="Homologar"
+                textoAcao="Aprovar"
                 onAcao={confirmarHomologar}
                 variante="success"
                 size="lg"
