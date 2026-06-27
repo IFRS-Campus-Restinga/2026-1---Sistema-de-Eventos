@@ -72,6 +72,7 @@ export const atualizarEvento = async (id, dados) => {
             dados,
             {
                 headers: { 'X-CSRFToken': csrfToken },
+                withCredentials: true,
             },
         );
 
