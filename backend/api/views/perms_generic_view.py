@@ -65,7 +65,9 @@ class PodeCoordenarEvento(IsGroupAndObjectPerm):
 
 # isso ta ajudando a fazer funcionar a inclusão de coordenadores/organizadores. -Breno
 class PodeGerenciarEquipeEvento(IsGroupAndObjectPerm):
-    required_groups = ["Coordenador"]
+    required_groups = [
+        "Coordenador",
+    ]
     required_object_perms = ["api.coordenar_evento"]
 
 

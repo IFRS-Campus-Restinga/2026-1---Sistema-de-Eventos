@@ -15,7 +15,7 @@ import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService
 
 const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
 
-function ItensGestaoRecentes({ navigate }) {
+function ItensGestaoRecentes({ navigate, admin, coord }) {
     const [itens, setItens] = useState([]);
 
     useEffect(() => {
@@ -78,20 +78,22 @@ function ItensGestaoRecentes({ navigate }) {
                                         Abrir painel
                                     </a>
                                 </li>
-                                <li>
-                                    <a
-                                        className="dropdown-item"
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            navigate(
-                                                `/editar_evento/${evento.id}`,
-                                            );
-                                        }}
-                                    >
-                                        Editar evento
-                                    </a>
-                                </li>
+                                {(admin || coord) && (
+                                    <li>
+                                        <a
+                                            className="dropdown-item"
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(
+                                                    `/editar_evento/${evento.id}`,
+                                                );
+                                            }}
+                                        >
+                                            Editar evento
+                                        </a>
+                                    </li>
+                                )}
                                 <li>
                                     <a
                                         className="dropdown-item"
@@ -106,34 +108,38 @@ function ItensGestaoRecentes({ navigate }) {
                                         Programação
                                     </a>
                                 </li>
-                                <li>
-                                    <a
-                                        className="dropdown-item"
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            navigate(
-                                                `/atribuir_coordenador?eventoId=${evento.id}`,
-                                            );
-                                        }}
-                                    >
-                                        Coordenadores
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        className="dropdown-item"
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            navigate(
-                                                `/atribuir_organizador?eventoId=${evento.id}`,
-                                            );
-                                        }}
-                                    >
-                                        Organizadores
-                                    </a>
-                                </li>
+                                {admin && (
+                                    <li>
+                                        <a
+                                            className="dropdown-item"
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(
+                                                    `/atribuir_coordenador?eventoId=${evento.id}`,
+                                                );
+                                            }}
+                                        >
+                                            Coordenadores
+                                        </a>
+                                    </li>
+                                )}
+                                {(admin || coord) && (
+                                    <li>
+                                        <a
+                                            className="dropdown-item"
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(
+                                                    `/atribuir_organizador?eventoId=${evento.id}`,
+                                                );
+                                            }}
+                                        >
+                                            Organizadores
+                                        </a>
+                                    </li>
+                                )}
                                 <li>
                                     <a
                                         className="dropdown-item"
@@ -256,6 +262,8 @@ export default function NavBar() {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [Coord, setCoord] = useState(false);
+    const [Gestao, setGestao] = useState(false);
     const [eventosAvaliador, setEventosAvaliador] = useState([]);
 
     async function carregarSessao(isMounted = true) {
@@ -264,6 +272,7 @@ export default function NavBar() {
             if (!isMounted) return;
 
             const autenticado = Boolean(result?.authenticated);
+            const grupo = result?.user?.group;
             const grupos = Array.isArray(result?.user?.groups)
                 ? result.user.groups
                       .map((group) =>
@@ -273,7 +282,9 @@ export default function NavBar() {
                 : [];
 
             setIsAuthenticated(autenticado);
-            setIsAdmin(grupos.some((group) => ADMIN_GROUPS.includes(group)));
+            setIsAdmin(grupo == 'Administrador' ? true : false);
+            setCoord(grupo == 'Coordenador' ? true : false);
+            setGestao(grupos.some((group) => ADMIN_GROUPS.includes(group)));
 
             if (!autenticado) {
                 setEventosAvaliador([]);
@@ -289,7 +300,7 @@ export default function NavBar() {
         } catch {
             if (isMounted) {
                 setIsAuthenticated(false);
-                setIsAdmin(false);
+                setGestao(false);
                 setEventosAvaliador([]);
             }
         } finally {
@@ -387,7 +398,7 @@ export default function NavBar() {
                                     Meus Eventos
                                 </Nav.Link>
                             )}
-                            {!loading && isAuthenticated && !isAdmin && (
+                            {!loading && isAuthenticated && !Gestao && (
                                 <NavDropdown
                                     title={
                                         <span className="text-white fw-bold">
@@ -442,7 +453,7 @@ export default function NavBar() {
                                     />
                                 </NavDropdown>
                             )}
-                            {!loading && isAdmin && (
+                            {!loading && Gestao && (
                                 <NavDropdown
                                     title={
                                         <span className="text-white fw-bold">
@@ -453,7 +464,11 @@ export default function NavBar() {
                                     align="end"
                                     className="nav-gestao-dropdown"
                                 >
-                                    <ItensGestaoRecentes navigate={navigate} />
+                                    <ItensGestaoRecentes
+                                        navigate={navigate}
+                                        admin={isAdmin}
+                                        coord={Coord}
+                                    />
                                 </NavDropdown>
                             )}
 

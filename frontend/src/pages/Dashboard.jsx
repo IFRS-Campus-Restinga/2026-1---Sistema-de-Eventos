@@ -23,6 +23,8 @@ import { BiPaperPlane } from 'react-icons/bi';
 import { FaCogs } from 'react-icons/fa';
 import { HiOutlineClipboardList } from 'react-icons/hi';
 
+import { getCurrentUser } from '../services/authService';
+
 import {
     clearSelectedEventoId,
     getSelectedEventoId,
@@ -34,8 +36,8 @@ import { getDashboardEvento } from '../services/dashboardService';
 export default function Dashboard() {
     const { id: eventoId } = useParams();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
     const [erro, setErro] = useState('');
+    const [User, setUser] = useState({});
 
     const [dashboard, setDashboard] = useState(null);
 
@@ -55,6 +57,24 @@ export default function Dashboard() {
             year: 'numeric',
         }).format(data);
     };
+
+    useEffect(() => {
+        let ativo = true;
+
+        (async () => {
+            try {
+                const currentUser = await getCurrentUser();
+                if (!ativo) return;
+                setUser(currentUser);
+            } catch (e) {
+                console.log(e);
+            }
+        })();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
 
     const formatarStatus = (status) => {
         if (!status) {
@@ -97,7 +117,6 @@ export default function Dashboard() {
             // Define o ID ativo apenas se ele veio na URL
             setSelectedEventoId(eventoId);
             adicionarEventoRecenteAdminId(eventoId);
-            setLoading(true);
             setErro('');
 
             try {
@@ -113,14 +132,18 @@ export default function Dashboard() {
                     return;
                 }
 
+                if (status === 403) {
+                    clearSelectedEventoId();
+                    navigate('/', { replace: true });
+                    return;
+                }
+
                 setDashboard(null);
                 setErro(
                     error?.response?.data?.detail ||
                         error?.message ||
                         'Erro ao carregar os dados do painel do evento no servidor.',
                 );
-            } finally {
-                setLoading(false);
             }
         }
 
@@ -131,7 +154,6 @@ export default function Dashboard() {
         <>
             <div className="d-flex flex-column min-vh-100 bg-light">
                 <NavBar />
-                {console.log(dashboard)}
 
                 <main
                     className="flex-fill py-4 mx-auto w-100"
@@ -314,28 +336,32 @@ export default function Dashboard() {
                                             className="d-flex flex-column flex-md-row px-3 flex-wrap"
                                             style={{ gap: '1rem' }}
                                         >
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/editar_evento/${eventoId}`
-                                                            : '#'
-                                                    }
+                                            {User.group != 'Administrador' &&
+                                            User.group !=
+                                                'Coordenador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <BiSolidEdit
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Editar informações
-                                                </Link>
-                                            </Col>
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/editar_evento/${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <BiSolidEdit
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Editar informações
+                                                    </Link>
+                                                </Col>
+                                            )}
                                             <Col
                                                 className="d-flex flex-column p-0 text-secondary"
                                                 style={{
@@ -426,28 +452,31 @@ export default function Dashboard() {
                                                     Gerenciar organizadores
                                                 </Link>
                                             </Col>
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/atribuir_coordenador?eventoId=${eventoId}`
-                                                            : '#'
-                                                    }
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <FaCogs
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Definir Coordenadores
-                                                </Link>
-                                            </Col>
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/atribuir_coordenador?eventoId=${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <FaCogs
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Definir Coordenadores
+                                                    </Link>
+                                                </Col>
+                                            )}
                                             <Col
                                                 className="d-flex flex-column p-0 text-secondary"
                                                 style={{

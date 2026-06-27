@@ -50,6 +50,7 @@ from .views.evento_view import (
     EventoOrganizadorView,
     EventoUpdateView,
     MeusEventosAvaliadorView,
+    MeusEventosCoordenadorView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.inscricao_atracao_view import (
@@ -103,6 +104,7 @@ app_name = "api"
 urlpatterns = [
     # eventos
     path("eventos/", EventoListView.as_view()),
+    path("eventos/minhas/coordenador/", MeusEventosCoordenadorView.as_view()),
     path("eventos/opcoes/", OpcoesFormularioView.as_view()),
     path("eventos/<int:pk>/", EventoDetailView.as_view()),
     path("eventos/<int:pk>/update/", EventoUpdateView.as_view()),

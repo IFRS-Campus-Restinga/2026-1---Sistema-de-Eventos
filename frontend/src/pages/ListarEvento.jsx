@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Container,
     Row,
@@ -27,8 +27,8 @@ import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import {
     listarEventos,
+    listarMeusEventosCoordenador,
     deletarEvento,
-    atualizarEvento,
 } from '../services/eventoService';
 import { API_URL } from '../config';
 import eArray from '../utils/eArray';
@@ -48,9 +48,8 @@ export default function EventosListar() {
     const [carregando, setCarregando] = useState(true);
     const [carregandoUsuario, setCarregandoUsuario] = useState(true);
     const [usuarioAtual, setUsuarioAtual] = useState(null);
-    const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
+    const [mensagem, setMensagem] = useState('');
     const [alerta, setAlerta] = useState('');
-    const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
     const [showQrModal, setShowQrModal] = useState(false);
@@ -65,10 +64,6 @@ export default function EventosListar() {
     };
 
     useEffect(() => {
-        carregarEventos();
-    }, []);
-
-    useEffect(() => {
         let ativo = true;
 
         (async () => {
@@ -76,9 +71,8 @@ export default function EventosListar() {
                 const currentUser = await getCurrentUser();
                 if (!ativo) return;
                 setUsuarioAtual(currentUser);
-            } finally {
-                if (!ativo) return;
-                setCarregandoUsuario(false);
+            } catch (e) {
+                console.log(e);
             }
         })();
 
@@ -93,9 +87,31 @@ export default function EventosListar() {
               .filter(Boolean)
         : [];
 
+    const grupo = usuarioAtual?.group;
+
     const podeVerQr = gruposUsuario.some((grupo) =>
         ['Administrador', 'Coordenador'].includes(grupo),
     );
+
+    useEffect(() => {
+        const carregarEventos = async () => {
+            try {
+                const isCoordenador = grupo === 'Coordenador';
+                const dados = isCoordenador
+                    ? await listarMeusEventosCoordenador()
+                    : await listarEventos();
+
+                Array.isArray(dados) ? setEventos(dados) : setEventos([]);
+            } catch (e) {
+                console.error('Erro ao buscar eventos:', e);
+                setEventos([]);
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        carregarEventos();
+    }, [grupo]);
 
     const abrirQr = (evento) => {
         registrarEventoSelecionado(evento.id);
@@ -112,43 +128,33 @@ export default function EventosListar() {
         ? `${window.location.origin}/credenciamento/${eventoQrSelecionado.slug}`
         : '';
 
-    const carregarEventos = async () => {
-        try {
-            const dados = await listarEventos();
-            eArray(dados) ? setEventos(dados) : setEventos([]);
-        } catch (error) {
-            console.error('Erro ao buscar eventos:', error);
-        } finally {
-            setCarregando(false);
-        }
-    };
-
     const confirmarExclusao = (evento) => {
         setEventoParaExcluir(evento);
         setShowModal(true);
     };
 
     const excluirEvento = async () => {
-        if (!eventoParaExcluir?.id) return;
+        if (!eventoParaExcluir?.id) {
+            return;
+        }
+
+        const eventoId = eventoParaExcluir.id;
 
         try {
-            const data = await deletarEvento(eventoParaExcluir.id);
+            const data = await deletarEvento(eventoId);
             setShowModal(false);
-            setEventos((prev) =>
-                prev.filter((e) => e.id !== eventoParaExcluir.id),
-            );
+            setEventos((prev) => prev.filter((e) => e.id !== eventoId));
             setAlerta('success');
             setMensagem(data.msg || 'Evento excluído!');
 
             const eventoSelecionado = getSelectedEventoId();
             if (
                 eventoSelecionado &&
-                Number(eventoSelecionado) === Number(eventoParaExcluir.id)
+                Number(eventoSelecionado) === Number(eventoId)
             ) {
                 clearSelectedEventoId();
             }
 
-            // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
             setTimeout(() => {
                 setEventoParaExcluir(null);
             }, 300);
@@ -161,29 +167,7 @@ export default function EventosListar() {
         }
     };
 
-    const editarEvento = async (id, dados) => {
-        setMensagem('');
-        try {
-            const eventoAtualizado = await atualizarEvento(id, dados);
-
-            // atualiza lista
-            setEventos((prev) =>
-                prev.map((evento) =>
-                    evento.id === id ? eventoAtualizado : evento,
-                ),
-            );
-
-            setMensagem('evento atualizado com sucesso!');
-            return true;
-        } catch (erro) {
-            console.error('Erro ao atualizar local:', erro);
-
-            setError(erro.response?.data || 'Erro ao atualizar local');
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    };
+    // editarEvento removido: função não utilizada na tela atual e gerava erro no eslint no-unused-vars
 
     // pra baixar um jpeg ou png do qrcode bem bolado
     const baixarQr = (formato = 'png') => {

@@ -7,6 +7,16 @@ export const listarEventos = async () => {
     return response.data;
 };
 
+export const listarMeusEventosCoordenador = async () => {
+    const response = await axios.get(
+        `${API_URL}/api/eventos/minhas/coordenador/`,
+        {
+            withCredentials: true,
+        },
+    );
+    return response.data;
+};
+
 export const criarEvento = async (dados) => {
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
@@ -19,7 +29,9 @@ export const criarEvento = async (dados) => {
 };
 
 export const buscarOpcoesFormulario = async () => {
-    const response = await axios.get(`${API_URL}/api/eventos/opcoes/`);
+    const response = await axios.get(`${API_URL}/api/eventos/opcoes/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -35,7 +47,7 @@ export const deletarEvento = async (eventoId) => {
             headers: {
                 'X-CSRFToken': csrfToken,
             },
-            
+            withCredentials: true,
         },
     );
 
@@ -44,8 +56,7 @@ export const deletarEvento = async (eventoId) => {
 
 export const buscarEventoPorId = async (id) => {
     if (!id) return null;
-    const response = await axios.get(`${API_URL}/api/eventos/${id}/`, {
-    });
+    const response = await axios.get(`${API_URL}/api/eventos/${id}/`, {});
     return response.data;
 };
 
@@ -56,9 +67,13 @@ export const atualizarEvento = async (id, dados) => {
         const csrfData = await pegarTokenCsrf();
         const csrfToken = csrfData?.csrfToken || '';
 
-        const response = await axios.put(`${API_URL}/api/eventos/${id}/update/`, dados, {
-            headers: { 'X-CSRFToken': csrfToken },
-        });
+        const response = await axios.put(
+            `${API_URL}/api/eventos/${id}/update/`,
+            dados,
+            {
+                headers: { 'X-CSRFToken': csrfToken },
+            },
+        );
 
         return response.data;
     } catch (erro) {
@@ -175,11 +190,8 @@ export const listarOrganizadoresEvento = async (eventoId) => {
 };
 
 export const listarInscritosEventos = async () => {
-    const response = await axios.get(
-        `${API_URL}/api/eventos/inscritos/`,
-        {
-            withCredentials: true,
-        },
-    );
+    const response = await axios.get(`${API_URL}/api/eventos/inscritos/`, {
+        withCredentials: true,
+    });
     return response.data;
 };
