@@ -284,6 +284,20 @@ class MeusEventosCoordenadorView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class MeusEventosOrganizadorView(APIView):
+    permission_classes = [IsAuthenticated]
+    organizer_perm = "api.organiza_evento"
+
+    def get(self, request):
+        user = request.user
+
+        eventos = get_objects_for_user(user, self.organizer_perm, klass=Evento)
+        eventos = eventos.filter(ativo=True).distinct()
+
+        serializer = EventoSerializer(eventos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class EventoOrganizadorView(APIView):
     permission_classes = [PodeGerenciarEquipeEvento]
     organizador_perm = "api.organiza_evento"

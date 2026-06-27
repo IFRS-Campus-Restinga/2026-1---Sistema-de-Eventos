@@ -43,7 +43,7 @@ import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
 import MinhasAvaliacoesSubmissoes from './pages/MinhasAvaliacoesSubmissoes';
 
-const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
+const ADMIN_GROUPS = ['Administrador', 'Coordenador', 'Organizador'];
 
 function App() {
     const protegido = (rota, gruposPermitidos) => (
@@ -101,15 +101,15 @@ function App() {
                 {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/dashboard/:id" element={protegidoPorEvento(<Dashboard />, ADMIN_GROUPS)} />
-                <Route path="/adicionar_evento" element={<AdicionarEvento />} />
-                <Route path="/editar_evento/:id" element={protegidoPorEvento(<AdicionarEvento />,ADMIN_GROUPS)} />
+                <Route path="/adicionar_evento" element={protegidoPorEvento(<AdicionarEvento />,ADMIN_GROUPS.filter(m=>m=="Administrador"))} />
+                <Route path="/editar_evento/:id" element={protegidoPorEvento(<AdicionarEvento />,ADMIN_GROUPS.filter(m=>m!=="Organizador"))} />
                 <Route path="/listar_eventos" element={protegido(<ListarEvento />, ADMIN_GROUPS)} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
                 <Route path="/programacao_evento/:id" element={<ProgramacaoEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
-                <Route path="/dashboard/:id/enviar_emails" element={protegidoPorEvento(<EnviarEmails />, ADMIN_GROUPS)} />
-                <Route path="/configurar_templates" element={protegido(<ConfigurarTemplates />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id/enviar_emails" element={protegidoPorEvento(<EnviarEmails />, ADMIN_GROUPS.filter(m=>m!=="Organizador"))} />
+                <Route path="/configurar_templates" element={protegido(<ConfigurarTemplates />, ADMIN_GROUPS.filter(m=>m!=="Organizador"))} />
 
                 {/* Locais & Espacos */}
                 <Route path="/adicionar_local" element={protegido(<LocalForm />, ADMIN_GROUPS)} />
@@ -120,8 +120,8 @@ function App() {
                 <Route path="/editar_espaco/:id" element={protegido(<EspacoForm />, ADMIN_GROUPS)} />
 
                 {/* Atracoes & Inscritos */}
-                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ['Administrador'])} />
-                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />, ['Administrador'])} />
+                <Route path="/listar_atracoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS.filter(m=>m=="Administrador"))} />
+                <Route path="/listar_submissoes" element={protegido(<ListarAtracoes />, ADMIN_GROUPS.filter(m=>m=="Administrador"))} />
                 <Route path="/inscrever_atracoes/:eventoId" element={<InscricaoAtracoes />} />
                 <Route path="/adicionar_atracao" element={protegido(<AdicionarAtracao />)} />
                 <Route path="/adicionar_submissao" element={protegido(<AdicionarAtracao />)} />
@@ -151,8 +151,8 @@ function App() {
                 <Route path="/editar_modalidade/:id" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
 
                 {/* Atribuicoes / Organizadores */}
-                <Route path="/atribuir_coordenador" element={protegidoPorEvento(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
-                <Route path="/atribuir_organizador" element={protegidoPorEvento(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
+                <Route path="/atribuir_coordenador" element={protegidoPorEvento(<DefinirCoordenadorEvento />, ADMIN_GROUPS.filter(m=>m=="Administrador"))} />
+                <Route path="/atribuir_organizador" element={protegidoPorEvento(<DefinirOrganizadorEvento />, ADMIN_GROUPS.filter(m=>m!=="Organizador"))} />
 
                 <Route path="*" element={<SemResultado/>}/>
 

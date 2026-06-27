@@ -51,6 +51,7 @@ from .views.evento_view import (
     EventoUpdateView,
     MeusEventosAvaliadorView,
     MeusEventosCoordenadorView,
+    MeusEventosOrganizadorView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.inscricao_atracao_view import (
@@ -105,6 +106,7 @@ urlpatterns = [
     # eventos
     path("eventos/", EventoListView.as_view()),
     path("eventos/minhas/coordenador/", MeusEventosCoordenadorView.as_view()),
+    path("eventos/minhas/organizador/", MeusEventosOrganizadorView.as_view()),
     path("eventos/opcoes/", OpcoesFormularioView.as_view()),
     path("eventos/<int:pk>/", EventoDetailView.as_view()),
     path("eventos/<int:pk>/update/", EventoUpdateView.as_view()),

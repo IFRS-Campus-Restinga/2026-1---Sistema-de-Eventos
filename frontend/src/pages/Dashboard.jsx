@@ -430,28 +430,32 @@ export default function Dashboard() {
                                                     Definir locais de trabalho
                                                 </Link>
                                             </Col>
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/atribuir_organizador?eventoId=${eventoId}`
-                                                            : '#'
-                                                    }
+                                            {User.group != 'Administrador' &&
+                                            User.group !=
+                                                'Coordenador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <RiTeamFill
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Gerenciar organizadores
-                                                </Link>
-                                            </Col>
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/atribuir_organizador?eventoId=${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <RiTeamFill
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Gerenciar organizadores
+                                                    </Link>
+                                                </Col>
+                                            )}
                                             {User.group !=
                                             'Administrador' ? null : (
                                                 <Col
@@ -692,65 +696,68 @@ export default function Dashboard() {
                                 </Col>
                             </Col>
                         </Row>
-                        <Row className="mt-3">
-                            <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
-                                <Col
-                                    className="bg-white rounded-4 "
-                                    style={{
-                                        border: '1px solid rgba(0,0,0,0.09)',
-                                    }}
-                                >
-                                    <Row className="p-2 ">
-                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
-                                            <div
-                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
-                                                style={{
-                                                    background: '#e8f5ed',
-                                                }}
-                                            >
-                                                <TbMail
-                                                    size={20}
-                                                    color="green"
-                                                />
-                                            </div>
-                                            <span className="fw-semibold">
-                                                Comunicação e certificados
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <hr />
-                                    <Row className="p-3 d-flex flex-column flex-md-row gap-md-0 gap-3 flex-wrap">
-                                        <Col sm={6}>
-                                            <Link
-                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={
-                                                    eventoId
-                                                        ? `/dashboard/${eventoId}/enviar_emails`
-                                                        : '#'
-                                                }
-                                            >
-                                                <BiPaperPlane
-                                                    size={25}
-                                                    className="me-2"
-                                                    color="green"
-                                                />
-                                                Enviar e-mails
-                                            </Link>
-                                        </Col>
-                                        <Col sm={6}>
-                                            <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
-                                                <TbFileCertificate
-                                                    size={25}
-                                                    className="me-2"
-                                                    color="green"
-                                                />
-                                                Emitir Certificados
-                                            </Link>
-                                        </Col>
-                                    </Row>
+                        {User.group != 'Administrador' &&
+                        User.group != 'Coordenador' ? null : (
+                            <Row className="mt-3">
+                                <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
+                                    <Col
+                                        className="bg-white rounded-4 "
+                                        style={{
+                                            border: '1px solid rgba(0,0,0,0.09)',
+                                        }}
+                                    >
+                                        <Row className="p-2 ">
+                                            <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                                <div
+                                                    className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                    style={{
+                                                        background: '#e8f5ed',
+                                                    }}
+                                                >
+                                                    <TbMail
+                                                        size={20}
+                                                        color="green"
+                                                    />
+                                                </div>
+                                                <span className="fw-semibold">
+                                                    Comunicação e certificados
+                                                </span>
+                                            </Col>
+                                        </Row>
+                                        <hr />
+                                        <Row className="p-3 d-flex flex-column flex-md-row gap-md-0 gap-3 flex-wrap">
+                                            <Col sm={6}>
+                                                <Link
+                                                    className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/dashboard/${eventoId}/enviar_emails`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <BiPaperPlane
+                                                        size={25}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Enviar e-mails
+                                                </Link>
+                                            </Col>
+                                            <Col sm={6}>
+                                                <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
+                                                    <TbFileCertificate
+                                                        size={25}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Emitir Certificados
+                                                </Link>
+                                            </Col>
+                                        </Row>
+                                    </Col>
                                 </Col>
-                            </Col>
-                        </Row>
+                            </Row>
+                        )}
                     </Container>
                 </main>
 
