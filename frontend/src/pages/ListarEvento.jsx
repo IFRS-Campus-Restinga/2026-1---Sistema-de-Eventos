@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Container,
     Row,
@@ -28,10 +28,10 @@ import Card from '../components/common/Card';
 import {
     listarEventos,
     listarMeusEventosCoordenador,
+    listarMeusEventosOrganizador,
     deletarEvento,
 } from '../services/eventoService';
 import { API_URL } from '../config';
-import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -97,6 +97,8 @@ export default function EventosListar() {
     const grupo = usuarioAtual?.group;
     const isCoordenador =
         gruposUsuario.includes('Coordenador') || grupo === 'Coordenador';
+    const isOrganizador =
+        gruposUsuario.includes('Organizador') || grupo === 'Organizador';
 
     const podeVerQr = gruposUsuario.some((grupo) =>
         ['Administrador', 'Coordenador'].includes(grupo),
@@ -107,9 +109,12 @@ export default function EventosListar() {
 
         const carregarEventos = async () => {
             try {
-                const dados = isCoordenador
-                    ? await listarMeusEventosCoordenador()
-                    : await listarEventos();
+                const dados =
+                    isCoordenador || isOrganizador
+                        ? isOrganizador
+                            ? await listarMeusEventosOrganizador()
+                            : await listarMeusEventosCoordenador()
+                        : await listarEventos();
 
                 Array.isArray(dados) ? setEventos(dados) : setEventos([]);
             } catch (e) {
@@ -121,7 +126,7 @@ export default function EventosListar() {
         };
 
         carregarEventos();
-    }, [isCoordenador, usuarioCarregado]);
+    }, [isCoordenador, isOrganizador, usuarioCarregado]);
 
     const abrirQr = (evento) => {
         registrarEventoSelecionado(evento.id);
@@ -333,32 +338,41 @@ export default function EventosListar() {
                                                             QR Code
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        variant="danger"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            confirmarExclusao(
-                                                                evento,
-                                                            )
-                                                        }
-                                                    >
-                                                        <MdDelete size={22} />
-                                                    </Button>
+                                                    {!(
+                                                        isCoordenador ||
+                                                        isOrganizador
+                                                    ) && (
+                                                        <Button
+                                                            variant="danger"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                confirmarExclusao(
+                                                                    evento,
+                                                                )
+                                                            }
+                                                        >
+                                                            <MdDelete
+                                                                size={22}
+                                                            />
+                                                        </Button>
+                                                    )}
 
-                                                    <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            registrarEventoSelecionado(
-                                                                evento.id,
-                                                            );
-                                                            navigate(
-                                                                `/editar_evento/${evento.id}`,
-                                                            );
-                                                        }}
-                                                    >
-                                                        <MdEdit size={22} />
-                                                    </Button>
+                                                    {!isOrganizador && (
+                                                        <Button
+                                                            variant="warning"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                registrarEventoSelecionado(
+                                                                    evento.id,
+                                                                );
+                                                                navigate(
+                                                                    `/editar_evento/${evento.id}`,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <MdEdit size={22} />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </ListGroup.Item>
                                         ))
@@ -374,20 +388,22 @@ export default function EventosListar() {
                             )}
 
                             {/* Botão Novo Evento */}
-                            <div className="mt-4">
-                                <Button
-                                    as={Link}
-                                    to="/adicionar_evento"
-                                    variant="success"
-                                    className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                                    style={{
-                                        backgroundColor: '#00A44B',
-                                        border: 'none',
-                                    }}
-                                >
-                                    <MdAddCircle size={20} /> Novo Evento
-                                </Button>
-                            </div>
+                            {!(isCoordenador || isOrganizador) && (
+                                <div className="mt-4">
+                                    <Button
+                                        as={Link}
+                                        to="/adicionar_evento"
+                                        variant="success"
+                                        className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
+                                        style={{
+                                            backgroundColor: '#00A44B',
+                                            border: 'none',
+                                        }}
+                                    >
+                                        <MdAddCircle size={20} /> Novo Evento
+                                    </Button>
+                                </div>
+                            )}
 
                             {/* Botão voltar para home */}
                             <div className="mt-4">

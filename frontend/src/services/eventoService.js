@@ -17,6 +17,16 @@ export const listarMeusEventosCoordenador = async () => {
     return response.data;
 };
 
+export const listarMeusEventosOrganizador = async () => {
+    const response = await axios.get(
+        `${API_URL}/api/eventos/minhas/organizador/`,
+        {
+            withCredentials: true,
+        },
+    );
+    return response.data;
+};
+
 export const criarEvento = async (dados) => {
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';

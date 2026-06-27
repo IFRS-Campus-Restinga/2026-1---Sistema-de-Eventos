@@ -12,11 +12,12 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import {
     buscarEventoPorId,
     listarMeusEventosCoordenador,
+    listarMeusEventosOrganizador,
 } from '../../services/eventoService';
 import { checkSession } from '../../services/authService';
 import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
 
-const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
+const ADMIN_GROUPS = ['Administrador', 'Coordenador', 'Organizador'];
 
 function ItensGestaoRecentes({ navigate, admin, coord, permitidoIds = [] }) {
     const [itens, setItens] = useState([]);
@@ -53,7 +54,7 @@ function ItensGestaoRecentes({ navigate, admin, coord, permitidoIds = [] }) {
         }
 
         carregar();
-    }, [permitidoIds]);
+    }, [admin, coord, permitidoIds]);
 
     return (
         <>
@@ -304,21 +305,33 @@ export default function NavBar() {
             }
 
             const listaEventos = await listarMeusEventosAvaliador();
-            const eventosCoordenador = await listarMeusEventosCoordenador();
+            const [eventosCoordenador, eventosOrganizador] = await Promise.all([
+                listarMeusEventosCoordenador().catch(() => []),
+                listarMeusEventosOrganizador().catch(() => []),
+            ]);
             if (!isMounted) return;
 
             setEventosAvaliador(
                 Array.isArray(listaEventos) ? listaEventos : [],
             );
-            setEventosPermitidosGestao(
-                Array.isArray(eventosCoordenador)
-                    ? eventosCoordenador
-                          .map((evento) =>
-                              String(evento?.id ?? evento?.evento_id ?? ''),
-                          )
-                          .filter(Boolean)
-                    : [],
-            );
+            setEventosPermitidosGestao([
+                ...new Set([
+                    ...(Array.isArray(eventosCoordenador)
+                        ? eventosCoordenador
+                              .map((evento) =>
+                                  String(evento?.id ?? evento?.evento_id ?? ''),
+                              )
+                              .filter(Boolean)
+                        : []),
+                    ...(Array.isArray(eventosOrganizador)
+                        ? eventosOrganizador
+                              .map((evento) =>
+                                  String(evento?.id ?? evento?.evento_id ?? ''),
+                              )
+                              .filter(Boolean)
+                        : []),
+                ]),
+            ]);
         } catch {
             if (isMounted) {
                 setIsAuthenticated(false);

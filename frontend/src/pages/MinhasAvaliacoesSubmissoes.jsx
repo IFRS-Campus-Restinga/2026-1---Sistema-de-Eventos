@@ -6,8 +6,8 @@ import Card from '../components/common/Card';
 import Tabela from '../components/common/Tabela';
 import Tag from '../components/common/Tag';
 import ModalPopup from '../components/common/ModalPopup';
-import { FaPenNib } from 'react-icons/fa';
-import { MdCheckCircle } from 'react-icons/md';
+import { TbPencil } from 'react-icons/tb';
+import { FaRegCircleCheck } from 'react-icons/fa6';
 import { BsEyeFill } from 'react-icons/bs';
 import { useState, useEffect } from 'react';
 import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
@@ -56,121 +56,253 @@ export default function MinhasAvaliacoesSubmissoes() {
         }
     }, [eventoId, carregarSubmissoesParaEvento]);
 
-    const personalizarInformacoes = (d) => (
-        <>
-            <Row className="p-0 m-0">
-                <Col className="p-0 m-0 fw-bold">{d?.titulo}</Col>
-            </Row>
+    const obterNomesIntegrantes = (item) => {
+        const nomes = [];
 
-            <Row className="p-0 m-0">
-                <Col className="p-0 m-0">
-                    {d?.tipo || d?.modalidade || 'Modalidade'} |{' '}
-                    {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
-                </Col>
+        const adicionarNome = (valor) => {
+            if (typeof valor === 'string' && valor.trim()) {
+                nomes.push(valor.trim());
+            }
+        };
 
-                <Col className="p-0 m-0">
-                    <Link
-                        className="text-decoration-none d-flex align-items-center"
-                        to="#"
-                    >
-                        <BsEyeFill />
-                        <span
-                            className="ms-2"
-                            onClick={() => {
-                                setSelectedSubmissao(d);
-                                setModalAtivo(true);
-                            }}
+        const autorias = Array.isArray(item?.autorias) ? item.autorias : [];
+        autorias.forEach((autoria) => {
+            adicionarNome(autoria?.nome);
+            adicionarNome(autoria?.usuario_nome);
+            adicionarNome(autoria?.autor);
+            adicionarNome(autoria?.nome_completo);
+        });
+
+        adicionarNome(item?.autor_nome);
+        adicionarNome(item?.autor);
+        adicionarNome(item?.nome_autor);
+
+        if (Array.isArray(item?.equipe)) {
+            item.equipe.forEach((membro) => {
+                adicionarNome(membro?.nome);
+                adicionarNome(membro?.usuario_nome);
+                adicionarNome(membro?.autor);
+            });
+        }
+
+        return [...new Set(nomes)];
+    };
+
+    const personalizarInformacoes = (d) => {
+        const nomesIntegrantes = obterNomesIntegrantes(d);
+
+        return (
+            <>
+                <Row className="p-0 m-0">
+                    <Col className="p-0 m-0 fw-bold">{d?.titulo}</Col>
+                </Row>
+
+                <Row className="p-0 m-0">
+                    <Col className="p-0 m-0">
+                        {d?.tipo || d?.modalidade || 'Modalidade'} |{' '}
+                        {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
+                        {nomesIntegrantes.length > 0 ? (
+                            <div className="text-muted small mt-1">
+                                {nomesIntegrantes.length === 1
+                                    ? 'Autor: '
+                                    : 'Integrantes: '}
+                                {nomesIntegrantes.join(', ')}
+                            </div>
+                        ) : null}
+                    </Col>
+
+                    <Col className="p-0 m-0">
+                        <Link
+                            className="text-decoration-none d-flex align-items-center"
+                            to="#"
                         >
-                            Ler resumo completo
-                        </span>
-                    </Link>
-                </Col>
-            </Row>
-        </>
-    );
+                            <BsEyeFill />
+                            <span
+                                className="ms-2"
+                                onClick={() => {
+                                    setSelectedSubmissao(d);
+                                    setModalAtivo(true);
+                                }}
+                            >
+                                Ler resumo completo
+                            </span>
+                        </Link>
+                    </Col>
+                </Row>
+            </>
+        );
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
-            <main className="py-4">
+            <main className="mb-5">
                 <Container
                     fluid
-                    className="d-md-flex flex-md-column align-items-md-center gap-3"
+                    className="d-md-flex flex-md-column align-items-md-center gap-3 p-0"
                 >
-                    <Row>
-                        <Col>
-                            <h1
-                                className="fw-bold mt-3 text-center"
-                                style={{ color: '#059547' }}
+                    <Row className="w-100">
+                        <Col className="p-0">
+                            <section
+                                style={{
+                                    backgroundImage:
+                                        'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                                    color: '#ffffff',
+                                    padding: '1.5rem 4.75rem',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
                             >
-                                Avaliações de Submissões
-                            </h1>
-                        </Col>
-                    </Row>
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        position: 'absolute',
+                                        width: '24rem',
+                                        height: '24rem',
+                                        left: '-5rem',
+                                        top: '10rem',
+                                        borderRadius: '999px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        position: 'absolute',
+                                        width: '18rem',
+                                        height: '18rem',
+                                        right: '-5rem',
+                                        bottom: '-8rem',
+                                        borderRadius: '999px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                <div
+                                    className="position-relative mx-auto text-center"
+                                    style={{
+                                        position: 'relative',
+                                        zIndex: 1,
+                                        maxWidth: '52rem',
+                                    }}
+                                >
+                                    <h1
+                                        className="fw-bold text-white"
+                                        style={{
+                                            fontSize:
+                                                'clamp(2.75rem, 6vw, 3.8rem)',
+                                            lineHeight: 0.8,
+                                            margin: '0 0 0.9rem',
+                                        }}
+                                    >
+                                        Avaliações de Submissões
+                                    </h1>
+                                    <p className="fs-5">
+                                        Acompanhe submissões pendentes e
+                                        concluídas para avaliação.
+                                    </p>
+                                    <div>
+                                        <div className="d-flex justify-content-center">
+                                            <div
+                                                className="d-flex justify-content-center flex-wrap z-1"
+                                                style={{ gap: '16px' }}
+                                            >
+                                                <div
+                                                    className="d-flex align-items-center rounded-3 p-4"
+                                                    style={{
+                                                        background:
+                                                            'rgba(255, 255, 255, 0.10)',
+                                                        border: '0.5px solid rgba(255,255,255,0.20)',
+                                                        gap: '12px',
+                                                        padding: '1rem 1.5rem;',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="p-2 rounded-3"
+                                                        style={{
+                                                            background:
+                                                                'rgba(255,255,255,0.12)',
+                                                        }}
+                                                    >
+                                                        <TbPencil
+                                                            size={45}
+                                                            color="#ffffff"
+                                                        />
+                                                    </div>
 
-                    <Row>
-                        <Col className="d-md-flex gap-5">
-                            <Card
-                                corBorda="#003366"
-                                largura={!isMobile ? 350 : undefined}
-                                height={110}
-                            >
-                                <Container className="d-flex justify-content-evenly mt-3">
-                                    <div className="d-flex flex-column">
-                                        <span className="text-secondary small fw-bold">
-                                            PARA AVALIAR
-                                        </span>
-                                        <span className="fw-bold fs-1 text-dark">
-                                            {
-                                                (submissoes || []).filter(
-                                                    (s) =>
-                                                        s.status !==
-                                                            'avaliada' &&
-                                                        s.avaliacao_disponivel,
-                                                ).length
-                                            }
-                                        </span>
-                                    </div>
-                                    <div className="d-flex align-items-center">
-                                        <FaPenNib size={40} color="#003366" />
-                                    </div>
-                                </Container>
-                            </Card>
+                                                    <div>
+                                                        <div className="fs-4 fw-bold">
+                                                            Para avaliar
+                                                        </div>
+                                                        <div className="fs-2 fw-bold">
+                                                            {
+                                                                (
+                                                                    submissoes ||
+                                                                    []
+                                                                ).filter(
+                                                                    (s) =>
+                                                                        s.status !==
+                                                                            'avaliada' &&
+                                                                        s.avaliacao_disponivel,
+                                                                ).length
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="d-flex align-items-center rounded-3 p-4"
+                                                    style={{
+                                                        background:
+                                                            'rgba(255, 255, 255, 0.10)',
+                                                        border: '0.5px solid rgba(255,255,255,0.20)',
+                                                        gap: '12px',
+                                                        padding: '1rem 1.5rem;',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="p-2 rounded-3"
+                                                        style={{
+                                                            background:
+                                                                'rgba(255,255,255,0.12)',
+                                                        }}
+                                                    >
+                                                        <FaRegCircleCheck
+                                                            size={45}
+                                                            color="#ffffff"
+                                                        />
+                                                    </div>
 
-                            <Card
-                                corBorda="#059547"
-                                largura={!isMobile ? 350 : undefined}
-                                height={110}
-                            >
-                                <Container className="d-flex justify-content-evenly mt-3">
-                                    <div className="d-flex flex-column">
-                                        <span className="text-secondary small fw-bold">
-                                            AVALIAÇÕES CONCLUÍDAS
-                                        </span>
-                                        <span className="fw-bold fs-1 text-success">
-                                            {
-                                                (submissoes || []).filter(
-                                                    (s) =>
-                                                        s.status === 'avaliada',
-                                                ).length
-                                            }
-                                        </span>
+                                                    <div>
+                                                        <div className="text-end fs-4 fw-bold">
+                                                            Concluídas
+                                                        </div>
+                                                        <div className="fs-2 fw-bold">
+                                                            {
+                                                                (
+                                                                    submissoes ||
+                                                                    []
+                                                                ).filter(
+                                                                    (s) =>
+                                                                        s.status ===
+                                                                        'avaliada',
+                                                                ).length
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="d-flex align-items-center">
-                                        <MdCheckCircle
-                                            size={45}
-                                            color="#059547"
-                                        />
-                                    </div>
-                                </Container>
-                            </Card>
+                                </div>
+                            </section>
                         </Col>
                     </Row>
 
                     <Row className="w-75 mt-4 ps-2">
                         <Col>
                             <span className="fw-bold fs-4 text-dark">
-                                Trabalhos Científicos Designados
+                                Minhas Avaliações
                             </span>
                         </Col>
                     </Row>
@@ -379,6 +511,18 @@ export default function MinhasAvaliacoesSubmissoes() {
                                 corFundo="#003366"
                                 corTexto="#fff"
                             />
+                        </Col>
+                    </Row>
+                    <Row className="mt-2">
+                        <Col>
+                            <span className="fw-bold text-dark d-block mb-1">
+                                Integrantes
+                            </span>
+                            <p className="text-secondary small mb-0">
+                                {obterNomesIntegrantes(selectedSubmissao).join(
+                                    ', ',
+                                ) || '—'}
+                            </p>
                         </Col>
                     </Row>
                     <Row className="mt-2">

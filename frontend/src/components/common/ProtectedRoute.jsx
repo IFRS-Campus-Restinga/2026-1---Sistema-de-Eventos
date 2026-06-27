@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { checkSession, redirectToLogin } from '../../services/authService';
 import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
-import { listarMeusEventosCoordenador } from '../../services/eventoService';
+import {
+    listarMeusEventosCoordenador,
+    listarMeusEventosOrganizador,
+} from '../../services/eventoService';
 
 const GRUPOS_VAZIOS = [];
 
@@ -64,29 +67,55 @@ export default function ProtectedRoute({
                                     'eventoId',
                                 ) ||
                                 new URLSearchParams(location.search).get('id');
-                            const ehCoordenador =
-                                gruposDoUsuario.includes('Coordenador') &&
-                                !gruposDoUsuario.includes('Administrador');
+                            const ehAdministrador =
+                                gruposDoUsuario.includes('Administrador');
+                            const ehGestorEvento =
+                                gruposDoUsuario.includes('Coordenador') ||
+                                gruposDoUsuario.includes('Organizador');
 
-                            if (eventoId && ehCoordenador) {
-                                const eventosCoordenador =
-                                    await listarMeusEventosCoordenador();
-                                const idsPermitidos = Array.isArray(
-                                    eventosCoordenador,
-                                )
-                                    ? eventosCoordenador
-                                          .map((evento) =>
-                                              String(
-                                                  evento?.id ??
-                                                      evento?.evento_id ??
-                                                      '',
-                                              ),
-                                          )
-                                          .filter(Boolean)
-                                    : [];
+                            if (
+                                eventoId &&
+                                !ehAdministrador &&
+                                ehGestorEvento
+                            ) {
+                                const [eventosCoordenador, eventosOrganizador] =
+                                    await Promise.all([
+                                        listarMeusEventosCoordenador().catch(
+                                            () => [],
+                                        ),
+                                        listarMeusEventosOrganizador().catch(
+                                            () => [],
+                                        ),
+                                    ]);
+                                const idsPermitidos = [
+                                    ...(Array.isArray(eventosCoordenador)
+                                        ? eventosCoordenador
+                                              .map((evento) =>
+                                                  String(
+                                                      evento?.id ??
+                                                          evento?.evento_id ??
+                                                          '',
+                                                  ),
+                                              )
+                                              .filter(Boolean)
+                                        : []),
+                                    ...(Array.isArray(eventosOrganizador)
+                                        ? eventosOrganizador
+                                              .map((evento) =>
+                                                  String(
+                                                      evento?.id ??
+                                                          evento?.evento_id ??
+                                                          '',
+                                                  ),
+                                              )
+                                              .filter(Boolean)
+                                        : []),
+                                ];
 
                                 setTemAcessoEvento(
-                                    idsPermitidos.includes(String(eventoId)),
+                                    [...new Set(idsPermitidos)].includes(
+                                        String(eventoId),
+                                    ),
                                 );
                             } else {
                                 setTemAcessoEvento(true);
@@ -133,6 +162,7 @@ export default function ProtectedRoute({
         permitirAvaliador,
         validarAcessoEvento,
         params?.id,
+        params?.eventoId,
         location.search,
     ]);
 
