@@ -79,6 +79,9 @@ class SubmissaoHomologarView(APIView):
         atracao.status = StatusAtracao.CONFIRMADA
         atracao.save(update_fields=["status"])
 
+        atracao.evento = submissao.evento
+        atracao.save(update_fields=["evento"])
+
         # Homologar também converte o status da submissão
         submissao.status_submissao = StatusSubmissao.CONVERTIDA_EM_ATRACAO
         submissao.save(update_fields=["status_submissao"])
@@ -138,9 +141,7 @@ class SubmissaoListView(APIView):
         return str(value).strip().lower() in {"1", "true", "sim", "yes"}
 
     def _base_queryset(self):
-        return Submissao.objects.select_related(
-            "evento", "modalidade", "orientador"
-        ).exclude(status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO)
+        return Submissao.objects.select_related("evento", "modalidade", "orientador")
 
     def _scoped_queryset(self, request):
         user = request.user

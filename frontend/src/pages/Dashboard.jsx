@@ -253,7 +253,9 @@ export default function Dashboard() {
                                             Submissões
                                         </span>
                                         <span className="fw-bold fs-3 text-black">
-                                            mock
+                                            {dashboard?.metricas
+                                                ?.total_submissoes ||
+                                                'sem atrações'}
                                         </span>
                                         <span>Submetidas</span>
                                     </Col>

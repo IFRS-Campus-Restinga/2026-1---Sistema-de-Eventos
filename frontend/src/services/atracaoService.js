@@ -128,6 +128,7 @@ export const listarAtracoes = async (eventoId = null, params = {}) => {
         : { ...params };
     const response = await axios.get(`${API_URL}/api/atracoes/`, {
         params: queryParams,
+        withCredentials: true,
     });
     return response.data;
 };

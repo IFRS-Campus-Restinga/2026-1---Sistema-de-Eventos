@@ -75,11 +75,11 @@ export default function ListarAtracoes() {
     const [atracaoSelecionada, setAtracaoSelecionada] = useState(null);
     const [usuarioLogado, setUsuarioLogado] = useState(null);
     const [bloqueioExclusao, setBloqueioExclusao] = useState({});
-    const [bloqueioEdicao, setBloqueioEdicao] = useState({});
 
     // Filtros e ordenação
     const [filtroStatus, setFiltroStatus] = useState('');
-    const [filtroAutor, setFiltroAutor] = useState('');
+    const [filtroAutor] = useState('');
+
     const [filtroModalidade, setFiltroModalidade] = useState('');
     const [filtroNivel, setFiltroNivel] = useState('');
     const [ordenacao, setOrdenacao] = useState('criacao');
@@ -115,7 +115,6 @@ export default function ListarAtracoes() {
     const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
     const [avaliacoesItensMap, setAvaliacoesItensMap] = useState({});
 
-    const eventoFiltroId = getSelectedEventoId();
     const gruposUsuarioNormalizados = useMemo(() => {
         const grupos = Array.isArray(usuarioLogado?.groups)
             ? usuarioLogado.groups
@@ -125,16 +124,6 @@ export default function ListarAtracoes() {
             .filter(Boolean)
             .map((group) => String(group).trim().toLowerCase());
     }, [usuarioLogado]);
-
-    const eventoSelecionadoLista = useMemo(() => {
-        if (!eventoFiltroId) return null;
-
-        return (
-            eventosEdicao.find(
-                (evento) => String(evento.id) === String(eventoFiltroId),
-            ) || null
-        );
-    }, [eventosEdicao, eventoFiltroId]);
 
     const contarPalavras = (texto) =>
         texto
@@ -193,7 +182,14 @@ export default function ListarAtracoes() {
         } finally {
             setCarregando(false);
         }
-    }, [mostrarAlerta, ehSubmissoes, filtroStatus, filtroModalidade, termoBusca, ordenacao]);
+    }, [
+        mostrarAlerta,
+        ehSubmissoes,
+        filtroStatus,
+        filtroModalidade,
+        termoBusca,
+        ordenacao,
+    ]);
 
     useEffect(() => {
         carregarAtracoes();
@@ -380,7 +376,7 @@ export default function ListarAtracoes() {
 
     const opcoesStatusEdicao = ehSubmissoes
         ? [
-                            { value: '', label: 'Selecione uma ação' },
+              { value: '', label: 'Selecione uma ação' },
               { value: 'APROVADA', label: 'Aceita' },
               { value: 'REPROVADA', label: 'Rejeitada' },
           ]
@@ -709,10 +705,6 @@ export default function ListarAtracoes() {
 
         // Ordenação local apenas para campos sem suporte backend
         if (ordenacao === 'autor') {
-            resultado.sort((a, b) =>
-                (a.titulo || '').localeCompare(b.titulo || ''),
-            );
-        } else if (ordenacao === 'autor') {
             resultado.sort((a, b) => {
                 const autorA = (
                     (a.autorias || a.equipe || [])[0]?.nome || ''
@@ -743,12 +735,7 @@ export default function ListarAtracoes() {
         }
 
         return resultado;
-    }, [
-        atracoes,
-        filtroAutor,
-        filtroNivel,
-        ordenacao,
-    ]);
+    }, [atracoes, filtroAutor, filtroNivel, ordenacao]);
 
     useEffect(() => {
         setPaginaAtual(1);
@@ -1014,7 +1001,9 @@ export default function ListarAtracoes() {
         try {
             setSalvandoEdicao(true);
             if (ehSubmissoes) {
-                const statusDestino = String(formEdicao.status || '').toUpperCase();
+                const statusDestino = String(
+                    formEdicao.status || '',
+                ).toUpperCase();
 
                 if (!statusDestino) {
                     await editarSubmissao(formEdicao.id, formEdicao);
@@ -1029,9 +1018,12 @@ export default function ListarAtracoes() {
                 ) {
                     await homologarSubmissao(formEdicao.id, formEdicao);
                 } else if (
-                    ['REPROVADA', 'REPROVADO', 'REJEITADA', 'REJEITADO'].includes(
-                        statusDestino,
-                    )
+                    [
+                        'REPROVADA',
+                        'REPROVADO',
+                        'REJEITADA',
+                        'REJEITADO',
+                    ].includes(statusDestino)
                 ) {
                     await reprovarSubmissao(formEdicao.id, formEdicao);
                 } else {
@@ -1099,6 +1091,7 @@ export default function ListarAtracoes() {
             const dados = await listarAvaliacoesSubmissao({
                 submissao: atracao.id,
             });
+
             const avals = dados || [];
             setAvaliacoesLista(avals);
 
@@ -1117,7 +1110,7 @@ export default function ListarAtracoes() {
                                 )?.nome || `Critério ${it.criterio_avaliacao}`,
                         }));
                         return [a.id, itensComCriterio];
-                    } catch (e) {
+                    } catch {
                         return [a.id, []];
                     }
                 }),

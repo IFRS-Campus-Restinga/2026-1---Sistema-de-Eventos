@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import (
     assign_perm,
@@ -20,6 +19,7 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.perfil import Perfil
 from ..serializers.atracao_serializer import AtracaoSerializer
+from ..enumerations.status_atracao import StatusAtracao
 from ..services.submissao_atracao_policy import (
     STATUS_EDICAO_COORDENADOR,
     STATUS_EDICAO_USUARIO,
@@ -43,15 +43,7 @@ class AtracaoListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _base_queryset(self):
-        return Atracao.objects.filter(
-            submissao__isnull=False,
-            submissao__status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO,
-        ).select_related(
-            "submissao",
-            "submissao__modalidade",
-            "submissao__evento",
-            "espaco",
-        )
+        return Atracao.objects.all().exclude(status=StatusAtracao.PREVISTA)
 
     ORDENACAO_MAP = {
         "criacao": "-id",
@@ -70,23 +62,11 @@ class AtracaoListView(APIView):
         atracoes = self._base_queryset()
 
         if evento_id:
-            atracoes = atracoes.filter(submissao__evento_id=evento_id)
-
-        if busca:
-            atracoes = atracoes.filter(
-                Q(submissao__titulo__icontains=busca)
-                | Q(submissao__resumo__icontains=busca)
-                | Q(submissao__palavras_chave__icontains=busca)
-            )
-
-        if status_param:
-            atracoes = atracoes.filter(status=status_param)
-
-        if modalidade_id:
-            atracoes = atracoes.filter(submissao__modalidade_id=modalidade_id)
-
-        campo_ordem = self.ORDENACAO_MAP.get(ordenar, self.ORDENACAO_MAP["criacao"])
-        atracoes = atracoes.order_by(campo_ordem)
+            atracoes = self._base_queryset().filter(
+                evento_id=evento_id
+            )  # atrações de um evento específico
+        else:
+            atracoes = self._base_queryset()  # retorna todas as atrações
 
         serializer = AtracaoSerializer(atracoes, many=True)
         return Response(serializer.data)
