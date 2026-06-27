@@ -34,6 +34,11 @@ import {
     listarItensAvaliacaoSubmissao,
     pegarCriteriosSubmissaoPorModalidade,
 } from '../services/avaliacaoSubmissaoService';
+import {
+    listarAvaliacoesAtracao,
+    listarItensAvaliacaoAtracao,
+    pegarCriteriosPorModalidade,
+} from '../services/avaliacaoAtracaoService';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
 import {
@@ -89,6 +94,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
     const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
     const [avaliacoesLista, setAvaliacoesLista] = useState([]);
     const [avaliacoesItensMap, setAvaliacoesItensMap] = useState({});
+    const [avaliacoesDisponiveisMap, setAvaliacoesDisponiveisMap] = useState(
+        {},
+    );
     const [tipoListagem, setTipoListagem] = useState('atracoes');
     const [termoBusca, setTermoBusca] = useState('');
     const [filtroStatus, setFiltroStatus] = useState('');
@@ -835,26 +843,100 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         return mapa[status] || '#6c757d';
     };
 
-    const abrirModalAvaliacoes = async (item) => {
+    const getChaveAvaliacaoItem = (item, tipo) => `${tipo}-${item?.id}`;
+
+    const verificarAvaliacoesDisponiveis = async (item, tipo) => {
+        if (!item?.id) return false;
+
+        const chave = getChaveAvaliacaoItem(item, tipo);
+
+        try {
+            let avals = [];
+
+            if (tipo === 'atracoes') {
+                const dados = await listarAvaliacoesAtracao({
+                    atracao: item.id,
+                });
+                avals = Array.isArray(dados) ? dados : [];
+            } else {
+                const dados = await listarAvaliacoesSubmissao({
+                    submissao: item.id,
+                });
+                avals = Array.isArray(dados) ? dados : [];
+            }
+
+            const temAvaliacoes =
+                avals.length > 0 ||
+                Boolean(
+                    item?.avaliacoes?.length ||
+                        item?.avaliacao?.length ||
+                        item?.avaliacoes_atracao?.length ||
+                        item?.avaliacoes_submissao?.length,
+                );
+
+            setAvaliacoesDisponiveisMap((prev) => ({
+                ...prev,
+                [chave]: temAvaliacoes,
+            }));
+            return temAvaliacoes;
+        } catch (error) {
+            console.error('Erro ao verificar avaliações:', error);
+            setAvaliacoesDisponiveisMap((prev) => ({
+                ...prev,
+                [chave]: false,
+            }));
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const itensAtuais =
+            tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
+
+        if (!Array.isArray(itensAtuais) || itensAtuais.length === 0) {
+            setAvaliacoesDisponiveisMap({});
+            return;
+        }
+
+        setAvaliacoesDisponiveisMap({});
+
+        itensAtuais.forEach((item) => {
+            verificarAvaliacoesDisponiveis(item, tipoListagem);
+        });
+    }, [tipoListagem, atracoesInscritas, submissoes]);
+
+    const abrirModalAvaliacoes = async (item, tipo = tipoListagem) => {
         if (!item?.id) return;
         setMostrarModalAvaliacoes(true);
         setCarregandoAvaliacoes(true);
 
         try {
-            const dados = await listarAvaliacoesSubmissao({
-                submissao: item.id,
-            });
+            let dados = [];
+            let criterios = [];
+            let listarItens = null;
+            let paramAvaliacao = null;
+            let tipoItem = 'submissão';
+
+            if (tipo === 'atracoes') {
+                tipoItem = 'atração';
+                dados = await listarAvaliacoesAtracao({ atracao: item.id });
+                criterios = await pegarCriteriosPorModalidade();
+                listarItens = listarItensAvaliacaoAtracao;
+                paramAvaliacao = 'avaliacao_atracao';
+            } else {
+                dados = await listarAvaliacoesSubmissao({ submissao: item.id });
+                criterios = await pegarCriteriosSubmissaoPorModalidade();
+                listarItens = listarItensAvaliacaoSubmissao;
+                paramAvaliacao = 'avaliacao_submissao';
+            }
+
             const avals = Array.isArray(dados) ? dados : [];
             setAvaliacoesLista(avals);
-
-            const criterios = await pegarCriteriosSubmissaoPorModalidade();
 
             const itensPorAvaliacaoEntries = await Promise.all(
                 avals.map(async (avaliacao) => {
                     try {
-                        const itens = await listarItensAvaliacaoSubmissao(
-                            avaliacao.id,
-                        );
+                        const itens = await listarItens(avaliacao.id);
                         const itensComCriterio = (itens || []).map((it) => ({
                             ...it,
                             criterio_nome:
@@ -876,8 +958,7 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
             setAvaliacoesLista([]);
             setAvaliacoesItensMap({});
             setAlerta({
-                mensagem:
-                    'Não foi possível carregar as avaliações desta submissão.',
+                mensagem: `Não foi possível carregar as avaliações desta ${tipoItem}.`,
                 variacao: 'danger',
             });
         } finally {
@@ -1439,25 +1520,31 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                                         Inscritos
                                                                     </Button>
                                                                 )}
-                                                            {tipoListagem ===
-                                                                'submissoes' && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline-success"
-                                                                    className="fw-bold px-3 py-1"
-                                                                    onClick={(
-                                                                        event,
-                                                                    ) => {
-                                                                        event.stopPropagation();
-                                                                        abrirModalAvaliacoes(
-                                                                            item,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    Ver
-                                                                    Avaliações
-                                                                </Button>
-                                                            )}
+                                                            {(tipoListagem ===
+                                                                'atracoes' ||
+                                                                tipoListagem ===
+                                                                    'submissoes') &&
+                                                                avaliacoesDisponiveisMap[
+                                                                    `${tipoListagem}-${item?.id}`
+                                                                ] && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline-success"
+                                                                        className="fw-bold px-3 py-1"
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) => {
+                                                                            event.stopPropagation();
+                                                                            abrirModalAvaliacoes(
+                                                                                item,
+                                                                                tipoListagem,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Ver
+                                                                        Avaliações
+                                                                    </Button>
+                                                                )}
                                                             {podeEditarItem(
                                                                 item,
                                                             ) && (
@@ -1545,7 +1632,7 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                         </div>
                     ) : avaliacoesLista.length === 0 ? (
                         <p className="text-muted">
-                            Nenhuma avaliação disponível para esta submissão.
+                            Nenhuma avaliação disponível para esta item.
                         </p>
                     ) : (
                         <div>
