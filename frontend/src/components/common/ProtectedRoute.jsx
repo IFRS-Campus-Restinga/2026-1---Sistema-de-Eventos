@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import { checkSession, redirectToLogin } from '../../services/authService';
 import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
+import { listarMeusEventosCoordenador } from '../../services/eventoService';
 
 const GRUPOS_VAZIOS = [];
 
@@ -13,12 +14,15 @@ export default function ProtectedRoute({
     gruposPermitidos = GRUPOS_VAZIOS,
     permitirAvaliador = false,
     redirectUnauthorizedTo = '/',
+    validarAcessoEvento = false,
 }) {
     const location = useLocation();
+    const params = useParams();
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [temAcessoAvaliador, setTemAcessoAvaliador] = useState(false);
+    const [temAcessoEvento, setTemAcessoEvento] = useState(true);
 
     useEffect(() => {
         let ativo = true;
@@ -50,17 +54,59 @@ export default function ProtectedRoute({
 
                     if (!result?.authenticated) {
                         setTemAcessoAvaliador(false);
-                    } else if (temGrupoPermitido || !permitirAvaliador) {
-                        setTemAcessoAvaliador(false);
+                        setTemAcessoEvento(false);
                     } else {
-                        const eventosAvaliador =
-                            await listarMeusEventosAvaliador();
+                        if (validarAcessoEvento) {
+                            const eventoId =
+                                params?.id ||
+                                params?.eventoId ||
+                                new URLSearchParams(location.search).get(
+                                    'eventoId',
+                                ) ||
+                                new URLSearchParams(location.search).get('id');
+                            const ehCoordenador =
+                                gruposDoUsuario.includes('Coordenador') &&
+                                !gruposDoUsuario.includes('Administrador');
 
-                        if (ativo) {
-                            setTemAcessoAvaliador(
-                                Array.isArray(eventosAvaliador) &&
-                                    eventosAvaliador.length > 0,
-                            );
+                            if (eventoId && ehCoordenador) {
+                                const eventosCoordenador =
+                                    await listarMeusEventosCoordenador();
+                                const idsPermitidos = Array.isArray(
+                                    eventosCoordenador,
+                                )
+                                    ? eventosCoordenador
+                                          .map((evento) =>
+                                              String(
+                                                  evento?.id ??
+                                                      evento?.evento_id ??
+                                                      '',
+                                              ),
+                                          )
+                                          .filter(Boolean)
+                                    : [];
+
+                                setTemAcessoEvento(
+                                    idsPermitidos.includes(String(eventoId)),
+                                );
+                            } else {
+                                setTemAcessoEvento(true);
+                            }
+                        } else {
+                            setTemAcessoEvento(true);
+                        }
+
+                        if (temGrupoPermitido || !permitirAvaliador) {
+                            setTemAcessoAvaliador(false);
+                        } else {
+                            const eventosAvaliador =
+                                await listarMeusEventosAvaliador();
+
+                            if (ativo) {
+                                setTemAcessoAvaliador(
+                                    Array.isArray(eventosAvaliador) &&
+                                        eventosAvaliador.length > 0,
+                                );
+                            }
                         }
                     }
                 }
@@ -82,7 +128,13 @@ export default function ProtectedRoute({
         return () => {
             ativo = false;
         };
-    }, [gruposPermitidos, permitirAvaliador]);
+    }, [
+        gruposPermitidos,
+        permitirAvaliador,
+        validarAcessoEvento,
+        params?.id,
+        location.search,
+    ]);
 
     useEffect(() => {
         if (loading || isAuthenticated) return;
@@ -118,7 +170,10 @@ export default function ProtectedRoute({
         return <Navigate to={redirectTo} replace state={{ from: location }} />;
     }
 
-    if (!temGrupoPermitido && !temPermissaoAvaliador) {
+    if (
+        (validarAcessoEvento && !temAcessoEvento) ||
+        (!temGrupoPermitido && !temPermissaoAvaliador)
+    ) {
         return (
             <Navigate
                 to={redirectUnauthorizedTo}

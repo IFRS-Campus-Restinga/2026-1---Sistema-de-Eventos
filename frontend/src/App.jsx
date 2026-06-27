@@ -52,6 +52,16 @@ function App() {
         </ProtectedRoute>
     );
 
+    const protegidoPorEvento = (rota, gruposPermitidos = ADMIN_GROUPS) => (
+        <ProtectedRoute
+            gruposPermitidos={gruposPermitidos}
+            validarAcessoEvento
+            redirectUnauthorizedTo="/listar_eventos"
+        >
+            {rota}
+        </ProtectedRoute>
+    );
+
     const protegidoComAvaliador = (rota, gruposPermitidos) => (
         <ProtectedRoute gruposPermitidos={gruposPermitidos} permitirAvaliador>
             {rota}
@@ -90,15 +100,15 @@ function App() {
                 {/* Eventos (criacao/edicao) */}
                 {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
-                <Route path="/dashboard/:id" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id" element={protegidoPorEvento(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={<AdicionarEvento />} />
-                <Route path="/editar_evento/:id" element={protegido(<AdicionarEvento />,ADMIN_GROUPS)} />
+                <Route path="/editar_evento/:id" element={protegidoPorEvento(<AdicionarEvento />,ADMIN_GROUPS)} />
                 <Route path="/listar_eventos" element={protegido(<ListarEvento />, ADMIN_GROUPS)} />
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
                 <Route path="/programacao_evento/:id" element={<ProgramacaoEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
-                <Route path="/dashboard/:id/enviar_emails" element={protegido(<EnviarEmails />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id/enviar_emails" element={protegidoPorEvento(<EnviarEmails />, ADMIN_GROUPS)} />
                 <Route path="/configurar_templates" element={protegido(<ConfigurarTemplates />, ADMIN_GROUPS)} />
 
                 {/* Locais & Espacos */}
@@ -141,8 +151,8 @@ function App() {
                 <Route path="/editar_modalidade/:id" element={protegido(<ModalidadeFormulario />, ADMIN_GROUPS)} />
 
                 {/* Atribuicoes / Organizadores */}
-                <Route path="/atribuir_coordenador" element={protegido(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
-                <Route path="/atribuir_organizador" element={protegido(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
+                <Route path="/atribuir_coordenador" element={protegidoPorEvento(<DefinirCoordenadorEvento />, ADMIN_GROUPS)} />
+                <Route path="/atribuir_organizador" element={protegidoPorEvento(<DefinirOrganizadorEvento />, ADMIN_GROUPS)} />
 
                 <Route path="*" element={<SemResultado/>}/>
 
@@ -150,7 +160,7 @@ function App() {
                 <Route path="/teste" element={protegido(<Teste />, ADMIN_GROUPS)} />
 
                 {/* Programação / Sessão de Eventos */}
-                <Route path="/dashboard/:id/sessao_atribuir_data" element={protegido(<SessaoBoard />, ADMIN_GROUPS)} />
+                <Route path="/dashboard/:id/sessao_atribuir_data" element={protegidoPorEvento(<SessaoBoard />, ADMIN_GROUPS)} />
 
 
 

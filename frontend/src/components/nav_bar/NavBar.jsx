@@ -9,18 +9,28 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { obterEventosRecentesAdmin } from '../../utils/selectedEvento';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import { buscarEventoPorId } from '../../services/eventoService';
+import {
+    buscarEventoPorId,
+    listarMeusEventosCoordenador,
+} from '../../services/eventoService';
 import { checkSession } from '../../services/authService';
 import { listarMeusEventosAvaliador } from '../../services/meusAvaliacoesService';
 
 const ADMIN_GROUPS = ['Administrador', 'Coordenador'];
 
-function ItensGestaoRecentes({ navigate, admin, coord }) {
+function ItensGestaoRecentes({ navigate, admin, coord, permitidoIds = [] }) {
     const [itens, setItens] = useState([]);
 
     useEffect(() => {
         async function carregar() {
-            const ids = obterEventosRecentesAdmin() || [];
+            const ids = (obterEventosRecentesAdmin() || []).filter((id) => {
+                const idString = String(id);
+                if (admin) {
+                    return true;
+                }
+                return !permitidoIds.length || permitidoIds.includes(idString);
+            });
+
             if (!ids.length) {
                 setItens([]);
                 return;
@@ -43,7 +53,7 @@ function ItensGestaoRecentes({ navigate, admin, coord }) {
         }
 
         carregar();
-    }, []);
+    }, [permitidoIds]);
 
     return (
         <>
@@ -265,6 +275,7 @@ export default function NavBar() {
     const [Coord, setCoord] = useState(false);
     const [Gestao, setGestao] = useState(false);
     const [eventosAvaliador, setEventosAvaliador] = useState([]);
+    const [eventosPermitidosGestao, setEventosPermitidosGestao] = useState([]);
 
     async function carregarSessao(isMounted = true) {
         try {
@@ -288,20 +299,32 @@ export default function NavBar() {
 
             if (!autenticado) {
                 setEventosAvaliador([]);
+                setEventosPermitidosGestao([]);
                 return;
             }
 
             const listaEventos = await listarMeusEventosAvaliador();
+            const eventosCoordenador = await listarMeusEventosCoordenador();
             if (!isMounted) return;
 
             setEventosAvaliador(
                 Array.isArray(listaEventos) ? listaEventos : [],
+            );
+            setEventosPermitidosGestao(
+                Array.isArray(eventosCoordenador)
+                    ? eventosCoordenador
+                          .map((evento) =>
+                              String(evento?.id ?? evento?.evento_id ?? ''),
+                          )
+                          .filter(Boolean)
+                    : [],
             );
         } catch {
             if (isMounted) {
                 setIsAuthenticated(false);
                 setGestao(false);
                 setEventosAvaliador([]);
+                setEventosPermitidosGestao([]);
             }
         } finally {
             if (isMounted) {
@@ -430,6 +453,7 @@ export default function NavBar() {
                                         navigate={navigate}
                                         admin={isAdmin}
                                         coord={Coord}
+                                        permitidoIds={eventosPermitidosGestao}
                                     />
                                 </NavDropdown>
                             )}
