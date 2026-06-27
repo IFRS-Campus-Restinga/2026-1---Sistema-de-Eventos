@@ -3,10 +3,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import EventoCard from '../components/cards_listagem/EventoCard';
+import HomeCard from '../components/cards_listagem/HomeCard';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
 import { setSelectedEventoId } from '../utils/selectedEvento';
+import {
+    formatarDataEvento,
+    obterStatusHome,
+} from '../utils/homeEventoHelpers';
 import { useEventos } from '../hooks/useEventos';
 import { useMinhasInscricoes } from '../hooks/useMinhasInscricoes';
 
@@ -89,29 +93,27 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                                         inscricao.status !== 'CANCELADA';
 
                                     return (
-                                        <EventoCard
+                                        <HomeCard
                                             key={evento.id}
-                                            titulo={evento.nome}
-                                            data={`Carga Horária: ${evento.carga_horaria}h`}
-                                            faseAtual={
-                                                evento.status_evento ||
-                                                'Em andamento'
+                                            evento={evento}
+                                            destaque={true}
+                                            possuiInscricao={Boolean(inscricao)}
+                                            statusInscricao={inscricao?.status}
+                                            permiteInscricao={false}
+                                            formatarData={formatarDataEvento}
+                                            etapaAtual={
+                                                obterStatusHome(evento)
+                                                    ?.etapaAtual ||
+                                                'Etapa atual'
                                             }
-                                            corFase={
-                                                evento.status_evento ===
-                                                'Aberto'
-                                                    ? '#106D47'
-                                                    : '#6c757d'
-                                            }
-                                            descricao={evento?.descricao}
                                             textoBotao1="Ver minhas participacoes"
+                                            onClick1={() =>
+                                                abrirParticipacoes(evento.id)
+                                            }
                                             textoBotao2={
                                                 podeCancelar
                                                     ? 'Cancelar inscrição'
                                                     : ''
-                                            }
-                                            onClick1={() =>
-                                                abrirParticipacoes(evento.id)
                                             }
                                             onClick2={
                                                 podeCancelar
@@ -124,9 +126,9 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                                                     : undefined
                                             }
                                             desabilitarBotao2={!podeCancelar}
-                                            varianteBotao2="outline-danger"
-                                            statusInscricao={inscricao?.status}
-                                            id={evento.id}
+                                            varianteBotao2="btn-outline-danger"
+                                            corBotao1="#00A44B"
+                                            showDestaqueBadge={false}
                                         />
                                     );
                                 })
