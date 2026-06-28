@@ -5,7 +5,7 @@ export const enviarEmailsService = {
     // Busca as atrações para preencher a tela
     buscarAtracoesPorEvento: async (eventoId) => {
         const resposta = await axios.get(
-            `${API_URL}/api/atracoes/?evento=${eventoId}`,
+            `${API_URL}/api/atracoes/?evento=${eventoId}&com_inscritos=true`,
             {
                 withCredentials: true,
             },

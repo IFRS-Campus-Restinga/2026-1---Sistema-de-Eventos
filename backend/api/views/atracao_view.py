@@ -59,6 +59,7 @@ class AtracaoListView(APIView):
         status_param = request.query_params.get("status")
         modalidade_id = request.query_params.get("modalidade")
         ordenar = request.query_params.get("ordenar", "criacao")
+        com_inscritos = request.query_params.get("com_inscritos")
 
         atracoes = self._base_queryset()
 
@@ -68,6 +69,9 @@ class AtracaoListView(APIView):
             )  # atrações de um evento específico
         else:
             atracoes = self._base_queryset()  # retorna todas as atrações
+
+        if com_inscritos == "true":
+            atracoes = atracoes.filter(inscricoes__isnull=False).distinct()
 
         serializer = AtracaoSerializer(atracoes, many=True)
         return Response(serializer.data)

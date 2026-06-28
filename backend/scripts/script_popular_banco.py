@@ -5,7 +5,6 @@ import subprocess
 import sys
 
 import django
-from django.utils.text import slugify
 
 # Definição de caminhos apartir do S.O
 diretorio_script = os.path.dirname(os.path.abspath(__file__))
@@ -166,13 +165,29 @@ TEMPLATES_SISTEMA_DATA = [
         "nome_exibicao": "E-mail de Boas Vindas",
         "assunto": "Bem-vindo ao Sistema!",
         "corpo_texto": (
-            "Olá, {{ nome_usuario }} {{ sobrenome_usuario }}.\n\n"
+            "Olá, %nome_usuario%.\n\n"
             "Seu cadastro complementar no Sistema de Eventos foi realizado com Sucesso!.\n"
             "Seja muito bem-vindo!"
             "Agora no Site você pode se inscrever e gerenciar os eventos que você participa."
         ),
         "identificador": "welcome_email",
-    }
+        "categoria": "TRANSACIONAL",
+    },
+    {
+        "nome_exibicao": "Comunicado Geral (Atração)",
+        "assunto": "Comunicado geral sobre o evento %nome_evento%",
+        "corpo_texto": (
+            "Prezado(a) %nome_usuario%,\n\n"
+            "Gostaria de comunicar que, em relação ao evento %nome_evento% "
+            "e especificamente sobre o trabalho/atração '%nome_trabalho%', "
+            "temos as seguintes atualizações:\n\n"
+            "[Insira o restante da sua mensagem aqui]\n\n"
+            "Atenciosamente,\n"
+            "Organização do Evento"
+        ),
+        "identificador": "comunicado_geral_atracao",
+        "categoria": "MANUAL",
+    },
 ]
 
 # Dicionário de Mapeamento para as chaves reais salvas no Banco (TextChoices)
@@ -962,12 +977,15 @@ def seed_templates_sistema():
     existing = []
 
     for item in TEMPLATES_SISTEMA_DATA:
-        template, was_created = TemplateSistema.objects.get_or_create(
+        # Se o template já existir e você quiser que a seed o corrija,
+        # utilize update_or_create em vez de get_or_create
+        template, was_created = TemplateSistema.objects.update_or_create(
             identificador=item["identificador"],
             defaults={
                 "nome_exibicao": item["nome_exibicao"],
                 "assunto": item["assunto"],
                 "corpo_texto": item["corpo_texto"],
+                "categoria": item["categoria"],  # <-- Adicione o mapeamento do campo
             },
         )
 
@@ -978,7 +996,7 @@ def seed_templates_sistema():
 
     print("Seed de templates de sistema finalizada.")
     print(f"Criados: {created if created else 'nenhum'}")
-    print(f"Ja existiam: {existing if existing else 'nenhum'}")
+    print(f"Ja existiam/Atualizados: {existing if existing else 'nenhum'}")
 
 
 if __name__ == "__main__":

@@ -1,22 +1,119 @@
-//Bibliotecas
+// Bibliotecas
+import { useState } from 'react';
 import Container from 'react-bootstrap/esm/Container';
 import Row from 'react-bootstrap/esm/Row';
 import Col from 'react-bootstrap/esm/Col';
 import Button from 'react-bootstrap/esm/Button';
 import Form from 'react-bootstrap/Form';
 
-//Componentes comuns
+// Componentes comuns
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import FormularioCustomizado from '../components/custom-form-card/FormularioCustomizado';
 import ModalPopup from '../components/common/ModalPopup';
 
-//Hooks
+// Hooks
 import { useCsrf } from '../hooks/useCsrf';
 import { useConfigurarTemplates } from '../hooks/useConfigurarTemplates';
 
 export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
     const { csrfToken } = useCsrf();
+
+    // Estados do Tutorial
+    const [mostrarTutorial, setMostrarTutorial] = useState(false);
+    const [etapaTutorial, setEtapaTutorial] = useState(0);
+
+    const etapasTutorial = [
+        {
+            titulo: '1. Gerenciamento de Templates',
+            conteudo: (
+                <>
+                    <p>
+                        A coluna da esquerda exibe a lista de templates salvos
+                        no seu perfil.
+                    </p>
+                    <p>
+                        Para editar um template existente, clique sobre o nome
+                        dele na lista. Para criar um modelo em branco, clique no
+                        botão <b>+ Novo</b>.
+                    </p>
+                </>
+            ),
+        },
+        {
+            titulo: '2. Edição de Conteúdo',
+            conteudo: (
+                <>
+                    <p>
+                        A coluna da direita contém o formulário de edição do
+                        template selecionado.
+                    </p>
+                    <ul>
+                        <li>
+                            <b>Nome do Template:</b> É a identificação interna
+                            que aparecerá na lista de seleção.
+                        </li>
+                        <li>
+                            <b>Assunto do E-mail:</b> O título que o
+                            destinatário verá na caixa de entrada.
+                        </li>
+                        <li>
+                            <b>Corpo da Mensagem:</b> O conteúdo principal do
+                            e-mail.
+                        </li>
+                    </ul>
+                </>
+            ),
+        },
+        {
+            titulo: '3. Uso de Tags Dinâmicas',
+            conteudo: (
+                <>
+                    <p>
+                        Ao redigir o template, é possível incluir tags que serão
+                        substituídas por dados reais no momento do envio:
+                    </p>
+                    <ul>
+                        <li>
+                            <code>%nome_usuario%</code> - Nome do destinatário
+                        </li>
+                        <li>
+                            <code>%nome_evento%</code> - Nome do evento
+                        </li>
+                        <li>
+                            <code>%nome_trabalho%</code> - Título da
+                            submissão/atração
+                        </li>
+                        <li>
+                            <code>%autores%</code> - Lista de autores do
+                            trabalho
+                        </li>
+                    </ul>
+                    <p className="text-muted small">
+                        Estas tags garantem que o comunicado seja devidamente
+                        personalizado para cada participante da atração.
+                    </p>
+                </>
+            ),
+        },
+        {
+            titulo: '4. Salvar ou Excluir',
+            conteudo: (
+                <>
+                    <p>
+                        Após preencher as informações, utilize o botão{' '}
+                        <b>Salvar Alterações</b> (ou Salvar Novo Template) para
+                        gravar o registro no sistema.
+                    </p>
+                    <p>
+                        Caso um template não seja mais necessário, selecione-o
+                        na lista e clique em <b>Excluir Template</b>. Esta ação
+                        removerá o modelo permanentemente do seu perfil.
+                    </p>
+                </>
+            ),
+        },
+    ];
 
     // Extração das propriedades e métodos estritamente necessários para o CRUD
     const {
@@ -65,9 +162,63 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
+            {/* Modal do Tutorial */}
+            {mostrarTutorial && (
+                <ModalPopup
+                    show={mostrarTutorial}
+                    titulo={etapasTutorial[etapaTutorial]?.titulo}
+                    textoFechar=""
+                    onFechar={() => {
+                        setMostrarTutorial(false);
+                        setEtapaTutorial(0);
+                    }}
+                >
+                    {etapasTutorial[etapaTutorial]?.conteudo}
+
+                    <div className="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <Button
+                            variant="secondary"
+                            disabled={etapaTutorial === 0}
+                            onClick={() => setEtapaTutorial((prev) => prev - 1)}
+                        >
+                            Anterior
+                        </Button>
+
+                        {etapaTutorial === etapasTutorial.length - 1 ? (
+                            <Button
+                                variant="success"
+                                onClick={() => {
+                                    setMostrarTutorial(false);
+                                    setEtapaTutorial(0);
+                                }}
+                            >
+                                Concluir
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="primary"
+                                onClick={() =>
+                                    setEtapaTutorial((prev) => prev + 1)
+                                }
+                            >
+                                Próximo
+                            </Button>
+                        )}
+                    </div>
+                </ModalPopup>
+            )}
+
             <main className="flex-grow-1 py-4">
                 <Container>
-                    <h2 className="mb-4">Configurar Templates de E-mail</h2>
+                    <div className="d-flex align-items-center gap-3 mb-4">
+                        <h2 className="mb-0">Configurar Templates de E-mail</h2>
+                        <Button
+                            variant="outline-info"
+                            onClick={() => setMostrarTutorial(true)}
+                        >
+                            Como usar?
+                        </Button>
+                    </div>
 
                     <Row>
                         {/* Coluna Esquerda: Listagem de Templates */}
@@ -80,7 +231,6 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.07)',
                             }}
                         >
-                            {/* Removido o ms-3 para alinhar corretamente dentro do novo container */}
                             <div className="d-flex justify-content-between align-items-center mb-4">
                                 <div className="d-flex flex-column text-secondary">
                                     <span className="fw-bold fs-3 text-black">
@@ -91,14 +241,12 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                                 <Button
                                     variant="outline-primary"
                                     size="sm"
-                                    className="mt-2"
                                     onClick={handleNovoTemplate}
                                 >
                                     + Novo
                                 </Button>
                             </div>
 
-                            {/* Removido o ms-3 para alinhar com o cabeçalho acima */}
                             <div
                                 className="overflow-auto"
                                 style={{
@@ -161,7 +309,7 @@ export default function ConfigurarTemplates({ campus = 'Campus Restinga' }) {
                                                 variant="outline-danger"
                                                 onClick={() =>
                                                     setShowModalExcluir(true)
-                                                } // Mudou aqui
+                                                }
                                             >
                                                 Excluir Template
                                             </Button>
