@@ -22,6 +22,8 @@ import { AiOutlineUnorderedList } from 'react-icons/ai';
 import { BiPaperPlane } from 'react-icons/bi';
 import { FaCogs } from 'react-icons/fa';
 import { HiOutlineClipboardList } from 'react-icons/hi';
+import { FaUserLock } from 'react-icons/fa';
+import { FaLock } from 'react-icons/fa';
 
 import { getCurrentUser } from '../services/authService';
 
@@ -499,6 +501,48 @@ export default function Dashboard() {
                                                     Lista de inscritos
                                                 </Link>
                                             </Col>
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
+                                                >
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={`/permissoes_pessoas`}
+                                                    >
+                                                        <FaUserLock
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Permissões de Usuários
+                                                    </Link>
+                                                </Col>
+                                            )}
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
+                                                >
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={`/permissoes_grupos`}
+                                                    >
+                                                        <FaLock
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Permissões de Grupos
+                                                    </Link>
+                                                </Col>
+                                            )}
                                         </Row>
                                     </Col>
                                 </Row>
