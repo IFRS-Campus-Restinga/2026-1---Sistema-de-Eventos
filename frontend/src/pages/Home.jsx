@@ -80,6 +80,42 @@ export default function Home({ campus = 'Campus Restinga' }) {
         });
     };
 
+    // ✅ NOVO: Roteamento Inteligente baseado no cronograma de etapas ativo
+    const handleVerDetalhes = (evento) => {
+        if (!evento || !evento.etapas || !Array.isArray(evento.etapas)) {
+            navigate(`/programacao_evento/${evento.id}`);
+            return;
+        }
+
+        const agora = new Date();
+
+        // 1. Confere se o período de inscrição do público está ativo agora
+        const etapaInscricao = evento.etapas.find(e => 
+            e.tipo_etapa?.toLowerCase().includes('inscricao_publico') ||
+            e.tipo_etapa?.toLowerCase().includes('inscricao')
+        );
+        const inscricaoAtiva = etapaInscricao && 
+            new Date(etapaInscricao.data_inicio) <= agora && 
+            agora <= new Date(etapaInscricao.data_fim);
+
+        // 2. Confere se o período de submissão de trabalhos está ativo agora
+        const etapaSubmissao = evento.etapas.find(e => 
+            e.tipo_etapa?.toLowerCase().includes('submissao_trabalhos')
+        );
+        const submissaoAtiva = etapaSubmissao && 
+            new Date(etapaSubmissao.data_inicio) <= agora && 
+            agora <= new Date(etapaSubmissao.data_fim);
+
+        // Redireciona o usuário dinamicamente para a view certa de acordo com a fase do evento
+        if (inscricaoAtiva) {
+            navigate(`/etapa_inscricao/${evento.id}`);
+        } else if (submissaoAtiva) {
+            navigate(`/etapa_submissao/${evento.id}`);
+        } else {
+            navigate(`/programacao_evento/${evento.id}`);
+        }
+    };
+
     const fecharModalConfirmarInscricao = () => {
         setModalConfirmarInscricao({
             show: false,
@@ -165,8 +201,6 @@ export default function Home({ campus = 'Campus Restinga' }) {
     }, [loginAlert, location.pathname]);
 
     const eventosOrdenados = useMemo(() => {
-        // Ordena por data (menor primeiro). Usa a menor data válida entre as etapas
-        // de cada evento. Se não houver data, coloca o evento ao final.
         const getMenorData = (evento) => {
             const datas = (evento?.etapas || [])
                 .flatMap((et) => [et?.data_inicio, et?.data_fim])
@@ -182,7 +216,6 @@ export default function Home({ campus = 'Campus Restinga' }) {
             const tB = getMenorData(eventoB);
 
             if (tA === tB) {
-                // desempate de datas por  id (mais novo primeiro)
                 return Number(eventoB?.id ?? 0) - Number(eventoA?.id ?? 0);
             }
 
@@ -224,8 +257,6 @@ export default function Home({ campus = 'Campus Restinga' }) {
                     evento?.descricao,
                     evento?.setor,
                     evento?.etapa_atual,
-
-                    // tipos de etapas (INSCRICAO, REALIZACAO_EVENTO, etc.)
                     evento?.etapas
                         ? evento.etapas
                               .map((et) => et?.tipo_etapa)
@@ -277,9 +308,8 @@ export default function Home({ campus = 'Campus Restinga' }) {
             key={evento.id}
             evento={evento}
             destaque={destaque}
-            onDetalhes={() => {
-                navigate(`/programacao_evento/${evento.id}`);
-            }}
+            // ✅ ALTERADO: Dispara a verificação dinâmica passando o evento completo
+            onDetalhes={() => handleVerDetalhes(evento)}
             onInscrever={() => handleInscrever(evento.id)}
             possuiInscricao={estaInscritoEmEvento(evento.id)}
             statusInscricao={obterStatusInscricao(evento.id)}
@@ -500,7 +530,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                 variante="success"
                 titulo="Confirmar inscrição"
                 tituloSecundario="Deseja confirmar a inscrição neste evento?"
-                texto={
+                text={
                     modalConfirmarInscricao.nomeEvento
                         ? `Você está prestes a se inscrever em ${modalConfirmarInscricao.nomeEvento}.`
                         : 'Você está prestes a confirmar sua inscrição.'
@@ -516,7 +546,7 @@ export default function Home({ campus = 'Campus Restinga' }) {
                 variante="success"
                 titulo="Inscrição confirmada"
                 tituloSecundario="Deseja ver as atrações deste evento agora?"
-                texto={
+                text={
                     modalPosInscricao.nomeEvento
                         ? `Você se inscreveu em ${modalPosInscricao.nomeEvento}.`
                         : 'Sua inscrição foi concluída com sucesso.'
