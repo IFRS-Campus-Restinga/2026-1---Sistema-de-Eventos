@@ -1686,7 +1686,9 @@ export default function ListarAtracoes() {
 
                                                                 <Dropdown.Menu>
                                                                     <Dropdown.Item
-                                                                        onClick={(event) => {
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) => {
                                                                             event.stopPropagation();
                                                                             abrirModalEdicao(
                                                                                 atracao,
@@ -1700,7 +1702,9 @@ export default function ListarAtracoes() {
                                                                     </Dropdown.Item>
                                                                     {ehSubmissoes && (
                                                                         <Dropdown.Item
-                                                                            onClick={(event) => {
+                                                                            onClick={(
+                                                                                event,
+                                                                            ) => {
                                                                                 event.stopPropagation();
                                                                                 abrirModalAvaliacoes(
                                                                                     atracao,
@@ -1716,7 +1720,9 @@ export default function ListarAtracoes() {
                                                                         <>
                                                                             {ehSubmissoes ? (
                                                                                 <Dropdown.Item
-                                                                                    onClick={(event) => {
+                                                                                    onClick={(
+                                                                                        event,
+                                                                                    ) => {
                                                                                         event.stopPropagation();
                                                                                         navigate(
                                                                                             `/avaliar_submissao?submissao_id=${
@@ -1736,7 +1742,9 @@ export default function ListarAtracoes() {
                                                                                 </Dropdown.Item>
                                                                             ) : (
                                                                                 <Dropdown.Item
-                                                                                    onClick={(event) => {
+                                                                                    onClick={(
+                                                                                        event,
+                                                                                    ) => {
                                                                                         event.stopPropagation();
                                                                                         navigate(
                                                                                             `/avaliar_atracao?atracao_id=${atracao.id}`,
@@ -1753,7 +1761,9 @@ export default function ListarAtracoes() {
 
                                                                             {ehSubmissoes ? (
                                                                                 <Dropdown.Item
-                                                                                    onClick={(event) => {
+                                                                                    onClick={(
+                                                                                        event,
+                                                                                    ) => {
                                                                                         event.stopPropagation();
                                                                                         navigate(
                                                                                             `/gerenciar_avaliadores_submissoes?evento_id=${
@@ -1771,7 +1781,9 @@ export default function ListarAtracoes() {
                                                                                 </Dropdown.Item>
                                                                             ) : (
                                                                                 <Dropdown.Item
-                                                                                    onClick={(event) => {
+                                                                                    onClick={(
+                                                                                        event,
+                                                                                    ) => {
                                                                                         event.stopPropagation();
                                                                                         navigate(
                                                                                             `/listar_inscritos_atracao?atracaoId=${atracao.id}`,
@@ -1790,7 +1802,9 @@ export default function ListarAtracoes() {
                                                             <Button
                                                                 variant="danger"
                                                                 className="d-flex align-items-center gap-1"
-                                                                onClick={(event) => {
+                                                                onClick={(
+                                                                    event,
+                                                                ) => {
                                                                     event.stopPropagation();
                                                                     setAtracaoSelecionada(
                                                                         atracao,
@@ -1925,7 +1939,7 @@ export default function ListarAtracoes() {
                                         border: 'none',
                                     }}
                                 >
-                                    <MdAddCircle size={20} /> Novo
+                                    <MdAddCircle size={20} /> Nov
                                     {ehSubmissoes ? 'a Submissão' : 'a Atração'}
                                 </Button>
                             </div>

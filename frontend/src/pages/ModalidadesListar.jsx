@@ -60,7 +60,7 @@ export default function ModalidadesListar({ campus = 'Campus Restinga' }) {
                     />
                     <div className="d-flex justify-content-end mt-4">
                         <Button
-                            onClick={() => navigate(`/dashboard`)}
+                            onClick={() => navigate(-1)}
                             variant="secondary"
                             className="d-flex align-items-center gap-2 px-4 py-2"
                         >

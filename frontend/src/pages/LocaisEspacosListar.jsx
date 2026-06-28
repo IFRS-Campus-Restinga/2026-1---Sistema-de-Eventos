@@ -258,7 +258,7 @@ export default function LocaisEspacosListar() {
                     {/*implementar rota para voltar*/}
                     <div className="d-flex justify-content-end mt-4">
                         <Button
-                            href="/"
+                            onClick={() => navigate(-1)}
                             variant="secondary"
                             className="d-flex align-items-center gap-2 px-4 py-2"
                         >

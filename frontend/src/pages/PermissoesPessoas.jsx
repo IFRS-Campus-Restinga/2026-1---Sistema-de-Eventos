@@ -42,15 +42,23 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
         <>
             <NavBar />
             <main className="flex-fill mb-5">
-                <Container fluid className="px-5">
-                    <Row>
-                        <Col className="text-center my-5">
-                            <h1 className="fw-bold text-success">
-                                Painel de Pessoas - PermsObjs
-                            </h1>
+                <Container fluid className="">
+                    <Row
+                        className="p-0 mb-3"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">Permissões de Usuários</h1>
+
+                            <span className="fs-5">
+                                Defina permissões para um usuário específico.
+                            </span>
                         </Col>
                     </Row>
-                    <Row>
+                    <Row className="px-4">
                         <Col className="d-flex">
                             <div className="w-25">
                                 <h3 className="text-success fw-bold fs-5">
@@ -59,7 +67,7 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                             </div>
                         </Col>
                     </Row>
-                    <Row>
+                    <Row className="px-4">
                         <Col>
                             <div className="d-flex align-items-start justify-content-start">
                                 <Select
@@ -74,7 +82,7 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                             </div>
                         </Col>
                     </Row>
-                    <Row className="mt-3">
+                    <Row className="mt-3 px-4">
                         <Col>
                             <span className="fs-5 fw-semibold">
                                 Buscar permissões
@@ -88,7 +96,7 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                             />
                         </Col>
                     </Row>
-                    <Row className="mt-5">
+                    <Row className="mt-5 px-4">
                         <Col>
                             <Vinculo
                                 cabecario1="Permissões disponíveis"
@@ -114,12 +122,12 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                         </Col>
                     </Row>
 
-                    <Row className="mt-5">
+                    <Row className="mt-5 px-4">
                         <Col className="justify-content-end gap-3 d-flex">
                             <Button
                                 variant="secondary"
                                 as={Link}
-                                to={'/usuarioGrupos'}
+                                to={-1}
                                 className="text-white text-decoration-none fw-bold"
                             >
                                 Voltar
