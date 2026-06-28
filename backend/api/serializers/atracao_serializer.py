@@ -4,6 +4,8 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.tipo_autoria import TipoAutoria
 from ..models.atracao import Atracao
 from ..models.espaco import Espaco
 from ..models.evento import Evento
@@ -12,8 +14,10 @@ from ..services.atracao_submission_service import (
     atualizar_atracao_com_submissao,
     criar_atracao_com_submissao,
 )
-from ..enumerations.nivel_ensino import NivelEnsino
-from ..enumerations.tipo_autoria import TipoAutoria
+from ..services.submissao_atracao_policy import (
+    pode_criar_submissao,
+    pode_editar_submissao,
+)
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
@@ -224,8 +228,34 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return [membro.nome for membro in membros if getattr(membro, "nome", "")]
 
     def validate(self, data):
+        request = self.context.get("request")
+        usuario_solicitante = getattr(request, "user", None) if request else None
         submissao_data = data.get("submissao", {})
         espaco = data.get("espaco")
+
+        evento = submissao_data.get("evento") or getattr(
+            getattr(self.instance, "submissao", None), "evento", None
+        )
+
+        if self.instance is None:
+            if usuario_solicitante and not pode_criar_submissao(
+                usuario_solicitante, evento
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "detail": (
+                            "Usuários comuns só podem criar submissões enquanto a etapa de "
+                            "submissão de trabalhos estiver aberta."
+                        )
+                    }
+                )
+        elif usuario_solicitante and not pode_editar_submissao(
+            usuario_solicitante,
+            getattr(self.instance, "submissao", None),
+        ):
+            raise serializers.ValidationError(
+                {"detail": ("Você não pode editar esta submissão neste momento.")}
+            )
         if espaco:
             data["local_atracao"] = str(espaco)
 

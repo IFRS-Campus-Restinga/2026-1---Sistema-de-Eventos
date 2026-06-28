@@ -669,7 +669,7 @@ export default function AdicionarEvento({
                         <Button
                             variant="outline-secondary"
                             className="px-4 border-0"
-                            onClick={() => navigate('/listar_eventos')}
+                            onClick={() => navigate(-1)}
                         >
                             Voltar
                         </Button>

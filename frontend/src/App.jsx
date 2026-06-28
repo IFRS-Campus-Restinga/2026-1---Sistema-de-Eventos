@@ -43,6 +43,8 @@ import ProgramacaoEvento from './pages/ProgramacaoEvento';
 import InscricaoAtracoes from './pages/InscricaoAtracoes';
 import MinhasAvaliacoesSubmissoes from './pages/MinhasAvaliacoesSubmissoes';
 import EtapaSubmissao from './pages/EtapaSubmissao'
+import EtapaInscricaoEvento from './pages/EtapaInscricaoEvento'
+
 
 const ADMIN_GROUPS = ['Administrador', 'Coordenador', 'Organizador'];
 
@@ -108,6 +110,7 @@ function App() {
                 <Route path="/detalhe_evento/:id" element={<DetalheEvento />} />
                 <Route path="/programacao_evento/:id" element={<ProgramacaoEvento />} />
                 <Route path="/etapa_submissao/:id" element={<EtapaSubmissao />} />
+                <Route path="/etapa_inscricao/:id" element={<EtapaInscricaoEvento />} />
 
                 {/* Comunicação com Publico (emails) */}
                 <Route path="/dashboard/:id/enviar_emails" element={protegidoPorEvento(<EnviarEmails />, ADMIN_GROUPS.filter(m=>m!=="Organizador"))} />

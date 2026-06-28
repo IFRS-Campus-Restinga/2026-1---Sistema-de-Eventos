@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.status_aprovacao import StatusAprovacao
 from ..enumerations.status_atracao import StatusAtracao
 from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_etapa import TipoEtapa
@@ -14,6 +15,7 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.submissao import Submissao
 from ..serializers.submissao_serializer import SubmissaoSerializer
+from ..services.submissao_atracao_policy import pode_editar_submissao
 
 
 def _aplicar_edicao_submissao(submissao, request):
@@ -141,9 +143,8 @@ class SubmissaoListView(APIView):
         return str(value).strip().lower() in {"1", "true", "sim", "yes"}
 
     def _base_queryset(self):
-        return Submissao.objects.exclude(
-            status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO
-        ).select_related("evento", "modalidade", "orientador")
+        # Não colocar exclussão de CONVERTIDA_EM_ATRACAO por favor
+        return Submissao.objects.select_related("evento", "modalidade", "orientador")
 
     def _scoped_queryset(self, request):
         user = request.user
@@ -273,15 +274,31 @@ class SubmissaoDetailView(APIView):
         )
 
     def _pode_editar(self, user, submissao):
-        if self._is_admin(user):
-            return True
+        return pode_editar_submissao(user, submissao)
 
-        if self._is_coordenador(user):
-            return self._coordenador_gerencia_evento(
-                user, submissao
-            ) or self._usuario_eh_autor(user, submissao)
+    def _autor_pode_editar_com_ressalvas(self, submissao):
+        if not submissao or not getattr(submissao, "evento", None):
+            return False
 
-        return self._usuario_eh_autor(user, submissao)
+        if not submissao.avaliacoes.filter(
+            status_aprovacao=StatusAprovacao.APROVADO_COM_RESSALVAS,
+        ).exists():
+            return False
+
+        return self._etapa_avaliacao_previa_aberta(submissao)
+
+    def _etapa_avaliacao_previa_aberta(self, submissao):
+        evento = getattr(submissao, "evento", None)
+        if not evento:
+            return False
+
+        now = timezone.now()
+        return EtapaEvento.objects.filter(
+            evento=evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=now,
+            data_fim__gte=now,
+        ).exists()
 
     def put(self, request, pk):
         try:

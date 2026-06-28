@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from django.utils import timezone
 from guardian.shortcuts import (
     assign_perm,
@@ -12,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.status_atracao import StatusAtracao
 from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_etapa import TipoEtapa
 from ..models.atracao import Atracao
@@ -20,7 +20,6 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.perfil import Perfil
 from ..serializers.atracao_serializer import AtracaoSerializer
-from ..enumerations.status_atracao import StatusAtracao
 from ..services.submissao_atracao_policy import (
     STATUS_EDICAO_COORDENADOR,
     STATUS_EDICAO_USUARIO,
@@ -65,7 +64,7 @@ class AtracaoListView(APIView):
 
         if evento_id:
             atracoes = self._base_queryset().filter(
-                Q(submissao__evento_id=evento_id) | Q(evento_id=evento_id)
+                evento_id=evento_id
             )  # atrações de um evento específico
         else:
             atracoes = self._base_queryset()  # retorna todas as atrações

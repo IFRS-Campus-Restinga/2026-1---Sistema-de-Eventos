@@ -45,6 +45,7 @@ import {
     getSelectedEventoId,
     setSelectedEventoId,
 } from '../utils/selectedEvento';
+import { etapaEstaAberta } from '../utils/submissaoAcesso';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -613,19 +614,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         );
     };
 
-    const isAutorSubmissao = (item) => {
+    const isParticipanteSubmissao = (item) => {
         const autorias = Array.isArray(item?.autorias) ? item.autorias : [];
-        return autorias.some((autoria) => {
-            if (!usuarioCorrespondeAutoria(autoria)) {
-                return false;
-            }
-
-            return (
-                String(autoria?.tipo || autoria?.funcao || autoria?.papel || '')
-                    .trim()
-                    .toUpperCase() === 'AUTOR'
-            );
-        });
+        return autorias.some((autoria) => usuarioCorrespondeAutoria(autoria));
     };
 
     const coordenadorGerenciaEvento = (item) => {
@@ -653,7 +644,18 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 );
             }
 
-            return isAutorSubmissao(item) && statusPermitidos.includes(status);
+            if (!isParticipanteSubmissao(item)) {
+                return false;
+            }
+
+            if (statusPermitidos.includes(status)) {
+                return etapaEstaAberta(evento, 'SUBMISSAO_TRABALHOS');
+            }
+
+            return (
+                Boolean(item?.pode_editar_com_ressalvas) &&
+                etapaEstaAberta(evento, 'AVALIACAO_PREVIA')
+            );
         }
 
         if (!isCoordenador()) {
@@ -676,7 +678,7 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
             }
 
             return (
-                isAutorSubmissao(item) &&
+                isParticipanteSubmissao(item) &&
                 ['RASCUNHO', 'SUBMETIDA', 'PREVISTA'].includes(status)
             );
         }
@@ -1219,20 +1221,19 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
 
             <main className="flex-fill">
                 <Container fluid className="p-0">
-                    <Row className="m-0">
-                        <Col
-                            style={{
-                                backgroundImage:
-                                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
-                                padding: '50px',
-                            }}
-                        >
-                            <h1 className="text-white text-center fw-bold">
-                                Minhas Participações
-                            </h1>
-                            <p className="text-white text-center fs-5 mb-0">
-                                Veja as atrações do evento selecionado.
-                            </p>
+                    <Row
+                        className="w-100 p-0"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">Minhas Participações</h1>
+
+                            <span className="fs-5">
+                                Veja suas partipações do evento selecionado.
+                            </span>
                         </Col>
                     </Row>
 

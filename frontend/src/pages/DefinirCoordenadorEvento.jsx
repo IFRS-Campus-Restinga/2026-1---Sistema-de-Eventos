@@ -80,15 +80,25 @@ export default function DefinirCoordenadorEvento({
         <>
             <NavBar />
             <main className="flex-fill mb-5">
-                <Container fluid className="px-5">
-                    <Row>
-                        <Col className="text-center my-5">
-                            <h1 className="fw-bold text-success">
-                                Definir Coordenador de Evento
+                <Container fluid className="">
+                    <Row
+                        className="p-0 mb-3"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">
+                                Definir Coordenador do evento
                             </h1>
+
+                            <span className="fs-5">
+                                Escolha coordenadores para o evento.
+                            </span>
                         </Col>
                     </Row>
-                    <Row className="mt-3">
+                    <Row className="mt-3 px-4">
                         <h4 className="mb-3 text-success fw-bold">
                             Evento:{' '}
                             {eventoSelecionado?.nome ||
@@ -109,7 +119,7 @@ export default function DefinirCoordenadorEvento({
                             />
                         </Col>
                     </Row>
-                    <Row className="mt-3">
+                    <Row className="mt-3 px-4">
                         <Col md={0} className="mx-auto">
                             <Vinculo
                                 cabecario1="Usuários disponíveis"
@@ -142,7 +152,7 @@ export default function DefinirCoordenadorEvento({
                                 renderItem={(user) => user.nome}
                             />
 
-                            <div className="d-flex gap-3 mt-3">
+                            <div className="d-flex gap-3 mt-3 justify-content-end">
                                 <Button
                                     variant="secondary"
                                     className="fw-bold text-white text-decoration-none"
