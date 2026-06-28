@@ -1,6 +1,10 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.status_aprovacao import StatusAprovacao
+from ..enumerations.tipo_etapa import TipoEtapa
+from ..models.etapa_evento import EtapaEvento
 from ..models.submissao import Submissao
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
@@ -15,6 +19,7 @@ class SubmissaoSerializer(serializers.ModelSerializer):
     tipo = serializers.ReadOnlyField(source="modalidade.nome")
     nivel_ensino_display = serializers.SerializerMethodField()
     respostas_campos = serializers.SerializerMethodField(read_only=True)
+    pode_editar_com_ressalvas = serializers.SerializerMethodField()
 
     class Meta:
         model = Submissao
@@ -42,6 +47,7 @@ class SubmissaoSerializer(serializers.ModelSerializer):
             "respostas_campos",
             "slug",
             "status_submissao",
+            "pode_editar_com_ressalvas",
         ]
 
     def _resolver_nome_usuario(self, usuario):
@@ -147,9 +153,7 @@ class SubmissaoSerializer(serializers.ModelSerializer):
         if modalidade and not getattr(modalidade, "requer_controle_vagas", False):
             if "sugestao_vagas" in attrs and sugestao_vagas not in (None, ""):
                 raise serializers.ValidationError(
-                    {
-                        "sugestao_vagas": "Esta modalidade não permite sugestão de vagas."
-                    }
+                    {"sugestao_vagas": "Esta modalidade não permite sugestão de vagas."}
                 )
             attrs["sugestao_vagas"] = None
             return attrs
@@ -185,5 +189,23 @@ class SubmissaoSerializer(serializers.ModelSerializer):
         data["submissao_id"] = instance.id
         data["status_submissao"] = instance.status_submissao
         data["status"] = instance.status_submissao
+        data["pode_editar_com_ressalvas"] = self.get_pode_editar_com_ressalvas(instance)
 
         return data
+
+    def get_pode_editar_com_ressalvas(self, obj):
+        if not getattr(obj, "evento", None):
+            return False
+
+        if not obj.avaliacoes.filter(
+            status_aprovacao=StatusAprovacao.APROVADO_COM_RESSALVAS,
+        ).exists():
+            return False
+
+        now = timezone.now()
+        return EtapaEvento.objects.filter(
+            evento=obj.evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=now,
+            data_fim__gte=now,
+        ).exists()

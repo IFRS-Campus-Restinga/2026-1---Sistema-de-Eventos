@@ -28,7 +28,9 @@ import { setSelectedEventoId } from '../utils/selectedEvento';
 // Importação dos seus services nativos
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarSessoes } from '../services/sessoesService';
+import { getCurrentUser } from '../services/authService';
 import { obterCorPorTag } from '../utils/themeTags';
+import { podeAcessarSubmissao } from '../utils/submissaoAcesso';
 
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
@@ -60,6 +62,9 @@ export default function ProgramacaoEvento() {
     const [carregando, setCarregando] = useState(true);
     const [erroMensagem, setErroMensagem] = useState(null);
     const [termoBusca, setTermoBusca] = useState('');
+    const [usuario, setUsuario] = useState(null);
+    const [submissaoHabilitada, setSubmissaoHabilitada] = useState(false);
+    const [submissaoVerificada, setSubmissaoVerificada] = useState(false);
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [dataSelecionada, setDataSelecionada] = useState('');
     const [sessoesFiltradas, setSessoesFiltradas] = useState([]);
@@ -72,13 +77,24 @@ export default function ProgramacaoEvento() {
                 setCarregando(true);
                 setErroMensagem(null);
 
-                // 1. Busca dados do evento no Django
-                const dadosEvento = await buscarEventoPorId(eventoId);
-                setEvento(dadosEvento);
+                const [dadosEvento, listaSessoes, usuarioAtual] =
+                    await Promise.all([
+                        buscarEventoPorId(eventoId),
+                        pegarSessoes(eventoId),
+                        getCurrentUser(),
+                    ]);
 
-                // 2. Busca todas as sessões vinculadas
-                const listaSessoes = await pegarSessoes(eventoId);
+                setEvento(dadosEvento);
                 setSessoesRaw(listaSessoes || []);
+                setUsuario(usuarioAtual);
+
+                const podeAcessar = podeAcessarSubmissao({
+                    evento: dadosEvento,
+                    usuario: usuarioAtual,
+                });
+
+                setSubmissaoHabilitada(podeAcessar);
+                setSubmissaoVerificada(true);
 
                 // 3. MAP/FIND para extrair os dados das etapas (prazos)
                 if (dadosEvento?.etapas && Array.isArray(dadosEvento.etapas)) {
@@ -121,14 +137,12 @@ export default function ProgramacaoEvento() {
                 // 4. MAP para extrair as áreas de conhecimento
                 let areasMapeadas = [];
                 const campoArea = dadosEvento?.area_conhecimento_detalhes;
-                console.log(campoArea);
 
                 if (campoArea && Array.isArray(campoArea)) {
                     areasMapeadas = campoArea.map((area) => {
                         return area.area_conhecimento_display;
                     });
                 }
-                console.log(areasMapeadas);
                 setAreasDoEvento(areasMapeadas);
             } catch (err) {
                 console.error('Erro ao integrar com os services:', err);
@@ -398,15 +412,17 @@ export default function ProgramacaoEvento() {
                                 Me Inscrever nas atrações
                             </Button>
 
-                            <Button
-                                as={Link}
-                                to="/adicionar_submissao"
-                                variant="outline-light"
-                                className="fw-bold px-3 py-2 small"
-                                onClick={prepararEventoSelecionado}
-                            >
-                                Submeter trabalho
-                            </Button>
+                            {submissaoVerificada && submissaoHabilitada && (
+                                <Button
+                                    as={Link}
+                                    to="/adicionar_submissao"
+                                    variant="outline-light"
+                                    className="fw-bold px-3 py-2 small"
+                                    onClick={prepararEventoSelecionado}
+                                >
+                                    Submeter trabalho
+                                </Button>
+                            )}
                         </Col>
                     </Row>
                 </Container>

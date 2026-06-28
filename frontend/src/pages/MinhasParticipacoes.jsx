@@ -45,6 +45,7 @@ import {
     getSelectedEventoId,
     setSelectedEventoId,
 } from '../utils/selectedEvento';
+import { etapaEstaAberta } from '../utils/submissaoAcesso';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -613,19 +614,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         );
     };
 
-    const isAutorSubmissao = (item) => {
+    const isParticipanteSubmissao = (item) => {
         const autorias = Array.isArray(item?.autorias) ? item.autorias : [];
-        return autorias.some((autoria) => {
-            if (!usuarioCorrespondeAutoria(autoria)) {
-                return false;
-            }
-
-            return (
-                String(autoria?.tipo || autoria?.funcao || autoria?.papel || '')
-                    .trim()
-                    .toUpperCase() === 'AUTOR'
-            );
-        });
+        return autorias.some((autoria) => usuarioCorrespondeAutoria(autoria));
     };
 
     const coordenadorGerenciaEvento = (item) => {
@@ -653,7 +644,18 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 );
             }
 
-            return isAutorSubmissao(item) && statusPermitidos.includes(status);
+            if (!isParticipanteSubmissao(item)) {
+                return false;
+            }
+
+            if (statusPermitidos.includes(status)) {
+                return etapaEstaAberta(evento, 'SUBMISSAO_TRABALHOS');
+            }
+
+            return (
+                Boolean(item?.pode_editar_com_ressalvas) &&
+                etapaEstaAberta(evento, 'AVALIACAO_PREVIA')
+            );
         }
 
         if (!isCoordenador()) {
@@ -676,7 +678,7 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
             }
 
             return (
-                isAutorSubmissao(item) &&
+                isParticipanteSubmissao(item) &&
                 ['RASCUNHO', 'SUBMETIDA', 'PREVISTA'].includes(status)
             );
         }
