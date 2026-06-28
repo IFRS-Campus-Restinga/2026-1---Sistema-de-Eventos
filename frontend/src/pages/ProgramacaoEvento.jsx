@@ -30,6 +30,8 @@ import { pegarSessoes } from '../services/sessoesService';
 import { getCurrentUser } from '../services/authService';
 import { obterCorPorTag } from '../utils/themeTags';
 import useSessoes from '../hooks/useSessoes'; 
+// ✅ ADICIONADO: Importando a função de verificação que faltava no topo
+import { podeAcessarSubmissao } from '../utils/submissaoAcesso'; 
 
 export default function ProgramacaoEvento() {
     const { id: eventoId } = useParams();
@@ -88,11 +90,15 @@ export default function ProgramacaoEvento() {
 
                 const listaSessoes = await pegarSessoes(eventoId);
                 setSessoesRaw(listaSessoes || []);
-                setUsuario(usuarioAtual);
 
+                // ✅ CORREÇÃO: Busca o usuário logado usando a função nativa importada do authService
+                const dadosUsuario = await getCurrentUser();
+                setUsuario(dadosUsuario);
+
+                // ✅ CORREÇÃO: Passa a variável de escopo correta para validar a submissão
                 const podeAcessar = podeAcessarSubmissao({
                     evento: dadosEvento,
-                    usuario: usuarioAtual,
+                    usuario: dadosUsuario,
                 });
 
                 setSubmissaoHabilitada(podeAcessar);
@@ -174,7 +180,6 @@ export default function ProgramacaoEvento() {
         }
     }
 
-    // Função utilitária para normalizar strings amigáveis para formato SNAKE_CASE
     const normalizarAreaConhecimento = (texto) => {
         if (!texto) return '';
         return texto
@@ -306,7 +311,7 @@ export default function ProgramacaoEvento() {
 
             <section style={{ backgroundImage: 'linear-gradient(to right, #17882c 0%, #00510f 100%)', color: 'white' }} className="py-4 shadow-sm">
                 <Container fluid="xl">
-                    <Row className="align-items-center justify-content-between g-3">
+                    <Row className="align-items-center g-3">
                         <Col lg={7} md={6} xs={12}>
                             <h1 className="h2 fw-bold mb-1">
                                 {carregando ? 'Buscando evento...' : evento?.nome || 'Programação do Evento'}
@@ -322,7 +327,6 @@ export default function ProgramacaoEvento() {
                                 </span>
                             </div>
                         </Col>
-                        {/* ✅ ALINHAMENTO FIXADO COM A VALIDAÇÃO CORRETA: link_edital */}
                         <Col lg={5} md={6} xs={12} className="text-md-end d-flex gap-2 justify-content-md-end justify-content-start flex-wrap mt-2 mt-md-0">
                             {evento?.link_edital && (
                                 <Button 
