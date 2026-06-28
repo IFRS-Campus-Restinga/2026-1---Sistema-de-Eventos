@@ -199,8 +199,8 @@ export default function ListarInscritosEvento() {
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
-            <main className="flex-fill py-4">
-                <Container>
+            <main className="mb-5">
+                <Container fluid className="p-0">
                     {alerta.mensagem && (
                         <Alerta
                             mensagem={alerta.mensagem}
@@ -217,8 +217,18 @@ export default function ListarInscritosEvento() {
                         </div>
                     )}
 
-                    <h1 className="mb-5 text-center">Lista de Inscritos</h1>
-                    <div className="d-flex align-items-center gap-3 mb-3 w-75 mx-auto">
+                    <div
+                        className="w-100 p-0"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <div className="text-center text-white pb-4 d-flex flex-column  align-items-center m-0">
+                            <h1 className="fw-bold mt-4">Lista de Inscritos</h1>
+                        </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-3 my-3 w-75 mx-auto">
                         <input
                             className="form-control"
                             type="text"
@@ -244,25 +254,27 @@ export default function ListarInscritosEvento() {
                             </p>
                         </div>
                     ) : (
-                        <ListaInscritos
-                            titulo=""
-                            usuarios={usuariosPagina}
-                            habilitarPresenca={true}
-                            onRegistrarPresenca={registrarPresenca}
-                            onRetirarPresenca={retirarPresenca}
-                            // onVoltar={() => navigate(-1)}cer
-                            colunasVisiveis={[
-                                'usuario',
-                                'cpf',
-                                'email',
-                                'acoes',
-                            ]}
-                            paginaAnterior={paginaAnterior}
-                            proximaPagina={proximaPagina}
-                            paginaAtual={paginaAtual}
-                            totalPaginas={totalPaginas}
-                            presencasRegistradas={presencasRegistradas}
-                        />
+                        <div className="px-5">
+                            <ListaInscritos
+                                titulo=""
+                                usuarios={usuariosPagina}
+                                habilitarPresenca={true}
+                                onRegistrarPresenca={registrarPresenca}
+                                onRetirarPresenca={retirarPresenca}
+                                // onVoltar={() => navigate(-1)}cer
+                                colunasVisiveis={[
+                                    'usuario',
+                                    'cpf',
+                                    'email',
+                                    'acoes',
+                                ]}
+                                paginaAnterior={paginaAnterior}
+                                proximaPagina={proximaPagina}
+                                paginaAtual={paginaAtual}
+                                totalPaginas={totalPaginas}
+                                presencasRegistradas={presencasRegistradas}
+                            />
+                        </div>
                     )}
                 </Container>
             </main>

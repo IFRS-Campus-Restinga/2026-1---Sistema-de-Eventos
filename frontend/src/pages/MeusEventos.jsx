@@ -3,10 +3,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import EventoCard from '../components/cards_listagem/EventoCard';
+import HomeCard from '../components/cards_listagem/HomeCard';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
 import { setSelectedEventoId } from '../utils/selectedEvento';
+import {
+    formatarDataEvento,
+    obterStatusHome,
+} from '../utils/homeEventoHelpers';
 import { useEventos } from '../hooks/useEventos';
 import { useMinhasInscricoes } from '../hooks/useMinhasInscricoes';
 
@@ -51,20 +55,19 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
 
             <main className="flex-fill">
                 <Container fluid className="p-0">
-                    <Row className="m-0">
-                        <Col
-                            style={{
-                                backgroundImage:
-                                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
-                                padding: '100px',
-                            }}
-                        >
-                            <h1 className="text-white text-center fw-bold">
-                                Meus Eventos
-                            </h1>
-                            <p className="text-white text-center fs-5 mb-0">
+                    <Row
+                        className="w-100 p-0"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">Meus Eventos</h1>
+
+                            <span className="fs-5">
                                 Acesse eventos nos quais você se inscreveu.
-                            </p>
+                            </span>
                         </Col>
                     </Row>
 
@@ -89,29 +92,27 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                                         inscricao.status !== 'CANCELADA';
 
                                     return (
-                                        <EventoCard
+                                        <HomeCard
                                             key={evento.id}
-                                            titulo={evento.nome}
-                                            data={`Carga Horária: ${evento.carga_horaria}h`}
-                                            faseAtual={
-                                                evento.status_evento ||
-                                                'Em andamento'
+                                            evento={evento}
+                                            destaque={true}
+                                            possuiInscricao={Boolean(inscricao)}
+                                            statusInscricao={inscricao?.status}
+                                            permiteInscricao={false}
+                                            formatarData={formatarDataEvento}
+                                            etapaAtual={
+                                                obterStatusHome(evento)
+                                                    ?.etapaAtual ||
+                                                'Etapa atual'
                                             }
-                                            corFase={
-                                                evento.status_evento ===
-                                                'Aberto'
-                                                    ? '#106D47'
-                                                    : '#6c757d'
-                                            }
-                                            descricao={evento?.descricao}
                                             textoBotao1="Ver minhas participacoes"
+                                            onClick1={() =>
+                                                abrirParticipacoes(evento.id)
+                                            }
                                             textoBotao2={
                                                 podeCancelar
                                                     ? 'Cancelar inscrição'
                                                     : ''
-                                            }
-                                            onClick1={() =>
-                                                abrirParticipacoes(evento.id)
                                             }
                                             onClick2={
                                                 podeCancelar
@@ -124,9 +125,9 @@ export default function MeusEventos({ campus = 'Campus Restinga' }) {
                                                     : undefined
                                             }
                                             desabilitarBotao2={!podeCancelar}
-                                            varianteBotao2="outline-danger"
-                                            statusInscricao={inscricao?.status}
-                                            id={evento.id}
+                                            varianteBotao2="btn-outline-danger"
+                                            corBotao1="#00A44B"
+                                            showDestaqueBadge={false}
                                         />
                                     );
                                 })

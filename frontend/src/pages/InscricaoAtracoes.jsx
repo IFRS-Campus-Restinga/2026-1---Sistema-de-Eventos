@@ -1,3 +1,5 @@
+import { VscAccount } from 'react-icons/vsc';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Badge,
@@ -19,7 +21,7 @@ import {
     MdInfoOutline,
     MdPlace,
 } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Alerta from '../components/common/Alerta';
 import Card from '../components/common/Card';
 import ModalPopup from '../components/common/ModalPopup';
@@ -57,6 +59,7 @@ export default function InscricaoAtracoes() {
         orientador_nome: '',
         equipe_nomes: [],
         autorias: [],
+        vagas_disponiveis: 0,
     });
     const [alerta, setAlerta] = useState({
         mensagem: '',
@@ -65,18 +68,18 @@ export default function InscricaoAtracoes() {
     });
 
     const navigate = useNavigate();
-    const eventoFiltroId = getSelectedEventoId();
+    const { eventoId } = useParams();
     const [eventoSelecionadoLista, setEventoSelecionadoLista] = useState(null);
 
     useEffect(() => {
         const carregarEvento = async () => {
-            if (!eventoFiltroId) {
+            if (!eventoId) {
                 setEventoSelecionadoLista(null);
                 return;
             }
 
             try {
-                const ev = await buscarEventoPorId(eventoFiltroId);
+                const ev = await buscarEventoPorId(eventoId);
                 setEventoSelecionadoLista(ev);
             } catch (err) {
                 console.error('Erro ao carregar evento selecionado:', err);
@@ -85,7 +88,7 @@ export default function InscricaoAtracoes() {
         };
 
         carregarEvento();
-    }, [eventoFiltroId]);
+    }, [eventoId]);
     const {
         criarInscricao,
         usuarioLogado,
@@ -113,7 +116,8 @@ export default function InscricaoAtracoes() {
     const carregarAtracoes = useCallback(async () => {
         try {
             setCarregando(true);
-            const eventoId = getSelectedEventoId();
+            if (!eventoId) return;
+
             const dados = await listarAtracoes(eventoId);
             setAtracoes(dados);
             setAlerta((prev) => ({
@@ -133,7 +137,7 @@ export default function InscricaoAtracoes() {
         } finally {
             setCarregando(false);
         }
-    }, [mostrarAlerta]);
+    }, [eventoId, mostrarAlerta]);
 
     useEffect(() => {
         carregarAtracoes();
@@ -183,6 +187,7 @@ export default function InscricaoAtracoes() {
                 atracao.titulo,
                 atracao.tipo,
                 atracao.local_atracao,
+                atracao.vagas_disponiveis,
             ]
                 .map((valor) => normalizarTexto(valor))
                 .join(' ');
@@ -214,6 +219,7 @@ export default function InscricaoAtracoes() {
             sou_orientador: atracao.sou_orientador || false,
             acessibilidade: atracao.acessibilidade || false,
             evento: atracao.evento,
+            vagas_disponiveis: atracao.vagas_disponiveis,
         });
         setMostrarModalEdicao(true);
     };
@@ -356,7 +362,7 @@ export default function InscricaoAtracoes() {
                                         style={{ color: '#00A44B' }}
                                     >
                                         {eventoSelecionadoLista?.nome ||
-                                            `ID ${eventoFiltroId}`}{' '}
+                                            `ID ${eventoId}`}{' '}
                                     </h3>
                                 </Col>
                             </Row>
@@ -400,20 +406,18 @@ export default function InscricaoAtracoes() {
                                 </div>
                             ) : (
                                 <ListGroup variant="flush">
-                                    {/** mostra apenas atrações do tipo oficina */}
+                                    {/* Alterado de '> 0' para '>= 0' para listar mesmo se for 0 */}
                                     {atracoesFiltradas?.filter(
                                         (a) =>
-                                            (a.tipo || '')
-                                                .toString()
-                                                .toLowerCase() === 'oficina',
+                                            a.vagas_disponiveis != null &&
+                                            a.vagas_disponiveis >= 0,
                                     ).length > 0 ? (
                                         atracoesFiltradas
                                             .filter(
                                                 (a) =>
-                                                    (a.tipo || '')
-                                                        .toString()
-                                                        .toLowerCase() ===
-                                                    'oficina',
+                                                    a.vagas_disponiveis !=
+                                                        null &&
+                                                    a.vagas_disponiveis >= 0,
                                             )
                                             .map((atracao, index) => (
                                                 <ListGroup.Item
@@ -444,6 +448,21 @@ export default function InscricaoAtracoes() {
                                                                 {
                                                                     atracao.local_atracao
                                                                 }
+                                                            </span>
+                                                            <span className="d-flex align-items-center gap-1">
+                                                                <VscAccount />
+                                                                <strong>
+                                                                    Vagas:
+                                                                </strong>{' '}
+                                                                {/* Mostra "Esgotado" se for 0 */}
+                                                                {atracao.vagas_disponiveis ===
+                                                                0 ? (
+                                                                    <Badge bg="danger">
+                                                                        Esgotado
+                                                                    </Badge>
+                                                                ) : (
+                                                                    atracao.vagas_disponiveis
+                                                                )}
                                                             </span>
                                                         </div>
                                                     </div>

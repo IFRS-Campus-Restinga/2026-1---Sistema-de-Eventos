@@ -4,6 +4,8 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from ..enumerations.nivel_ensino import NivelEnsino
+from ..enumerations.tipo_autoria import TipoAutoria
 from ..models.atracao import Atracao
 from ..models.espaco import Espaco
 from ..models.evento import Evento
@@ -12,8 +14,10 @@ from ..services.atracao_submission_service import (
     atualizar_atracao_com_submissao,
     criar_atracao_com_submissao,
 )
-from ..enumerations.nivel_ensino import NivelEnsino
-from ..enumerations.tipo_autoria import TipoAutoria
+from ..services.submissao_atracao_policy import (
+    pode_criar_submissao,
+    pode_editar_submissao,
+)
 from .autoria_serializer import AutoriaSerializer
 from .coautor_serializer import CoautorSerializer
 from .espaco_serializer import EspacoSerializer
@@ -23,6 +27,9 @@ User = get_user_model()
 
 
 class AtracaoSerializer(serializers.ModelSerializer):
+    fluxo_direto_atracao = serializers.BooleanField(
+        write_only=True, required=False, default=False
+    )
     titulo = serializers.CharField(source="submissao.titulo")
     resumo = serializers.CharField(
         source="submissao.resumo", required=False, allow_blank=True, allow_null=True
@@ -79,11 +86,16 @@ class AtracaoSerializer(serializers.ModelSerializer):
     sugestao_vagas = serializers.IntegerField(
         source="submissao.sugestao_vagas", required=False, allow_null=True
     )
+    vagas_disponiveis = serializers.IntegerField(
+        source="submissao.vagas_disponiveis", required=False, allow_null=True
+    )
     slug = serializers.CharField(source="submissao.slug", read_only=True)
     # Sobrescreve o ChoiceField automático do model para aceitar CSV/lista.
     nivel_ensino = serializers.CharField(
         source="submissao.nivel_ensino",
-        required=False, allow_blank=True, allow_null=True
+        required=False,
+        allow_blank=True,
+        allow_null=True,
     )
     area_conhecimento = serializers.CharField(
         source="submissao.area_conhecimento",
@@ -104,6 +116,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         model = Atracao
         fields = [
             "id",
+            "fluxo_direto_atracao",
             "titulo",
             "resumo",
             "palavras_chave",
@@ -121,6 +134,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
             "evento",
             "status",
             "sugestao_vagas",
+            "vagas_disponiveis",
             "slug",
             "equipe",
             "equipe_json",
@@ -149,6 +163,7 @@ class AtracaoSerializer(serializers.ModelSerializer):
         "acessibilidade",
         "evento",
         "sugestao_vagas",
+        "vagas_disponiveis",
     )
 
     # aq a gnt pega e resolve os nomes pra apresentar na tela de inscrição em atrações
@@ -213,8 +228,34 @@ class AtracaoSerializer(serializers.ModelSerializer):
         return [membro.nome for membro in membros if getattr(membro, "nome", "")]
 
     def validate(self, data):
+        request = self.context.get("request")
+        usuario_solicitante = getattr(request, "user", None) if request else None
         submissao_data = data.get("submissao", {})
         espaco = data.get("espaco")
+
+        evento = submissao_data.get("evento") or getattr(
+            getattr(self.instance, "submissao", None), "evento", None
+        )
+
+        if self.instance is None:
+            if usuario_solicitante and not pode_criar_submissao(
+                usuario_solicitante, evento
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "detail": (
+                            "Usuários comuns só podem criar submissões enquanto a etapa de "
+                            "submissão de trabalhos estiver aberta."
+                        )
+                    }
+                )
+        elif usuario_solicitante and not pode_editar_submissao(
+            usuario_solicitante,
+            getattr(self.instance, "submissao", None),
+        ):
+            raise serializers.ValidationError(
+                {"detail": ("Você não pode editar esta submissão neste momento.")}
+            )
         if espaco:
             data["local_atracao"] = str(espaco)
 
@@ -223,6 +264,23 @@ class AtracaoSerializer(serializers.ModelSerializer):
         )
         sugestao_vagas = submissao_data.get("sugestao_vagas")
         limite_modalidade = None
+        requer_controle_vagas = (
+            bool(getattr(modalidade, "requer_controle_vagas", False))
+            if modalidade
+            else False
+        )
+
+        if not requer_controle_vagas:
+            if sugestao_vagas not in (None, ""):
+                raise serializers.ValidationError(
+                    {
+                        "sugestao_vagas": (
+                            "Esta modalidade não permite sugestão de vagas."
+                        )
+                    }
+                )
+            submissao_data["sugestao_vagas"] = None
+
         if modalidade:
             limite_modalidade = getattr(
                 modalidade,
@@ -251,7 +309,11 @@ class AtracaoSerializer(serializers.ModelSerializer):
         if espaco and evento:
             espaco_local_id = getattr(espaco, "local_id", None)
             evento_local_id = getattr(evento, "local_id", None)
-            if espaco_local_id and evento_local_id and espaco_local_id != evento_local_id:
+            if (
+                espaco_local_id
+                and evento_local_id
+                and espaco_local_id != evento_local_id
+            ):
                 raise serializers.ValidationError(
                     {
                         "espaco": "O espaço selecionado precisa pertencer ao mesmo local do evento."

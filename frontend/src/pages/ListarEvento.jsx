@@ -27,11 +27,11 @@ import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
 import {
     listarEventos,
+    listarMeusEventosCoordenador,
+    listarMeusEventosOrganizador,
     deletarEvento,
-    atualizarEvento,
 } from '../services/eventoService';
 import { API_URL } from '../config';
-import eArray from '../utils/eArray';
 import Alerta from '../components/common/Alerta';
 import ModalPopup from '../components/common/ModalPopup';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -48,9 +48,9 @@ export default function EventosListar() {
     const [carregando, setCarregando] = useState(true);
     const [carregandoUsuario, setCarregandoUsuario] = useState(true);
     const [usuarioAtual, setUsuarioAtual] = useState(null);
-    const [mensagem, setMensagem] = useState(''); // ✅ TASK 78
+    const [usuarioCarregado, setUsuarioCarregado] = useState(false);
+    const [mensagem, setMensagem] = useState('');
     const [alerta, setAlerta] = useState('');
-    const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [eventoParaExcluir, setEventoParaExcluir] = useState(null);
     const [showQrModal, setShowQrModal] = useState(false);
@@ -65,10 +65,6 @@ export default function EventosListar() {
     };
 
     useEffect(() => {
-        carregarEventos();
-    }, []);
-
-    useEffect(() => {
         let ativo = true;
 
         (async () => {
@@ -76,9 +72,14 @@ export default function EventosListar() {
                 const currentUser = await getCurrentUser();
                 if (!ativo) return;
                 setUsuarioAtual(currentUser);
+            } catch (e) {
+                console.log(e);
+                setUsuarioAtual(null);
             } finally {
-                if (!ativo) return;
-                setCarregandoUsuario(false);
+                if (ativo) {
+                    setCarregandoUsuario(false);
+                    setUsuarioCarregado(true);
+                }
             }
         })();
 
@@ -93,9 +94,39 @@ export default function EventosListar() {
               .filter(Boolean)
         : [];
 
+    const grupo = usuarioAtual?.group;
+    const isCoordenador =
+        gruposUsuario.includes('Coordenador') || grupo === 'Coordenador';
+    const isOrganizador =
+        gruposUsuario.includes('Organizador') || grupo === 'Organizador';
+
     const podeVerQr = gruposUsuario.some((grupo) =>
         ['Administrador', 'Coordenador'].includes(grupo),
     );
+
+    useEffect(() => {
+        if (!usuarioCarregado) return;
+
+        const carregarEventos = async () => {
+            try {
+                const dados =
+                    isCoordenador || isOrganizador
+                        ? isOrganizador
+                            ? await listarMeusEventosOrganizador()
+                            : await listarMeusEventosCoordenador()
+                        : await listarEventos();
+
+                Array.isArray(dados) ? setEventos(dados) : setEventos([]);
+            } catch (e) {
+                console.error('Erro ao buscar eventos:', e);
+                setEventos([]);
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        carregarEventos();
+    }, [isCoordenador, isOrganizador, usuarioCarregado]);
 
     const abrirQr = (evento) => {
         registrarEventoSelecionado(evento.id);
@@ -112,43 +143,33 @@ export default function EventosListar() {
         ? `${window.location.origin}/credenciamento/${eventoQrSelecionado.slug}`
         : '';
 
-    const carregarEventos = async () => {
-        try {
-            const dados = await listarEventos();
-            eArray(dados) ? setEventos(dados) : setEventos([]);
-        } catch (error) {
-            console.error('Erro ao buscar eventos:', error);
-        } finally {
-            setCarregando(false);
-        }
-    };
-
     const confirmarExclusao = (evento) => {
         setEventoParaExcluir(evento);
         setShowModal(true);
     };
 
     const excluirEvento = async () => {
-        if (!eventoParaExcluir?.id) return;
+        if (!eventoParaExcluir?.id) {
+            return;
+        }
+
+        const eventoId = eventoParaExcluir.id;
 
         try {
-            const data = await deletarEvento(eventoParaExcluir.id);
+            const data = await deletarEvento(eventoId);
             setShowModal(false);
-            setEventos((prev) =>
-                prev.filter((e) => e.id !== eventoParaExcluir.id),
-            );
+            setEventos((prev) => prev.filter((e) => e.id !== eventoId));
             setAlerta('success');
             setMensagem(data.msg || 'Evento excluído!');
 
             const eventoSelecionado = getSelectedEventoId();
             if (
                 eventoSelecionado &&
-                Number(eventoSelecionado) === Number(eventoParaExcluir.id)
+                Number(eventoSelecionado) === Number(eventoId)
             ) {
                 clearSelectedEventoId();
             }
 
-            // 4. POR ÚLTIMO: Limpa o evento selecionado (após o modal já estar fechado)
             setTimeout(() => {
                 setEventoParaExcluir(null);
             }, 300);
@@ -161,29 +182,7 @@ export default function EventosListar() {
         }
     };
 
-    const editarEvento = async (id, dados) => {
-        setMensagem('');
-        try {
-            const eventoAtualizado = await atualizarEvento(id, dados);
-
-            // atualiza lista
-            setEventos((prev) =>
-                prev.map((evento) =>
-                    evento.id === id ? eventoAtualizado : evento,
-                ),
-            );
-
-            setMensagem('evento atualizado com sucesso!');
-            return true;
-        } catch (erro) {
-            console.error('Erro ao atualizar local:', erro);
-
-            setError(erro.response?.data || 'Erro ao atualizar local');
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    };
+    // editarEvento removido: função não utilizada na tela atual e gerava erro no eslint no-unused-vars
 
     // pra baixar um jpeg ou png do qrcode bem bolado
     const baixarQr = (formato = 'png') => {
@@ -223,7 +222,7 @@ export default function EventosListar() {
                             <hr className="mb-4" />
 
                             {/* Loading */}
-                            {carregando ? (
+                            {carregando || carregandoUsuario ? (
                                 <div className="text-center py-5">
                                     <Spinner
                                         animation="border"
@@ -339,32 +338,41 @@ export default function EventosListar() {
                                                             QR Code
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        variant="danger"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            confirmarExclusao(
-                                                                evento,
-                                                            )
-                                                        }
-                                                    >
-                                                        <MdDelete size={22} />
-                                                    </Button>
+                                                    {!(
+                                                        isCoordenador ||
+                                                        isOrganizador
+                                                    ) && (
+                                                        <Button
+                                                            variant="danger"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                confirmarExclusao(
+                                                                    evento,
+                                                                )
+                                                            }
+                                                        >
+                                                            <MdDelete
+                                                                size={22}
+                                                            />
+                                                        </Button>
+                                                    )}
 
-                                                    <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            registrarEventoSelecionado(
-                                                                evento.id,
-                                                            );
-                                                            navigate(
-                                                                `/editar_evento/${evento.id}`,
-                                                            );
-                                                        }}
-                                                    >
-                                                        <MdEdit size={22} />
-                                                    </Button>
+                                                    {!isOrganizador && (
+                                                        <Button
+                                                            variant="warning"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                registrarEventoSelecionado(
+                                                                    evento.id,
+                                                                );
+                                                                navigate(
+                                                                    `/editar_evento/${evento.id}`,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <MdEdit size={22} />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </ListGroup.Item>
                                         ))
@@ -380,20 +388,22 @@ export default function EventosListar() {
                             )}
 
                             {/* Botão Novo Evento */}
-                            <div className="mt-4">
-                                <Button
-                                    as={Link}
-                                    to="/adicionar_evento"
-                                    variant="success"
-                                    className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                                    style={{
-                                        backgroundColor: '#00A44B',
-                                        border: 'none',
-                                    }}
-                                >
-                                    <MdAddCircle size={20} /> Novo Evento
-                                </Button>
-                            </div>
+                            {!(isCoordenador || isOrganizador) && (
+                                <div className="mt-4">
+                                    <Button
+                                        as={Link}
+                                        to="/adicionar_evento"
+                                        variant="success"
+                                        className="d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
+                                        style={{
+                                            backgroundColor: '#00A44B',
+                                            border: 'none',
+                                        }}
+                                    >
+                                        <MdAddCircle size={20} /> Novo Evento
+                                    </Button>
+                                </div>
+                            )}
 
                             {/* Botão voltar para home */}
                             <div className="mt-4">

@@ -103,6 +103,8 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
     const [activeItem, setActiveItem] = useState(null);
     // Para armazenar erros de validação
     const [errors, setErrors] = useState({});
+    // valizações de atraçao
+    const validacoes = validarAtracoesBoard();
 
     // modal de tutorial: divisão das visualizações em etapas, para mostrar aos poucos as funcionalidades
     const etapasTutorial = [
@@ -294,7 +296,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         },
     ];
 
-    const extrairNomesAutores = (atracaoEntrada) => {
+    function extrairNomesAutores(atracaoEntrada) {
         const atracao = atracaoEntrada?.atracao || atracaoEntrada || {};
 
         if (Array.isArray(atracao.autorias) && atracao.autorias.length > 0) {
@@ -341,7 +343,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
         }
 
         return [];
-    };
+    }
 
     useEffect(() => {
         if (eventoId) {
@@ -425,17 +427,95 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 ...sessao,
                 ordem_apresentacoes: (
                     sessao.ordem_apresentacoes_display || []
-                ).map((ordem) => ({
-                    ...ordem,
-                    atracao: ordem.atracao_display,
-                })),
+                ).map((ordem) => {
+                    return {
+                        ...ordem,
+                        atracao: ordem.atracao_display,
+                    };
+                }),
             });
         });
-        console.log('SESSAO', sessoes);
         setBoardPorDia(agrupado);
     }, [sessoes]);
 
+    function validarAtracoesBoard() {
+        const conflitosAutores = [];
+        const conflitosCapacidade = [];
+
+        // percorre todos os espaços e sessões
+        Object.values(boardPorDia).forEach((espacosDia) => {
+            espacosDia.forEach((espaco) => {
+                espaco.sessoes.forEach((sessao) => {
+                    const autoresSessao = [];
+
+                    sessao.ordem_apresentacoes?.forEach((apresentacao) => {
+                        const atracao = apresentacao.atracao;
+
+                        // CAPACIDADE
+                        if (
+                            atracao.sugestao_vagas &&
+                            espaco.capacidade &&
+                            atracao.sugestao_vagas > espaco.capacidade
+                        ) {
+                            conflitosCapacidade.push(atracao.id);
+                        }
+
+                        // AUTORES
+                        const autores = extrairNomesAutores(atracao);
+
+                        autores.forEach((autor) => {
+                            autoresSessao.push({
+                                autor,
+                                atracaoId: atracao.id,
+                                inicio: sessao.data_horario_inicio,
+                                fim: sessao.data_horario_fim,
+                            });
+                        });
+                    });
+
+                    conflitosAutores.push(...autoresSessao);
+                });
+            });
+        });
+
+        const atracoesComConflitoAutor = new Set();
+
+        conflitosAutores.forEach((autorA, i) => {
+            conflitosAutores.forEach((autorB, j) => {
+                if (i === j) return;
+
+                if (autorA.autor !== autorB.autor) return;
+
+                const inicioA = new Date(autorA.inicio);
+                const fimA = new Date(autorA.fim);
+
+                const inicioB = new Date(autorB.inicio);
+                const fimB = new Date(autorB.fim);
+
+                const colide = inicioA < fimB && fimA > inicioB;
+
+                if (colide) {
+                    atracoesComConflitoAutor.add(autorA.atracaoId);
+                    atracoesComConflitoAutor.add(autorB.atracaoId);
+                }
+            });
+        });
+
+        return {
+            conflitosAutores: atracoesComConflitoAutor,
+            conflitosCapacidade: new Set(conflitosCapacidade),
+        };
+    }
+
     async function salvarRascunho(publicadoEm = null) {
+        if (validacoes.conflitosCapacidade.size > 0) {
+            setErrors({
+                capacidade:
+                    'Existem atrações alocadas em espaços sem capacidade suficiente.',
+            });
+
+            return;
+        }
         try {
             for (const espacosDoDia of Object.values(boardPorDia)) {
                 for (const espaco of espacosDoDia) {
@@ -781,9 +861,15 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 minute: '2-digit',
             });
         };
+        const { setNodeRef, isOver } = useDroppable({
+            id: `sessao-${sessao.id || sessao.tempId}`,
+        });
+
+        const vazio = !children || children.length === 0;
 
         return (
             <div
+                ref={setNodeRef}
                 className="mb-3 p-2 bg-white"
                 style={{
                     height: `${calcularAlturaSessao(
@@ -793,6 +879,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                     borderRadius: '12px',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                     borderLeft: '6px solid #0d6efd',
+                    backgroundColor: isOver ? '#e6f7ff' : '',
                     display: 'flex',
                     flexDirection: 'column',
                 }}
@@ -814,21 +901,34 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
 
                 <div
                     style={{
-                        flex: 1,
+                        border: '2px dashed #ccc',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        minHeight: '60px',
+                        border: vazio ? '2px dashed #ccc' : 'none',
+                        display: vazio ? 'flex' : 'block',
+                        alignItems: vazio ? 'center' : 'initial',
+                        justifyContent: vazio ? 'center' : 'initial',
+                        textAlign: vazio ? 'center' : 'left',
+
+                        maxHeight: '100%',
                         overflowY: 'auto',
-                        minHeight: 0,
                     }}
                 >
-                    <SessaoDrop sessaoId={sessao.id || sessao.tempId}>
-                        {children}
-                    </SessaoDrop>
+                    {vazio && 'Arraste aqui'}
+                    {children}
                 </div>
             </div>
         );
     }
 
     // Card atração arrastável
-    function AtracaoDrag({ atracao, origem = 'sessao' }) {
+    function AtracaoDrag({
+        atracao,
+        origem = 'sessao',
+        conflitoAutor = false,
+        conflitoCapacidade = false,
+    }) {
         const id =
             origem === 'livre'
                 ? `livre-${atracao.id}`
@@ -848,12 +948,45 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
             zIndex: isDragging ? 1000 : 0,
         };
 
+        let corFundo = 'white';
+
+        if (conflitoCapacidade) {
+            corFundo = '#faabab';
+        } else if (conflitoAutor) {
+            corFundo = '#f8dc7e';
+        }
+
         const nomesAutores = extrairNomesAutores(atracao);
 
         return (
             <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+                {conflitoAutor && (
+                    <div
+                        className="mt-1"
+                        style={{
+                            color: '#856404',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                        }}
+                    >
+                        ⚠ Autor possui outra apresentação no mesmo horário
+                    </div>
+                )}
+                {conflitoCapacidade && (
+                    <div
+                        className="mt-1"
+                        style={{
+                            color: '#721c24',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                        }}
+                    >
+                        ⚠{' '}
+                        {`Capacidade da atração excede a capacidade do espaço. A atração sugere ${atracao.atracao.sugestao_vagas} vagas.`}
+                    </div>
+                )}
                 <div
-                    className="mb-2 p-2 bg-white"
+                    className="mb-2 p-2"
                     style={{
                         borderLeft: `6px solid ${obterCorPorTag(
                             atracao.tipo || atracao.atracao?.tipo,
@@ -861,6 +994,7 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                         borderRadius: '10px',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                         fontSize: '12px',
+                        backgroundColor: corFundo,
                     }}
                 >
                     <div style={{ fontWeight: 500 }}>
@@ -1153,6 +1287,16 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                                                                                 ordem
                                                                             }
                                                                             origem="sessao"
+                                                                            conflitoAutor={validacoes.conflitosAutores.has(
+                                                                                ordem
+                                                                                    .atracao
+                                                                                    .id,
+                                                                            )}
+                                                                            conflitoCapacidade={validacoes.conflitosCapacidade.has(
+                                                                                ordem
+                                                                                    .atracao
+                                                                                    .id,
+                                                                            )}
                                                                         />
                                                                     ),
                                                                 )}
@@ -1565,6 +1709,13 @@ export default function SessaoBoard({ campus = 'Campus Restinga' }) {
                 <Alerta mensagem={error} variacao="danger" duracao={5000} />
             )}
 
+            {errors.capacidade && (
+                <Alerta
+                    mensagem={errors.capacidade}
+                    variacao="warning"
+                    duracao={5000}
+                />
+            )}
             <Footer
                 telefone={'(51) 3333-1234'}
                 endereco={'Rua Alberto Hoffmann, 285'}

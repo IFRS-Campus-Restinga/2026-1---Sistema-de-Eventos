@@ -14,13 +14,32 @@ import {
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
 import Alerta from '../components/common/Alerta';
-import { useNavigate } from 'react-router-dom';
-import { getSelectedEventoId, setSelectedEventoId } from '../utils/selectedEvento';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+    getSelectedEventoId,
+    setSelectedEventoId,
+} from '../utils/selectedEvento';
 import { useState, useEffect } from 'react';
 import { getCurrentUser } from '../services/authService';
+import { podeAcessarSubmissao } from '../utils/submissaoAcesso';
 
 export default function AdicionarAtracao() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const ehFluxoAtracaoDireta = location.pathname === '/adicionar_atracao';
+
+    const eventoDaState = location.state?.eventoId;
+    const eventoDaQuery =
+        new URLSearchParams(location.search).get('evento_id') ||
+        new URLSearchParams(location.search).get('evento');
+    const submissaoIdDaQuery =
+        new URLSearchParams(location.search).get('submissao_id') ||
+        new URLSearchParams(location.search).get('id');
+    const modoEdicao = Boolean(
+        location.state?.submissaoId ||
+            location.state?.submissao_id ||
+            submissaoIdDaQuery,
+    );
 
     const [formState, setFormState] = useState({
         titulo: '',
@@ -35,7 +54,7 @@ export default function AdicionarAtracao() {
         status: 'PREVISTA',
         sugestao_vagas: '',
         respostas_campos: {},
-        equipe: []
+        equipe: [],
     });
 
     const [opcoes, setOpcoes] = useState({
@@ -46,16 +65,77 @@ export default function AdicionarAtracao() {
         status: [],
     });
     const [eventos, setEventos] = useState([]);
-    const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] = useState(null);
-    const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] = useState(null);
+    const [eventoSelecionadoDetalhe, setEventoSelecionadoDetalhe] =
+        useState(null);
+    const [modalidadeSelecionadaDetalhe, setModalidadeSelecionadaDetalhe] =
+        useState(null);
     const [usuarios, setUsuarios] = useState([]);
     const [usuarioLogado, setUsuarioLogado] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [acessoBloqueado, setAcessoBloqueado] = useState(false);
     const [alerta, setAlerta] = useState({
         mensagem: '',
         variacao: 'danger',
         reacao: 0,
     });
+
+    const gruposUsuarioNormalizados = Array.isArray(usuarioLogado?.groups)
+        ? usuarioLogado.groups
+              .map((group) => (typeof group === 'string' ? group : group?.name))
+              .filter(Boolean)
+              .map((group) => String(group).trim().toLowerCase())
+        : [];
+
+    const adminPodeEditarStatus = Boolean(
+        usuarioLogado?.is_superuser ||
+            usuarioLogado?.is_staff ||
+            ['admin', 'administrador'].includes(
+                String(usuarioLogado?.group || '')
+                    .trim()
+                    .toLowerCase(),
+            ) ||
+            gruposUsuarioNormalizados.includes('administrador') ||
+            gruposUsuarioNormalizados.includes('admin'),
+    );
+
+    const podeUsarFluxoDiretoAtracao = Boolean(
+        usuarioLogado?.is_superuser ||
+            usuarioLogado?.is_staff ||
+            gruposUsuarioNormalizados.includes('coordenador') ||
+            gruposUsuarioNormalizados.includes('administrador') ||
+            gruposUsuarioNormalizados.includes('admin'),
+    );
+
+    const fluxoAtracaoDiretaHabilitado =
+        ehFluxoAtracaoDireta && podeUsarFluxoDiretoAtracao;
+
+    const destinoLista = (() => {
+        if (adminPodeEditarStatus) {
+            return fluxoAtracaoDiretaHabilitado
+                ? '/listar_atracoes'
+                : '/listar_submissoes';
+        }
+
+        if (formState.evento) {
+            return `/meus_eventos/${formState.evento}/participacoes`;
+        }
+
+        return '/meus_eventos';
+    })();
+
+    const opcoesStatusFormulario = fluxoAtracaoDiretaHabilitado
+        ? [
+              { value: 'RASCUNHO', label: 'Rascunho' },
+              { value: 'CONFIRMADA', label: 'A Apresentar' },
+              { value: 'EM_ANDAMENTO', label: 'Em Andamento' },
+              { value: 'ENCERRADA', label: 'Encerrada' },
+              { value: 'CANCELADA', label: 'Cancelada' },
+          ]
+        : [
+              { value: 'PREVISTA', label: 'Submetida' },
+              { value: 'EM_ANDAMENTO', label: 'Em Avaliação' },
+              { value: 'CANCELADA', label: 'Cancelada' },
+          ];
 
     const mostrarAlerta = (mensagem, variacao = 'danger') =>
         setAlerta((prev) => ({
@@ -80,9 +160,9 @@ export default function AdicionarAtracao() {
             return valorArea;
         }
 
-        const areaPorDetalhe = (eventoSelecionadoDetalhe?.area_conhecimento_detalhes || []).find(
-            (area) => String(area?.id) === valorTexto,
-        );
+        const areaPorDetalhe = (
+            eventoSelecionadoDetalhe?.area_conhecimento_detalhes || []
+        ).find((area) => String(area?.id) === valorTexto);
 
         if (areaPorDetalhe?.area_conhecimento) {
             return areaPorDetalhe.area_conhecimento;
@@ -93,13 +173,17 @@ export default function AdicionarAtracao() {
 
     useEffect(() => {
         const carregarDados = async () => {
-            const [dadosOpcoes, dadosEventos, dadosUsuarios, dadosUsuarioLogado] =
-                await Promise.allSettled([
-                    buscarOpcoesAtracao(),
-                    buscarEventos(),
-                    buscarUsuarios(),
-                    getCurrentUser(),
-                ]);
+            const [
+                dadosOpcoes,
+                dadosEventos,
+                dadosUsuarios,
+                dadosUsuarioLogado,
+            ] = await Promise.allSettled([
+                buscarOpcoesAtracao(),
+                buscarEventos(),
+                buscarUsuarios(),
+                getCurrentUser(),
+            ]);
 
             if (dadosOpcoes.status === 'fulfilled') {
                 setOpcoes(dadosOpcoes.value);
@@ -113,11 +197,63 @@ export default function AdicionarAtracao() {
                 );
             }
 
+            const usuarioAtual =
+                dadosUsuarioLogado?.status === 'fulfilled'
+                    ? dadosUsuarioLogado.value || null
+                    : null;
+
             if (dadosEventos.status === 'fulfilled') {
-                setEventos(dadosEventos.value);
-                const eventoSalvo = getSelectedEventoId();
-                if (eventoSalvo) {
-                    setFormState((prev) => ({ ...prev, evento: eventoSalvo }));
+                const eventosCarregados = dadosEventos.value;
+                setEventos(eventosCarregados);
+                const eventoPrioritario =
+                    eventoDaState || eventoDaQuery || getSelectedEventoId();
+                if (eventoPrioritario) {
+                    setFormState((prev) => ({
+                        ...prev,
+                        evento: String(eventoPrioritario),
+                    }));
+
+                    if (!modoEdicao && usuarioAtual) {
+                        const eventoResumo = eventosCarregados.find(
+                            (evento) =>
+                                String(evento.id) === String(eventoPrioritario),
+                        );
+
+                        try {
+                            const eventoParaValidar =
+                                eventoResumo ||
+                                (await buscarEventoPorId(
+                                    String(eventoPrioritario),
+                                ));
+
+                            const podeAcessar = podeAcessarSubmissao({
+                                evento: eventoParaValidar,
+                                usuario: usuarioAtual,
+                            });
+
+                            if (!podeAcessar) {
+                                setAcessoBloqueado(true);
+                                setAlerta((prev) => ({
+                                    ...prev,
+                                    mensagem:
+                                        'O período de submissão deste evento já encerrou.',
+                                    variacao: 'warning',
+                                    reacao: (prev.reacao || 0) + 1,
+                                }));
+                                navigate(
+                                    `/programacao_evento/${String(
+                                        eventoPrioritario,
+                                    )}`,
+                                    { replace: true },
+                                );
+                            }
+                        } catch (error) {
+                            console.error(
+                                'Erro ao validar acesso à submissão:',
+                                error,
+                            );
+                        }
+                    }
                 }
             } else {
                 console.error('Erro ao carregar eventos:', dadosEventos.reason);
@@ -140,11 +276,11 @@ export default function AdicionarAtracao() {
             }
 
             if (dadosUsuarioLogado?.status === 'fulfilled') {
-                setUsuarioLogado(dadosUsuarioLogado.value || null);
+                setUsuarioLogado(usuarioAtual);
             }
         };
         carregarDados();
-    }, []);
+    }, [eventoDaQuery, eventoDaState, modoEdicao, navigate]);
 
     useEffect(() => {
         const carregarDetalheEventoSelecionado = async () => {
@@ -166,7 +302,10 @@ export default function AdicionarAtracao() {
                 const detalhe = await buscarEventoPorId(formState.evento);
                 setEventoSelecionadoDetalhe(detalhe);
             } catch (error) {
-                console.error('Erro ao carregar detalhe do evento selecionado:', error);
+                console.error(
+                    'Erro ao carregar detalhe do evento selecionado:',
+                    error,
+                );
                 setEventoSelecionadoDetalhe(null);
             }
         };
@@ -178,15 +317,21 @@ export default function AdicionarAtracao() {
         const carregarDetalheModalidade = async () => {
             if (!formState.modalidade) {
                 setModalidadeSelecionadaDetalhe(null);
-                setFormState((prev) => ({ ...prev, respostas_campos: {} }));
+                setFormState((prev) => ({
+                    ...prev,
+                    respostas_campos: {},
+                    sugestao_vagas: '',
+                }));
                 return;
             }
 
             try {
-                const detalheModalidade = await pegarModalidade(formState.modalidade);
-                const camposFiltrados = (detalheModalidade?.campos || []).filter(
-                    (campo) => campo?.ativo !== false,
+                const detalheModalidade = await pegarModalidade(
+                    formState.modalidade,
                 );
+                const camposFiltrados = (
+                    detalheModalidade?.campos || []
+                ).filter((campo) => campo?.ativo !== false);
 
                 setModalidadeSelecionadaDetalhe({
                     ...detalheModalidade,
@@ -202,12 +347,16 @@ export default function AdicionarAtracao() {
                         if (chave in respostasAtuais) {
                             respostasFiltradas[chave] = respostasAtuais[chave];
                         } else {
-                            respostasFiltradas[chave] = campo.tipo_dado === 'BOOLEANO' ? false : '';
+                            respostasFiltradas[chave] =
+                                campo.tipo_dado === 'BOOLEANO' ? false : '';
                         }
                     });
 
                     return {
                         ...prev,
+                        sugestao_vagas: detalheModalidade?.requer_controle_vagas
+                            ? prev.sugestao_vagas
+                            : '',
                         respostas_campos: respostasFiltradas,
                     };
                 });
@@ -228,6 +377,7 @@ export default function AdicionarAtracao() {
                 formState.area_conhecimento,
             ),
             status: 'RASCUNHO',
+            fluxo_direto_atracao: fluxoAtracaoDiretaHabilitado,
         };
 
         try {
@@ -235,7 +385,7 @@ export default function AdicionarAtracao() {
             await salvarRascunho(dadosRascunho);
             setSelectedEventoId(formState.evento);
             mostrarAlerta('Rascunho salvo com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_submissoes'), 1500);
+            setTimeout(() => navigate(destinoLista), 1500);
         } catch (erro) {
             console.error('Erro ao salvar rascunho:', erro);
             const msg =
@@ -251,8 +401,17 @@ export default function AdicionarAtracao() {
         if (isLoading) return;
         const nivelEnsinoVazio = !String(formState.nivel_ensino || '').trim();
 
-        if (!formState.titulo || !formState.resumo || !formState.modalidade || nivelEnsinoVazio || !formState.area_conhecimento || !formState.evento) {
-            mostrarAlerta('Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.');
+        if (
+            !formState.titulo ||
+            !formState.resumo ||
+            !formState.modalidade ||
+            nivelEnsinoVazio ||
+            !formState.area_conhecimento ||
+            !formState.evento
+        ) {
+            mostrarAlerta(
+                'Por favor, preencha todos os campos obrigatórios nas seções 1 e 2.',
+            );
             return;
         }
 
@@ -261,17 +420,23 @@ export default function AdicionarAtracao() {
         });
 
         if (equipeComUsuario.length === 0) {
-            mostrarAlerta('Por favor, adicione pelo menos um membro com usuário selecionado na seção de Equipe.');
+            mostrarAlerta(
+                'Por favor, adicione pelo menos um membro com usuário selecionado na seção de Equipe.',
+            );
             return;
         }
 
-        const membrosSemFuncao = equipeComUsuario.filter((membro) => !membro?.funcao);
+        const membrosSemFuncao = equipeComUsuario.filter(
+            (membro) => !membro?.funcao,
+        );
         if (membrosSemFuncao.length > 0) {
             mostrarAlerta('Defina um papel para todos os membros da equipe.');
             return;
         }
 
-        const totalAutores = equipeComUsuario.filter((membro) => membro.funcao === 'AUTOR').length;
+        const totalAutores = equipeComUsuario.filter(
+            (membro) => membro.funcao === 'AUTOR',
+        ).length;
         if (totalAutores !== 1) {
             mostrarAlerta('A equipe deve possuir exatamente 1 Autor.');
             return;
@@ -279,17 +444,29 @@ export default function AdicionarAtracao() {
 
         try {
             setIsLoading(true);
+            const statusPadrao = fluxoAtracaoDiretaHabilitado
+                ? 'CONFIRMADA'
+                : 'PREVISTA';
+            const statusSelecionado = adminPodeEditarStatus
+                ? formState.status || statusPadrao
+                : statusPadrao;
             const dadosSubmissao = {
                 ...formState,
                 area_conhecimento: normalizarAreaConhecimentoPayload(
                     formState.area_conhecimento,
                 ),
-                status: 'PREVISTA',
+                status: statusSelecionado,
+                fluxo_direto_atracao: fluxoAtracaoDiretaHabilitado,
             };
             await criarAtracao(dadosSubmissao);
             setSelectedEventoId(formState.evento);
-            mostrarAlerta('Trabalho submetido com sucesso!', 'success');
-            setTimeout(() => navigate('/listar_submissoes'), 1500);
+            mostrarAlerta(
+                fluxoAtracaoDiretaHabilitado
+                    ? 'Atração criada com sucesso!'
+                    : 'Trabalho submetido com sucesso!',
+                'success',
+            );
+            setTimeout(() => navigate(destinoLista), 1500);
         } catch (erro) {
             console.error('Erro ao submeter trabalho:', erro);
             const msg =
@@ -300,6 +477,33 @@ export default function AdicionarAtracao() {
             setIsLoading(false);
         }
     };
+
+    if (acessoBloqueado) {
+        return (
+            <div className="d-flex flex-column min-vh-100">
+                <NavBar />
+                <main className="flex-fill bg-light d-flex align-items-center justify-content-center p-4">
+                    <Container>
+                        <Row className="justify-content-center">
+                            <Col md={8}>
+                                <Alerta
+                                    mensagem="O período de submissão deste evento já encerrou."
+                                    variacao="warning"
+                                    reacao={alerta.reacao || 0}
+                                />
+                            </Col>
+                        </Row>
+                    </Container>
+                </main>
+                <Footer
+                    telefone="(51) 3333-1234"
+                    endereco="Rua Alberto Hoffmann, 285"
+                    ano={2026}
+                    campus="Campus Restinga"
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="d-flex flex-column min-vh-100">
@@ -318,11 +522,19 @@ export default function AdicionarAtracao() {
                             <CriarAtracaoCard
                                 formState={formState}
                                 setFormState={setFormState}
+                                permitirEdicaoStatus={adminPodeEditarStatus}
+                                opcoesStatus={opcoesStatusFormulario}
                                 opcoes={opcoes}
                                 eventos={eventos}
-                                eventoSelecionadoDetalhe={eventoSelecionadoDetalhe}
-                                modalidadeSelecionadaDetalhe={modalidadeSelecionadaDetalhe}
-                                camposModalidade={modalidadeSelecionadaDetalhe?.campos || []}
+                                eventoSelecionadoDetalhe={
+                                    eventoSelecionadoDetalhe
+                                }
+                                modalidadeSelecionadaDetalhe={
+                                    modalidadeSelecionadaDetalhe
+                                }
+                                camposModalidade={
+                                    modalidadeSelecionadaDetalhe?.campos || []
+                                }
                                 usuarios={usuarios}
                                 usuarioLogado={usuarioLogado}
                                 isLoading={isLoading}

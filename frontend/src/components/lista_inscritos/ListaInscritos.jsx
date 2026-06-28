@@ -29,6 +29,8 @@ export default function ListaInscritos({
     totalPaginas,
     presencasRegistradas: presencasExternas,
 }) {
+    // console.log("DADOS QUE CHEGARAM:", usuarios);
+
     const temAcaoRegistrar =
         habilitarPresenca && typeof onRegistrarPresenca === 'function';
     const temAcaoRetirar =

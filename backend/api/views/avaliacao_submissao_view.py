@@ -48,7 +48,13 @@ class AvaliacaoSubmissaoListView(APIView):
                 ).exists()
             )
             if not is_admin_or_coordenador:
-                avaliacoes = avaliacoes.filter(avaliador=user)
+                from django.db.models import Q
+
+                avaliacoes = avaliacoes.filter(
+                    Q(avaliador=user)
+                    | Q(submissao__autorias__usuario=user)
+                    | Q(submissao__orientador=user)
+                ).distinct()
 
         serializer = AvaliacaoSubmissaoSerializer(avaliacoes, many=True)
         return Response(serializer.data)

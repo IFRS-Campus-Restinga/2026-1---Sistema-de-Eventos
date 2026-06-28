@@ -3,8 +3,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
-import EventoCard from '../components/cards_listagem/EventoCard';
+import HomeCard from '../components/cards_listagem/HomeCard';
 import Alerta from '../components/common/Alerta';
+import {
+    formatarDataEvento,
+    obterStatusHome,
+} from '../utils/homeEventoHelpers';
 import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
 
 export default function MeusEventosAvaliador({ campus = 'Campus Restinga' }) {
@@ -44,31 +48,62 @@ export default function MeusEventosAvaliador({ campus = 'Campus Restinga' }) {
                             className="mx-auto d-flex flex-column align-items-center my-5 gap-4"
                         >
                             {eventos && eventos.length > 0 ? (
-                                eventos.map((evento) => (
-                                    <EventoCard
-                                        key={evento.id}
-                                        titulo={evento.nome}
-                                        data={`Carga Horária: ${evento.carga_horaria}h`}
-                                        faseAtual={
-                                            evento.status_evento ||
-                                            'Em andamento'
-                                        }
-                                        corFase={
-                                            evento.status_evento === 'Aberto'
-                                                ? '#106D47'
-                                                : '#6c757d'
-                                        }
-                                        descricao={evento?.descricao}
-                                        textoBotao1="Ver Avaliações"
-                                        textoBotao2=""
-                                        onClick1={() =>
-                                            navigate(
-                                                `/minhas_avaliacoes?evento_id=${evento.id}`,
-                                            )
-                                        }
-                                        desabilitarBotao2={true}
-                                    />
-                                ))
+                                eventos.map((evento) => {
+                                    const opcoesAvaliacao = [];
+
+                                    if (evento?.pode_avaliar_atracoes) {
+                                        opcoesAvaliacao.push({
+                                            label: 'Avaliar atrações',
+                                            onClick: () =>
+                                                navigate(
+                                                    `/minhas_avaliacoes?evento_id=${evento.id}`,
+                                                ),
+                                        });
+                                    }
+
+                                    if (evento?.pode_avaliar_submissoes) {
+                                        opcoesAvaliacao.push({
+                                            label: 'Avaliar submissões',
+                                            onClick: () =>
+                                                navigate(
+                                                    `/minhas_avaliacoes_submissoes?evento_id=${evento.id}`,
+                                                ),
+                                        });
+                                    }
+
+                                    return (
+                                        <HomeCard
+                                            key={evento.id}
+                                            evento={evento}
+                                            destaque={true}
+                                            possuiInscricao={false}
+                                            statusInscricao={null}
+                                            permiteInscricao={false}
+                                            formatarData={formatarDataEvento}
+                                            etapaAtual={
+                                                obterStatusHome(evento)
+                                                    ?.etapaAtual ||
+                                                'Etapa atual'
+                                            }
+                                            textoBotao1="Ver Avaliações"
+                                            onClick1={() => {
+                                                if (
+                                                    opcoesAvaliacao.length === 1
+                                                ) {
+                                                    opcoesAvaliacao[0].onClick();
+                                                }
+                                            }}
+                                            textoBotao2={''}
+                                            desabilitarBotao2={true}
+                                            showDestaqueBadge={false}
+                                            opcoesBotaoPrincipal={
+                                                opcoesAvaliacao.length > 1
+                                                    ? opcoesAvaliacao
+                                                    : null
+                                            }
+                                        />
+                                    );
+                                })
                             ) : (
                                 <p className="text-muted mb-0">
                                     Você não está designado como avaliador em

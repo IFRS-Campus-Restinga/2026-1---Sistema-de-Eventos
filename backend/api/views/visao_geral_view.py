@@ -7,6 +7,7 @@ from ..models.atracao import Atracao
 from ..models.evento import Evento
 from ..models.inscricao_evento import InscricaoEvento
 from ..serializers.etapa_evento_serializer import EtapaEventoSerializer
+from ..models.submissao import Submissao
 
 
 class DashboardView(APIView):
@@ -21,8 +22,12 @@ class DashboardView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        atracoes = Atracao.objects.filter(submissao__evento=evento)
-        total = atracoes.count()
+        atracoes = Atracao.objects.filter(evento=evento).exclude(
+            status=StatusAtracao.PREVISTA
+        )
+        submissoes = Submissao.objects.filter(evento=evento)
+        total_atracoes = atracoes.count()
+        total_submissoes = submissoes.count()
         desistencias = atracoes.filter(status=StatusAtracao.CANCELADA).count()
         sem_avaliador = atracoes.filter(status=StatusAtracao.PREVISTA).count()
 
@@ -67,11 +72,14 @@ class DashboardView(APIView):
                 "etapas": EtapaEventoSerializer(etapas, many=True).data,
             },
             "metricas": {
-                "total_atracoes": total,
+                "total_atracoes": total_atracoes,
+                "total_submissoes": total_submissoes,
                 "total_inscricoes": total_inscricoes,
                 "sem_avaliador": sem_avaliador,
                 "desistencias": desistencias,
-                "taxa_evasao": int((desistencias / total) * 100) if total > 0 else 0,
+                "taxa_evasao": int((desistencias / total_atracoes) * 100)
+                if total_atracoes > 0
+                else 0,
             },
             "areas": areas,
         }

@@ -118,13 +118,29 @@ TEMPLATES_SISTEMA_DATA = [
         "nome_exibicao": "E-mail de Boas Vindas",
         "assunto": "Bem-vindo ao Sistema!",
         "corpo_texto": (
-            "Olá, {{ nome_usuario }} {{ sobrenome_usuario }}.\n\n"
+            "Olá, %nome_usuario%.\n\n"
             "Seu cadastro complementar no Sistema de Eventos foi realizado com Sucesso!.\n"
             "Seja muito bem-vindo!"
             "Agora no Site você pode se inscrever e gerenciar os eventos que você participa."
         ),
         "identificador": "welcome_email",
-    }
+        "categoria": "TRANSACIONAL",
+    },
+    {
+        "nome_exibicao": "Comunicado Geral (Atração)",
+        "assunto": "Comunicado geral sobre o evento %nome_evento%",
+        "corpo_texto": (
+            "Prezado(a) %nome_usuario%,\n\n"
+            "Gostaria de comunicar que, em relação ao evento %nome_evento% "
+            "e especificamente sobre o trabalho/atração '%nome_trabalho%', "
+            "temos as seguintes atualizações:\n\n"
+            "[Insira o restante da sua mensagem aqui]\n\n"
+            "Atenciosamente,\n"
+            "Organização do Evento"
+        ),
+        "identificador": "comunicado_geral_atracao",
+        "categoria": "MANUAL",
+    },
 ]
 
 # Dicionário de Mapeamento para as chaves reais salvas no Banco (TextChoices)
@@ -136,7 +152,7 @@ MAPA_AREAS_CHOICES = {
     "Ciências Agrárias": "CIENCIAS_AGRARIAS",
     "Ciências Sociais Aplicadas": "CIENCIAS_SOCIAIS_APLICADAS",
     "Ciências Humanas": "CIENCIAS_HUMANAS",
-    "Linguística, Letras e Artes": "LINGUISTICA_LETRAS_E_ARTES"
+    "Linguística, Letras e Artes": "LINGUISTICA_LETRAS_E_ARTES",
 }
 
 EVENTOS_DATA = [
@@ -668,7 +684,9 @@ def seed_eventos():
         mods = Modalidade.objects.filter(nome__in=item["modalidades_nomes"])
         evento.modalidades.set(mods)
 
-        chaves_areas = [MAPA_AREAS_CHOICES.get(nome, nome) for nome in item["areas_conhecimento"]]
+        chaves_areas = [
+            MAPA_AREAS_CHOICES.get(nome, nome) for nome in item["areas_conhecimento"]
+        ]
         areas = AreaConhecimento.objects.filter(area_conhecimento__in=chaves_areas)
         evento.area_conhecimento.set(areas)
 
@@ -688,18 +706,28 @@ def seed_atracoes():
     for item in ATRACOES_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando atração '{item['titulo']}'."
+            )
             continue
 
-        modalidade = Modalidade.objects.filter(nome__iexact=item["modalidade_nome"]).first()
+        modalidade = Modalidade.objects.filter(
+            nome__iexact=item["modalidade_nome"]
+        ).first()
         if not modalidade:
-            print(f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'.")
+            print(
+                f"Aviso: Modalidade '{item['modalidade_nome']}' não encontrada. Pulando atração '{item['titulo']}'."
+            )
             continue
 
         # Converte o nome amigável para a chave de choice correspondente (ex: "CIENCIAS_EXATAS_E_DA_TERRA")
-        chave_area = MAPA_AREAS_CHOICES.get(item["area_conhecimento"], item["area_conhecimento"])
+        chave_area = MAPA_AREAS_CHOICES.get(
+            item["area_conhecimento"], item["area_conhecimento"]
+        )
 
-        submissao = Submissao.objects.filter(titulo__iexact=item["titulo"], evento=evento).first()
+        submissao = Submissao.objects.filter(
+            titulo__iexact=item["titulo"], evento=evento
+        ).first()
         if submissao and Atracao.objects.filter(submissao=submissao).exists():
             existing.append(submissao.titulo)
             continue
@@ -745,7 +773,9 @@ def seed_etapas():
     for item in ETAPAS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}.")
+            print(
+                f"Pulo: Evento '{item['evento_nome']}' não encontrado para etapa {item['tipo_etapa']}."
+            )
             continue
 
         data_inicio = parse_datetime(item["data_inicio"])
@@ -784,10 +814,14 @@ def seed_arquivos():
     for item in ARQUIVOS_DATA:
         evento = Evento.objects.filter(nome__iexact=item["evento_nome"]).first()
         if not evento:
-            print(f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo.")
+            print(
+                f"Aviso: Evento '{item['evento_nome']}' não encontrado. Pulando arquivo."
+            )
             continue
 
-        arquivo_obj = Arquivo.objects.filter(nome_arquivo__iexact=item["nome_arquivo"], evento=evento).first()
+        arquivo_obj = Arquivo.objects.filter(
+            nome_arquivo__iexact=item["nome_arquivo"], evento=evento
+        ).first()
 
         if arquivo_obj:
             existing.append(item["nome_arquivo"])
@@ -813,12 +847,13 @@ def seed_templates_sistema():
     existing = []
 
     for item in TEMPLATES_SISTEMA_DATA:
-        template, was_created = TemplateSistema.objects.get_or_create(
+        template, was_created = TemplateSistema.objects.update_or_create(
             identificador=item["identificador"],
             defaults={
                 "nome_exibicao": item["nome_exibicao"],
                 "assunto": item["assunto"],
                 "corpo_texto": item["corpo_texto"],
+                "categoria": item["categoria"],  # <-- Adicione o mapeamento do campo
             },
         )
 
@@ -829,7 +864,7 @@ def seed_templates_sistema():
 
     print("Seed de templates de sistema finalizada.")
     print(f"Criados: {created if created else 'nenhum'}")
-    print(f"Ja existiam: {existing if existing else 'nenhum'}")
+    print(f"Ja existiam/Atualizados: {existing if existing else 'nenhum'}")
 
 
 def seed_admin_user():
@@ -846,7 +881,9 @@ def seed_admin_user():
         print(f"Superusuário '{username}' já existe.")
     else:
         try:
-            User.objects.create_superuser(username=username, email="admin@example.com", password=password)
+            User.objects.create_superuser(
+                username=username, email="admin@example.com", password=password
+            )
             print(f"Superusuário '{username}' criado com sucesso.")
         except TypeError:
             user = User.objects.create_superuser(username=username, password=password)

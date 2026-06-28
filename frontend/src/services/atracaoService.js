@@ -3,6 +3,7 @@ import { pegarTokenCsrf } from './csrfService';
 import { API_URL } from '../config';
 
 const CAMPOS_ATRACAO = [
+    'fluxo_direto_atracao',
     'titulo',
     'resumo',
     'palavras_chave',
@@ -14,6 +15,7 @@ const CAMPOS_ATRACAO = [
     'evento',
     'status',
     'sugestao_vagas',
+    'vagas_disponiveis',
     'data_hora_inicio',
     'data_hora_fim',
     'local_atracao',
@@ -105,11 +107,9 @@ const montarPayloadAtracao = (dados) => {
             return;
         }
 
-        if (key === 'sugestao_vagas') {
+        if (key === 'sugestao_vagas' || key === 'vagas_disponiveis') {
             const valor = dados[key];
-            if (valor === '' || valor === null || valor === undefined) {
-                return;
-            }
+            if (valor === '' || valor === null || valor === undefined) return;
             payload.append(key, Number(valor));
             return;
         }
@@ -122,9 +122,14 @@ const montarPayloadAtracao = (dados) => {
     return payload;
 };
 
-export const listarAtracoes = async (eventoId = null) => {
-    const params = eventoId ? { evento: eventoId } : {};
-    const response = await axios.get(`${API_URL}/api/atracoes/`, { params });
+export const listarAtracoes = async (eventoId = null, params = {}) => {
+    const queryParams = eventoId
+        ? { evento: eventoId, ...params }
+        : { ...params };
+    const response = await axios.get(`${API_URL}/api/atracoes/`, {
+        params: queryParams,
+        withCredentials: true,
+    });
     return response.data;
 };
 
@@ -234,14 +239,20 @@ export const buscarUsuarios = async (q, options = {}) => {
 export const listarEquipeAtracao = async (atracaoId) => {
     if (!atracaoId) return { equipe: [] };
 
-    const response = await axios.get(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
-        withCredentials: true,
-    });
+    const response = await axios.get(
+        `${API_URL}/api/atracoes/${atracaoId}/equipe/`,
+        {
+            withCredentials: true,
+        },
+    );
 
     return response.data;
 };
 
-export const definirMembroEquipeAtracao = async (atracaoId, { user_id, funcao, instituicao_curso = '' }) => {
+export const definirMembroEquipeAtracao = async (
+    atracaoId,
+    { user_id, funcao, instituicao_curso = '' },
+) => {
     if (!atracaoId || !user_id || !funcao) return null;
 
     const csrfData = await pegarTokenCsrf();
@@ -267,13 +278,16 @@ export const removerMembroEquipeAtracao = async (atracaoId, userId) => {
     const csrfData = await pegarTokenCsrf();
     const csrfToken = csrfData?.csrfToken || '';
 
-    const response = await axios.delete(`${API_URL}/api/atracoes/${atracaoId}/equipe/`, {
-        data: { user_id: userId },
-        headers: {
-            'X-CSRFToken': csrfToken,
+    const response = await axios.delete(
+        `${API_URL}/api/atracoes/${atracaoId}/equipe/`,
+        {
+            data: { user_id: userId },
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            withCredentials: true,
         },
-        withCredentials: true,
-    });
+    );
 
     return response.data;
 };

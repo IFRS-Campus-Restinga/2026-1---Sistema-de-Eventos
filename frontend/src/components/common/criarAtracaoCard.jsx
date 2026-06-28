@@ -3,7 +3,7 @@ import { MdEdit, MdSchool, MdAttachFile, MdSearch, MdDelete, MdArrowBack, MdLoca
 import { BsCheckCircle, BsPlusCircleFill } from 'react-icons/bs';
 import { FaUsers } from 'react-icons/fa';
 import SecaoFormulario from './secaoFormulario';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const LIMITS = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -13,6 +13,8 @@ const LIMITS = {
 
 export default function CriarAtracaoCard({
     formState, setFormState,
+    permitirEdicaoStatus = false,
+    opcoesStatus = [],
     opcoes,
     eventos,
     eventoSelecionadoDetalhe,
@@ -32,6 +34,27 @@ export default function CriarAtracaoCard({
         formState.sugestao_vagas !== null &&
         formState.sugestao_vagas !== undefined,
     );
+
+    const modalidadePermiteSugestaoVagas =
+        modalidadeSelecionadaDetalhe?.requer_controle_vagas === true;
+
+    useEffect(() => {
+        if (!modalidadeSelecionadaDetalhe) {
+            return;
+        }
+
+        if (!modalidadePermiteSugestaoVagas) {
+            setHabilitarSugestaoVagas(false);
+            setFormState((prev) => ({
+                ...prev,
+                sugestao_vagas: '',
+            }));
+        }
+    }, [
+        modalidadeSelecionadaDetalhe,
+        modalidadePermiteSugestaoVagas,
+        setFormState,
+    ]);
 
     const countWords = (text) =>
         text?.trim().split(/\s+/).filter((word) => word.length > 0).length || 0;
@@ -393,15 +416,12 @@ export default function CriarAtracaoCard({
 
         return (usuarios || []).filter((usuario) => {
             const idUsuario = String(usuario.id);
-            const perfilUsuario = String(usuario?.perfil_id || '');
-            const bateId = String(usuarioLogadoId || '') === idUsuario;
-            const batePerfil =
-                String(usuarioLogadoPerfilId || '') !== '' &&
-                String(usuarioLogadoPerfilId || '') === perfilUsuario;
+            const perfilAcesso = normalizarTexto(usuario?.access_profile || '');
 
-            if (bateId || batePerfil) {
+            if (perfilAcesso === 'administrador' || perfilAcesso === 'admin') {
                 return false;
             }
+
             return !idsSelecionadosEmOutrasLinhas.has(idUsuario);
         });
     };
@@ -487,7 +507,7 @@ export default function CriarAtracaoCard({
                                     <Form.Text className="text-danger">{errors.modalidade}</Form.Text>
                                 )}
                             </Form.Group>
-                            {modalidadeSelecionadaDetalhe && (
+                            {modalidadeSelecionadaDetalhe && modalidadePermiteSugestaoVagas && (
                                 <Form.Group className="mt-2">
                                     <Form.Check
                                         type="checkbox"
@@ -537,6 +557,29 @@ export default function CriarAtracaoCard({
                                 </Form.Group>
                             )}
                         </Col>
+                        {permitirEdicaoStatus && (
+                            <Col md={4}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label style={labelStyle}>Status</Form.Label>
+                                    <Form.Select
+                                        value={formState.status || ''}
+                                        onChange={(e) =>
+                                            handleChange('status', e.target.value)
+                                        }
+                                        style={{ backgroundColor: '#eeeeee' }}
+                                    >
+                                        {opcoesStatus.map((statusOpcao) => (
+                                            <option
+                                                key={statusOpcao.value}
+                                                value={statusOpcao.value}
+                                            >
+                                                {statusOpcao.label}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        )}
                         <Col md={4}>
                             <Form.Group className="mb-3">
                                 <Form.Label style={labelStyle}>Nível de Ensino *</Form.Label>

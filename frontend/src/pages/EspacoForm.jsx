@@ -159,9 +159,7 @@ export default function EspacoForm({ campus = 'Campus Restinga' }) {
                                         size="lg"
                                         variant="secondary"
                                         className="fw-bold"
-                                        onClick={() =>
-                                            navigate('/listar_locais_espacos')
-                                        }
+                                        onClick={() => navigate(-1)}
                                     >
                                         <MdArrowBack
                                             size={20}

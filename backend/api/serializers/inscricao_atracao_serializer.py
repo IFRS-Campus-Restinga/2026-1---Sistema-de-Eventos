@@ -28,10 +28,6 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         perfil = attrs.get("perfil") or getattr(self.instance, "perfil", None)
         atracao = attrs.get("atracao") or getattr(self.instance, "atracao", None)
-        submissao = None
-
-        if atracao:
-            submissao = getattr(atracao, "submissao", None)
 
         if perfil and atracao:
             inscricao_existente = InscricaoAtracao.objects.filter(
@@ -47,19 +43,20 @@ class InscricaoAtracaoSerializer(serializers.ModelSerializer):
                     {"mensagem": ["Este perfil já está inscrito nesta atração."]}
                 )
 
-        # Somente permitir inscrição em atracoes do tipo 'oficina'
-        modalidade = getattr(submissao, "modalidade", None)
-        modalidade_nome = (
-            getattr(modalidade, "nome", "") if modalidade is not None else ""
-        )
-        if modalidade_nome and modalidade_nome.strip().lower() != "oficina":
-            raise serializers.ValidationError(
-                {
-                    "atracao_id": [
-                        "Inscrições somente são permitidas para atrações do tipo 'Oficina'."
-                    ]
-                }
-            )
+        # NÃO É MAIS ASSIM, AGORA TODAS AS ATRAÇÕES QUE CONTROLAM VAGAS PODEM TER INSCRIÇÕES
+        # # Somente permitir inscrição em atracoes do tipo 'oficina'
+        # modalidade = getattr(submissao, "modalidade", None)
+        # modalidade_nome = (
+        #     getattr(modalidade, "nome", "") if modalidade is not None else ""
+        # )
+        # if modalidade_nome and modalidade_nome.strip().lower() != "oficina":
+        #     raise serializers.ValidationError(
+        #         {
+        #             "atracao_id": [
+        #                 "Inscrições somente são permitidas para atrações do tipo 'Oficina'."
+        #             ]
+        #         }
+        #     )
 
         return attrs
 

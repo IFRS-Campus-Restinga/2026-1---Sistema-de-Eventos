@@ -50,6 +50,8 @@ from .views.evento_view import (
     EventoOrganizadorView,
     EventoUpdateView,
     MeusEventosAvaliadorView,
+    MeusEventosCoordenadorView,
+    MeusEventosOrganizadorView,
 )
 from .views.groups_view import GrupoListView, GrupoPermissoesView
 from .views.inscricao_atracao_view import (
@@ -82,6 +84,7 @@ from .views.sessao_view import SessaoDetailView, SessaoListView
 from .views.submissao_avaliador_view import SubmissaoAvaliadorView
 from .views.submissao_view import (
     MinhasSubmissoesAvaliadorView,
+    SubmissaoDetailView,
     SubmissaoHomologarView,
     SubmissaoListView,
     SubmissaoReprovarView,
@@ -102,6 +105,8 @@ app_name = "api"
 urlpatterns = [
     # eventos
     path("eventos/", EventoListView.as_view()),
+    path("eventos/minhas/coordenador/", MeusEventosCoordenadorView.as_view()),
+    path("eventos/minhas/organizador/", MeusEventosOrganizadorView.as_view()),
     path("eventos/opcoes/", OpcoesFormularioView.as_view()),
     path("eventos/<int:pk>/", EventoDetailView.as_view()),
     path("eventos/<int:pk>/update/", EventoUpdateView.as_view()),
@@ -171,6 +176,7 @@ urlpatterns = [
     path("atracoes/<int:pk>/", AtracaoDetailView.as_view()),
     path("atracoes/<int:pk>/avaliador/", AtracaoAvaliadorView.as_view()),
     path("submissoes/", SubmissaoListView.as_view()),
+    path("submissoes/<int:pk>/", SubmissaoDetailView.as_view()),
     path("submissoes/<int:pk>/homologar/", SubmissaoHomologarView.as_view()),
     path("submissoes/<int:pk>/reprovar/", SubmissaoReprovarView.as_view()),
     path("submissoes/<int:pk>/avaliador/", SubmissaoAvaliadorView.as_view()),

@@ -36,7 +36,6 @@ class AvaliacaoAtracaoListView(APIView):
             criterios = criterios.filter(avaliador=request.user)
 
         else:
-            # avaliadores vejam apenas suas próprias avaliações; coordenador/administrador veem todas
             user = request.user
             if not (user and user.is_authenticated):
                 return Response({"erro": "Autenticação requerida"}, status=401)
@@ -48,7 +47,13 @@ class AvaliacaoAtracaoListView(APIView):
                 ).exists()
             )
             if not is_admin_or_coordenador:
-                criterios = criterios.filter(avaliador=user)
+                from django.db.models import Q
+
+                criterios = criterios.filter(
+                    Q(avaliador=user)
+                    | Q(atracao__submissao__autorias__usuario=user)
+                    | Q(atracao__submissao__orientador=user)
+                ).distinct()
 
         serializer = AvaliacaoAtracaoSerializer(criterios, many=True)
         return Response(serializer.data)

@@ -3,8 +3,8 @@ from django.db import models
 from ..enumerations.status_atracao import StatusAtracao
 from .base import Base
 from .espaco import Espaco
-from .submissao import Submissao
 from .evento import Evento
+from .submissao import Submissao
 
 
 class Atracao(Base):
@@ -42,11 +42,7 @@ class Atracao(Base):
     )
 
     evento = models.ForeignKey(
-        Evento, 
-        on_delete=models.CASCADE, 
-        related_name="atracoes",
-        null=True,  
-        blank=True
+        Evento, on_delete=models.CASCADE, related_name="atracoes", null=True, blank=True
     )
 
     def clean(self):
@@ -76,7 +72,13 @@ class Atracao(Base):
         verbose_name = "Atração"
         verbose_name_plural = "Atrações"
         ordering = ["-id"]
-        permissions = [("avaliar_atracao", "Pode avaliar esta atração")]
+        permissions = [
+            ("avaliar_atracao", "Pode avaliar esta atração"),
+            ("ver_atracao", "Pode visualizar as atrações"),
+            ("criar_atracao", "Pode criar atrações"),
+            ("excluir_atracao", "Pode excluir atrações"),
+            ("atribuir_atracao", "Pode atribuir atrações"),
+        ]
 
     def __str__(self):
         titulo = getattr(self.submissao, "titulo", "") if self.submissao_id else ""

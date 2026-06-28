@@ -8,14 +8,17 @@ from emails.serializers import TemplateSistemaSerializer, TemplatePerfilSerializ
 from eventos_session.permissions import HasValidSessionToken
 from api.models.perfil import Perfil
 from eventos_session.models import Usuario
+from ..models.template_sistema import CategoriaTemplateSistema
 
 
 class TemplateSistemaListView(ListAPIView):  # Envios de Templates do Sistema
     authentication_classes = []  # Desliga o SimpleJWT global padrão, HasValidSessionToken fará a autenticação.
     permission_classes = [HasValidSessionToken]
-
-    queryset = TemplateSistema.objects.all()
     serializer_class = TemplateSistemaSerializer
+
+    def get_queryset(self):
+        # Entrega penas templates de seleção manual
+        return TemplateSistema.objects.filter(categoria=CategoriaTemplateSistema.MANUAL)
 
 
 class TemplatePerfilDetailView(

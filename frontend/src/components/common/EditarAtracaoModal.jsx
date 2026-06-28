@@ -5,6 +5,8 @@ export default function EditarAtracaoModal({
     show = false,
     formEdicao,
     setFormEdicao,
+    permitirEdicaoStatus = false,
+    opcoesStatus = [],
     opcoesEdicao,
     modalidadeEdicaoDetalhe,
     habilitarSugestaoVagasEdicao,
@@ -21,10 +23,13 @@ export default function EditarAtracaoModal({
     handleRemoverMembroEdicao,
     handleMembroEdicaoChange,
     salvandoEdicao = false,
+    somenteLeitura = false,
     onClose,
     onSalvar,
 }) {
     const [buscasUsuariosEdicao, setBuscasUsuariosEdicao] = useState({});
+    const modalidadePermiteSugestaoVagas =
+        modalidadeEdicaoDetalhe?.requer_controle_vagas === true;
 
     const normalizarTexto = (texto) =>
         (texto || '')
@@ -97,9 +102,12 @@ export default function EditarAtracaoModal({
             dialogClassName="modal-editar-atracao-expandido"
         >
             <Modal.Header closeButton>
-                <Modal.Title style={{ color: '#00A44B' }}>Editar Submissão</Modal.Title>
+                <Modal.Title style={{ color: '#00A44B' }}>
+                    {somenteLeitura ? 'Detalhes da Submissão/Atração' : 'Editar Submissão'}
+                </Modal.Title>
             </Modal.Header>
             <Modal.Body>
+                <fieldset disabled={somenteLeitura}>
                 <Form>
                     <Form.Group className="mb-3">
                         <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
@@ -137,7 +145,7 @@ export default function EditarAtracaoModal({
                         />
                     </Form.Group>
 
-                    <Row>
+                    <Row className="g-3">
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
@@ -160,7 +168,7 @@ export default function EditarAtracaoModal({
                                     ))}
                                 </Form.Select>
 
-                                {modalidadeEdicaoDetalhe && (
+                                {modalidadeEdicaoDetalhe && modalidadePermiteSugestaoVagas && (
                                     <div className="mt-2">
                                         <Form.Check
                                             type="checkbox"
@@ -220,6 +228,34 @@ export default function EditarAtracaoModal({
                                 )}
                             </Form.Group>
                         </Col>
+                        {permitirEdicaoStatus && (
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="fw-bold" style={{ color: '#00A44B' }}>
+                                        Status
+                                    </Form.Label>
+                                    <Form.Select
+                                        value={formEdicao.status || ''}
+                                        onChange={(e) =>
+                                            setFormEdicao((prev) => ({
+                                                ...prev,
+                                                status: e.target.value,
+                                            }))
+                                        }
+                                        style={{ backgroundColor: '#eeeeee' }}
+                                    >
+                                        {opcoesStatus.map((statusOpcao) => (
+                                            <option
+                                                key={statusOpcao.value}
+                                                value={statusOpcao.value}
+                                            >
+                                                {statusOpcao.label}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        )}
                     </Row>
 
                     <Row>
@@ -324,9 +360,11 @@ export default function EditarAtracaoModal({
                         <Form.Label className="fw-bold mb-0" style={{ color: '#00A44B' }}>
                             Membros da Equipe
                         </Form.Label>
-                        <Button variant="outline-primary" size="sm" onClick={handleAdicionarMembroEdicao}>
-                            Adicionar membro
-                        </Button>
+                        {!somenteLeitura && (
+                            <Button variant="outline-primary" size="sm" onClick={handleAdicionarMembroEdicao}>
+                                Adicionar membro
+                            </Button>
+                        )}
                     </div>
 
                     <div className="table-responsive">
@@ -475,6 +513,7 @@ export default function EditarAtracaoModal({
                                                 <Button
                                                     variant="outline-danger"
                                                     size="sm"
+                                                    disabled={somenteLeitura}
                                                     onClick={() => handleRemoverMembroEdicao(index)}
                                                 >
                                                     Remover
@@ -487,19 +526,22 @@ export default function EditarAtracaoModal({
                         </table>
                     </div>
                 </Form>
+                </fieldset>
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="outline-secondary" onClick={onClose}>
-                    Cancelar
+                    {somenteLeitura ? 'Fechar' : 'Cancelar'}
                 </Button>
-                <Button
-                    variant="success"
-                    style={{ backgroundColor: '#00A44B', border: 'none' }}
-                    disabled={salvandoEdicao}
-                    onClick={onSalvar}
-                >
-                    {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
-                </Button>
+                {!somenteLeitura && (
+                    <Button
+                        variant="success"
+                        style={{ backgroundColor: '#00A44B', border: 'none' }}
+                        disabled={salvandoEdicao}
+                        onClick={onSalvar}
+                    >
+                        {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                    </Button>
+                )}
             </Modal.Footer>
         </Modal>
     );

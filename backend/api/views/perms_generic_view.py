@@ -65,7 +65,9 @@ class PodeCoordenarEvento(IsGroupAndObjectPerm):
 
 # isso ta ajudando a fazer funcionar a inclusão de coordenadores/organizadores. -Breno
 class PodeGerenciarEquipeEvento(IsGroupAndObjectPerm):
-    required_groups = ["Coordenador"]
+    required_groups = [
+        "Coordenador",
+    ]
     required_object_perms = ["api.coordenar_evento"]
 
 
@@ -105,6 +107,22 @@ class PodeAtribuirEspaco(IsGroupAndObjectPerm):
 class PodeCriarEspaco(IsGroupAndObjectPerm):
     required_groups = ["Administrador", "Coordenador"]
     required_object_perms = ["api.criar_espaco"]
+
+
+# PERMS DE EtapaEvento
+class PodeVerEtapaEvento(IsGroupAndObjectPerm):
+    required_groups = ["Administrador", "Coordenador", "Organizador"]
+    required_object_perms = ["api.ver_etapa_evento"]
+
+
+class PodeAtribuirEtapaEvento(IsGroupAndObjectPerm):
+    required_groups = ["Administrador", "Coordenador"]
+    required_object_perms = ["api.atribuir_etapa_evento"]
+
+
+class PodeExcluirEtapaEvento(IsGroupAndObjectPerm):
+    required_groups = ["Administrador", "Coordenador"]
+    required_object_perms = ["api.excluir_etapa_evento"]
 
 
 class PodeGerenciarModalidade(PodeGerenciarConteudoAdministrativo):
@@ -179,7 +197,30 @@ class PodeVerAvaliacaoSubmissao(BasePermission):
             return True
 
         # Restringe o avaliador comum às suas próprias avaliações executadas
-        return getattr(obj, "avaliador", None) == user
+        # Permite também que os autores, orientador ou membros da equipe
+        # relacionados à submissão vejam a avaliação.
+        if getattr(obj, "avaliador", None) == user:
+            return True
+
+        submissao = getattr(obj, "submissao", None)
+        if not submissao:
+            return False
+
+        # orientador
+        if getattr(submissao, "orientador", None) == user:
+            return True
+
+        # autoria registrada (usuários do sistema)
+        try:
+            if (
+                hasattr(submissao, "autorias")
+                and submissao.autorias.filter(usuario=user).exists()
+            ):
+                return True
+        except Exception:
+            pass
+
+        return False
 
 
 class PodeGerenciarAvaliadoresSubmissao(IsGroupAndObjectPerm):
@@ -204,4 +245,99 @@ class PodeGerenciarAvaliadoresSubmissao(IsGroupAndObjectPerm):
         if not evento:
             return False
 
+        return any(user.has_perm(perm, evento) for perm in self.required_object_perms)
+
+
+class PodeGerenciarSubmissoes(BasePermission):
+    """
+    Regras:
+    - Qualquer usuario autenticado pode criar
+    - Ver: O próprio autor/orientador OR Admin/Coordenador/Organizador do Evento.
+    - Editar/Eliminar (PUT, PATCH, DELETE): O próprio autor/orientador OR Admin/Coordenador do Evento.
+    """
+
+    def is_admin(self, user):
+        return user.is_superuser or user.groups.filter(name="Administrador").exists()
+
+    def has_permission(self, request, view):
+        # Qualquer usuario precisa estar autenticado para interagir com submissões
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+
+        # 1. Administradores globais têm passe livre total
+        if self.is_admin(user):
+            return True
+
+        # 2. Verificar se o utilizador é o Dono (Orientador ou Autor)
+        is_dono = False
+        if getattr(obj, "orientador", None) == user:
+            is_dono = True
+
+        try:
+            if hasattr(obj, "autorias") and obj.autorias.filter(usuario=user).exists():
+                is_dono = True
+        except Exception:
+            pass
+
+        # Se for o dono do trabalho, tem permissão para ler e modificar as suas próprias coisas
+        if is_dono:
+            return True
+
+        # 3. Se NÃO for o dono, validamos via Django Guardian olhando para o Evento Pai
+        evento = getattr(obj, "evento", None)
+        if not evento:
+            return False
+
+        # Se for apenas leitura (GET / Detalhes)
+        if request.method in SAFE_METHODS:
+            # Coordenadores e Organizadores do evento podem VER todas as submissões
+            return user.has_perm("api.coordenar_evento", evento) or user.has_perm(
+                "api.organiza_evento", evento
+            )
+
+        # Se for modificação (PUT, PATCH, DELETE)
+        # Apenas Coordenadores do evento podem EDITAR submissões alheias (Organizadores ficam de fora)
+        return user.has_perm("api.coordenar_evento", evento)
+
+
+class PodeGerenciarAtracoes(IsGroupAndObjectPerm):
+    """
+    Permissão que permite a qualquer usuário visualizar as atrações (SAFE_METHODS),
+    mas exige que o usuário seja Administrador, Coordenador ou Organizador
+    com permissão de objeto no Evento pai para criar ou modificar.
+    """
+
+    required_groups = ["Coordenador", "Organizador", "Administrador"]
+    required_object_perms = ["api.coordenar_evento", "api.organiza_evento"]
+
+    def has_permission(self, request, view):
+        # Regra: Todos podem ver as informações de atração
+        if request.method in SAFE_METHODS:
+            return True
+
+        # Para criar ou editar, o usuário precisa pelo menos estar autenticado e nos grupos
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        # Regra: Todos podem visualizar os detalhes de uma atração específica
+        if request.method in SAFE_METHODS:
+            return True
+
+        user = request.user
+        if user.is_superuser or self.is_admin(user):
+            return True
+
+        # O objeto aqui é a instância de Atracao. Buscamos o Evento atrelado a ela.
+        evento = getattr(obj, "evento", None)
+
+        # Fallback: Se o evento não estiver direto na atração, tenta buscar via submissão
+        if not evento and getattr(obj, "submissao", None):
+            evento = getattr(obj.submissao, "evento", None)
+
+        if not evento:
+            return False
+
+        # Valida se o usuário tem permissão de objeto (Guardian) no EVENTO desta atração
         return any(user.has_perm(perm, evento) for perm in self.required_object_perms)

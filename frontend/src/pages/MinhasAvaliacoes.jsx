@@ -2,8 +2,8 @@ import { Container, Row, Col, Button } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import Card from '../components/common/Card';
-import { FaPenNib } from 'react-icons/fa';
-import { MdCheckCircle } from 'react-icons/md';
+import { TbPencil } from 'react-icons/tb';
+import { FaRegCircleCheck } from 'react-icons/fa6';
 import { BsEyeFill } from 'react-icons/bs';
 import Tabela from '../components/common/Tabela';
 import { useState, useEffect } from 'react';
@@ -15,7 +15,7 @@ import ModalPopup from '../components/common/ModalPopup';
 import { useMeusAvaliacoes } from '../hooks/useMeusAvaliacoes';
 import { listarEtapas } from '../services/etapaEventoService';
 
-export default function AvaliacoesAtracoes({}) {
+export default function AvaliacoesAtracoes() {
     const [modalAtivo, setModalAtivo] = useState(false);
     const [selectedAtracao, setSelectedAtracao] = useState(null);
     const [searchParams] = useSearchParams();
@@ -56,122 +56,240 @@ export default function AvaliacoesAtracoes({}) {
         }
     }, [eventoId, carregarAtracoesParaEvento]);
 
-    const personalizarInformacoes = (d) => (
-        <>
-            <Row className="p-0 m-0">
-                <Col className="p-0 m-0 fw-bold">{d?.titulo}</Col>
-            </Row>
-            <Row className="p-0 m-0">
-                <Col className="p-0 m-0">
-                    {d?.tipo || 'Modalidade'} |{' '}
-                    {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
-                </Col>
-                <Col className="p-0 m-0">
-                    <Link className="text-decoration-none d-flex align-items-center">
-                        <BsEyeFill />
-                        <span
-                            className="ms-2"
-                            onClick={() => {
-                                setSelectedAtracao(d);
-                                setModalAtivo(true);
-                            }}
-                        >
-                            Ler resumo completo
-                        </span>
-                    </Link>
-                </Col>
-            </Row>
-        </>
-    );
+    const obterNomesIntegrantes = (item) => {
+        const nomes = [];
+
+        const adicionarNome = (valor) => {
+            if (typeof valor === 'string' && valor.trim()) {
+                nomes.push(valor.trim());
+            }
+        };
+
+        const autorias = Array.isArray(item?.autorias) ? item.autorias : [];
+        autorias.forEach((autoria) => {
+            adicionarNome(autoria?.nome);
+            adicionarNome(autoria?.usuario_nome);
+            adicionarNome(autoria?.autor);
+            adicionarNome(autoria?.nome_completo);
+        });
+
+        adicionarNome(item?.autor_nome);
+        adicionarNome(item?.autor);
+        adicionarNome(item?.nome_autor);
+
+        if (Array.isArray(item?.equipe)) {
+            item.equipe.forEach((membro) => {
+                adicionarNome(membro?.nome);
+                adicionarNome(membro?.usuario_nome);
+                adicionarNome(membro?.autor);
+            });
+        }
+
+        return [...new Set(nomes)];
+    };
+
+    const personalizarInformacoes = (d) => {
+        const nomesIntegrantes = obterNomesIntegrantes(d);
+
+        return (
+            <>
+                <Row className="p-0 m-0">
+                    <Col className="p-0 m-0 fw-bold">{d?.titulo}</Col>
+                </Row>
+                <Row className="p-0 m-0">
+                    <Col className="p-0 m-0">
+                        {d?.tipo || 'Modalidade'} |{' '}
+                        {formatNivelEnsino(d?.nivel_ensino || d?.nivel)}
+                        {nomesIntegrantes.length > 0 ? (
+                            <div className="text-muted small mt-1">
+                                {nomesIntegrantes.length === 1
+                                    ? 'Autor: '
+                                    : 'Integrantes: '}
+                                {nomesIntegrantes.join(', ')}
+                            </div>
+                        ) : null}
+                    </Col>
+                    <Col className="p-0 m-0">
+                        <Link className="text-decoration-none d-flex align-items-center">
+                            <BsEyeFill />
+                            <span
+                                className="ms-2"
+                                onClick={() => {
+                                    setSelectedAtracao(d);
+                                    setModalAtivo(true);
+                                }}
+                            >
+                                Ler resumo completo
+                            </span>
+                        </Link>
+                    </Col>
+                </Row>
+            </>
+        );
+    };
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
             <NavBar />
 
-            <main className=" py-4 ">
+            <main className="mb-5 ">
                 <Container
                     fluid
-                    className="d-md-flex flex-md-column align-items-md-center gap-3"
+                    className="d-md-flex flex-md-column align-items-md-center gap-3 p-0"
                 >
-                    <Row>
-                        <Col>
-                            <h1
-                                className="fw-bold mt-3 text-center"
-                                style={{ color: '#059547' }}
+                    <Row className="w-100">
+                        <Col className="p-0">
+                            <section
+                                style={{
+                                    backgroundImage:
+                                        'linear-gradient(to right,#17882c 0,#00510f 100%)',
+                                    color: '#ffffff',
+                                    padding: '1.5rem 4.75rem',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
                             >
-                                Avaliações
-                            </h1>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col className="d-md-flex gap-5">
-                            <Card
-                                corBorda="#003366"
-                                largura={!isMobile ? 350 : undefined}
-                                altura={110}
-                            >
-                                <Container className="d-flex justify-content-evenly mt-3 pt-3 pt-md-0">
-                                    <Row className="d-flex flex-column">
-                                        <Col>
-                                            <span>PARA AVALIAR</span>
-                                        </Col>
-                                        <Col>
-                                            <span className="fw-bold fs-1">
-                                                {Array.isArray(atracoes)
-                                                    ? atracoes.filter(
-                                                          (a) =>
-                                                              a.status !==
-                                                                  'avaliada' &&
-                                                              a.avaliacao_disponivel,
-                                                      ).length
-                                                    : 0}
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col className="d-flex align-items-center">
-                                            <FaPenNib
-                                                size={45}
-                                                color="#003366"
-                                            />
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Card>
-                            <Card
-                                corBorda="#059547"
-                                largura={!isMobile ? 350 : undefined}
-                                altura={110}
-                            >
-                                <Container className="d-flex justify-content-evenly mt-3  pt-3 pt-md-0">
-                                    <Row className="d-flex flex-column">
-                                        <Col>
-                                            <span className="">
-                                                AVALIAÇÕES CONCLUÍDAS
-                                            </span>
-                                        </Col>
-                                        <Col>
-                                            <span className="fw-bold fs-1">
-                                                {Array.isArray(atracoes)
-                                                    ? atracoes.filter(
-                                                          (a) =>
-                                                              a.status ===
-                                                              'avaliada',
-                                                      ).length
-                                                    : 0}
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <Row className="">
-                                        <Col className="d-flex align-items-center">
-                                            <MdCheckCircle
-                                                size={50}
-                                                color="#059547"
-                                            />
-                                        </Col>
-                                    </Row>
-                                </Container>
-                            </Card>
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        position: 'absolute',
+                                        width: '24rem',
+                                        height: '24rem',
+                                        left: '-5rem',
+                                        top: '10rem',
+                                        borderRadius: '999px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                <span
+                                    aria-hidden="true"
+                                    style={{
+                                        position: 'absolute',
+                                        width: '18rem',
+                                        height: '18rem',
+                                        right: '-5rem',
+                                        bottom: '-8rem',
+                                        borderRadius: '999px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                <div
+                                    className="position-relative mx-auto text-center"
+                                    style={{
+                                        position: 'relative',
+                                        zIndex: 1,
+                                        maxWidth: '52rem',
+                                    }}
+                                >
+                                    <h1
+                                        className="fw-bold text-white"
+                                        style={{
+                                            fontSize:
+                                                'clamp(2.75rem, 6vw, 1.8rem)',
+                                            lineHeight: 0.8,
+                                            margin: '0 0 0.9rem',
+                                        }}
+                                    >
+                                        Avaliações - Atrações
+                                    </h1>
+                                    <p className="fs-5">
+                                        Gerencie e acompanhe suas avaliações
+                                        pendentes e concluídas.
+                                    </p>
+                                    <div>
+                                        <div className="d-flex justify-content-center">
+                                            <div
+                                                className="d-flex justify-content-center flex-wrap z-1"
+                                                style={{ gap: '16px' }}
+                                            >
+                                                <div
+                                                    className="d-flex align-items-center rounded-3 p-4"
+                                                    style={{
+                                                        background:
+                                                            'rgba(255, 255, 255, 0.10)',
+                                                        border: '0.5px solid rgba(255,255,255,0.20)',
+                                                        gap: '12px',
+                                                        padding: '1rem 1.5rem;',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="p-2 rounded-3"
+                                                        style={{
+                                                            background:
+                                                                'rgba(255,255,255,0.12)',
+                                                        }}
+                                                    >
+                                                        <TbPencil
+                                                            size={45}
+                                                            color="#ffffff"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="fs-4 fw-bold">
+                                                            Para avaliar
+                                                        </div>
+                                                        <div className=" fs-2 fw-bold">
+                                                            {Array.isArray(
+                                                                atracoes,
+                                                            )
+                                                                ? atracoes.filter(
+                                                                      (a) =>
+                                                                          a.status !==
+                                                                              'avaliada' &&
+                                                                          a.avaliacao_disponivel,
+                                                                  ).length
+                                                                : 0}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="d-flex align-items-center rounded-3 p-4"
+                                                    style={{
+                                                        background:
+                                                            'rgba(255, 255, 255, 0.10)',
+                                                        border: '0.5px solid rgba(255,255,255,0.20)',
+                                                        gap: '12px',
+                                                        padding: '1rem 1.5rem;',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="p-2 rounded-3"
+                                                        style={{
+                                                            background:
+                                                                'rgba(255,255,255,0.12)',
+                                                        }}
+                                                    >
+                                                        <FaRegCircleCheck
+                                                            size={45}
+                                                            color="#ffffff"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="text-end fs-4 fw-bold">
+                                                            Concluídas
+                                                        </div>
+                                                        <div className=" fs-2 fw-bold">
+                                                            {Array.isArray(
+                                                                atracoes,
+                                                            )
+                                                                ? atracoes.filter(
+                                                                      (a) =>
+                                                                          a.status ===
+                                                                          'avaliada',
+                                                                  ).length
+                                                                : 0}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
                         </Col>
                     </Row>
                     <Row className="w-75 mt-4 ps-4">
@@ -374,6 +492,16 @@ export default function AvaliacoesAtracoes({}) {
                                         corFundo="#00f"
                                         corTexto="#000"
                                     />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col>
+                                    <span className="fw-bold">Integrantes</span>
+                                    <p className="text-secondary small mb-0">
+                                        {obterNomesIntegrantes(
+                                            selectedAtracao,
+                                        ).join(', ') || '—'}
+                                    </p>
                                 </Col>
                             </Row>
                             <Row>

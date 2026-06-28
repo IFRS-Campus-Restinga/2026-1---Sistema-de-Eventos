@@ -9,12 +9,23 @@ from rest_framework.permissions import AllowAny
 
 class OpcoesFormularioView(APIView):
     permission_classes = [AllowAny]
+
     def get(self, request):
         data = {
-            "status": [{"value": value, "label": label} for value, label in StatusEvento.choices],
-            "setores": [{"value": value, "label": label} for value, label in Setor.choices],
-            "tipo_etapa": [{"value": value, "label": label} for value, label in TipoEtapa.choices],
-            "areas_conhecimento": [{"value": value, "label": label} for value, label in AreaConhecimentoEscolha.choices],
-
+            "status": [
+                {"value": value, "label": label}
+                for value, label in StatusEvento.choices
+            ],
+            "setores": [
+                {"value": value, "label": label} for value, label in Setor.choices
+            ],
+            "tipo_etapa": [
+                {"value": value, "label": label} for value, label in TipoEtapa.choices
+            ],
+            "areas_conhecimento": [
+                {"value": value, "label": label}
+                for value, label in AreaConhecimentoEscolha.choices
+            ],
+            # as duas de cima não está fznd nada, tipo_etapa e areas_conhecimento no caso.
         }
         return Response(data)

@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..enumerations.status_aprovacao import StatusAprovacao
 from ..enumerations.status_atracao import StatusAtracao
 from ..enumerations.status_submissao import StatusSubmissao
 from ..enumerations.tipo_etapa import TipoEtapa
@@ -14,6 +15,42 @@ from ..models.etapa_evento import EtapaEvento
 from ..models.evento import Evento
 from ..models.submissao import Submissao
 from ..serializers.submissao_serializer import SubmissaoSerializer
+from ..services.submissao_atracao_policy import pode_editar_submissao
+
+
+def _aplicar_edicao_submissao(submissao, request):
+    campos_editaveis = {
+        "titulo",
+        "resumo",
+        "palavras_chave",
+        "modalidade",
+        "nivel_ensino",
+        "area_conhecimento",
+        "orientador",
+        "sou_orientador",
+        "acessibilidade",
+        "sugestao_vagas",
+    }
+
+    payload = {}
+    for campo in campos_editaveis:
+        if campo in request.data:
+            payload[campo] = request.data.get(campo)
+
+    if not payload:
+        return None
+
+    serializer = SubmissaoSerializer(
+        submissao,
+        data=payload,
+        partial=True,
+        context={"request": request},
+    )
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+
+    serializer.save()
+    return None
 
 
 class SubmissaoHomologarView(APIView):
@@ -31,6 +68,10 @@ class SubmissaoHomologarView(APIView):
                 status=403,
             )
 
+        erro_edicao = _aplicar_edicao_submissao(submissao, request)
+        if erro_edicao is not None:
+            return erro_edicao
+
         # Homologar = criar/garantir a relação com Atracao e converter status na submissão
         atracao = getattr(submissao, "atracao", None)
         if atracao is None:
@@ -39,6 +80,9 @@ class SubmissaoHomologarView(APIView):
         # Homologar = confirmar a atração
         atracao.status = StatusAtracao.CONFIRMADA
         atracao.save(update_fields=["status"])
+
+        atracao.evento = submissao.evento
+        atracao.save(update_fields=["evento"])
 
         # Homologar também converte o status da submissão
         submissao.status_submissao = StatusSubmissao.CONVERTIDA_EM_ATRACAO
@@ -62,6 +106,10 @@ class SubmissaoReprovarView(APIView):
                 {"erro": "Submissão já reprovada."},
                 status=403,
             )
+
+        erro_edicao = _aplicar_edicao_submissao(submissao, request)
+        if erro_edicao is not None:
+            return erro_edicao
 
         submissao.status_submissao = StatusSubmissao.REPROVADA
         submissao.save(update_fields=["status_submissao"])
@@ -95,6 +143,7 @@ class SubmissaoListView(APIView):
         return str(value).strip().lower() in {"1", "true", "sim", "yes"}
 
     def _base_queryset(self):
+        # Não colocar exclussão de CONVERTIDA_EM_ATRACAO por favor
         return Submissao.objects.select_related("evento", "modalidade", "orientador")
 
     def _scoped_queryset(self, request):
@@ -169,6 +218,150 @@ class SubmissaoListView(APIView):
             submissoes, many=True, context={"request": request}
         )
         return Response(serializer.data)
+
+
+class SubmissaoDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    STATUS_EXCLUSAO_COORDENADOR = {
+        "PREVISTA",
+        "SUBMETIDA",
+        "RASCUNHO",
+    }
+    STATUS_EXCLUSAO_USUARIO = {
+        "PREVISTA",
+        "SUBMETIDA",
+        "RASCUNHO",
+    }
+
+    @staticmethod
+    def _is_admin(user):
+        return user.is_superuser or user.groups.filter(name="Administrador").exists()
+
+    @staticmethod
+    def _is_coordenador(user):
+        return user.groups.filter(name="Coordenador").exists()
+
+    def _coordenador_gerencia_evento(self, user, submissao):
+        return (
+            get_objects_for_user(
+                user,
+                "api.coordenar_evento",
+                klass=Evento,
+            )
+            .filter(pk=submissao.evento_id)
+            .exists()
+        )
+
+    def _usuario_eh_autor(self, user, submissao):
+        return submissao.autorias.filter(usuario=user).exists()
+
+    def _pode_excluir(self, user, submissao):
+        status = str(submissao.status_submissao or "").upper()
+
+        if self._is_admin(user):
+            return True
+
+        if self._is_coordenador(user):
+            escopo = self._coordenador_gerencia_evento(
+                user, submissao
+            ) or self._usuario_eh_autor(user, submissao)
+            return escopo and status in self.STATUS_EXCLUSAO_COORDENADOR
+
+        return (
+            self._usuario_eh_autor(user, submissao)
+            and status in self.STATUS_EXCLUSAO_USUARIO
+        )
+
+    def _pode_editar(self, user, submissao):
+        return pode_editar_submissao(user, submissao)
+
+    def _autor_pode_editar_com_ressalvas(self, submissao):
+        if not submissao or not getattr(submissao, "evento", None):
+            return False
+
+        if not submissao.avaliacoes.filter(
+            status_aprovacao=StatusAprovacao.APROVADO_COM_RESSALVAS,
+        ).exists():
+            return False
+
+        return self._etapa_avaliacao_previa_aberta(submissao)
+
+    def _etapa_avaliacao_previa_aberta(self, submissao):
+        evento = getattr(submissao, "evento", None)
+        if not evento:
+            return False
+
+        now = timezone.now()
+        return EtapaEvento.objects.filter(
+            evento=evento,
+            tipo_etapa=TipoEtapa.AVALIACAO_PREVIA,
+            data_inicio__lte=now,
+            data_fim__gte=now,
+        ).exists()
+
+    def put(self, request, pk):
+        try:
+            submissao = (
+                Submissao.objects.select_related("evento", "modalidade", "orientador")
+                .prefetch_related("autorias")
+                .get(pk=pk)
+            )
+        except Submissao.DoesNotExist:
+            return Response({"erro": "Submissão não encontrada"}, status=404)
+
+        if not self._pode_editar(request.user, submissao):
+            return Response(
+                {"erro": "issão para editar esta submissão."},
+                status=403,
+            )
+
+        payload = (
+            request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        )
+
+        status_recebido = payload.get("status_submissao", payload.get("status"))
+        if status_recebido is not None and not self._is_admin(request.user):
+            return Response(
+                {"erro": "Somente administrador pode alterar status da submissão."},
+                status=403,
+            )
+
+        if status_recebido is not None:
+            payload["status_submissao"] = status_recebido
+
+        payload.pop("status", None)
+
+        serializer = SubmissaoSerializer(
+            submissao,
+            data=payload,
+            partial=True,
+            context={"request": request},
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        try:
+            submissao = (
+                Submissao.objects.select_related("evento")
+                .prefetch_related("autorias")
+                .get(pk=pk)
+            )
+        except Submissao.DoesNotExist:
+            return Response({"erro": "Submissão não encontrada"}, status=404)
+
+        if not self._pode_excluir(request.user, submissao):
+            return Response(
+                {"erro": "issão para excluir esta submissão."},
+                status=403,
+            )
+
+        submissao.delete()
+        return Response(status=204)
 
 
 class MinhasSubmissoesAvaliadorView(APIView):

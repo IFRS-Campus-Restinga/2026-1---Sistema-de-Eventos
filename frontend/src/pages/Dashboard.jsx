@@ -22,6 +22,10 @@ import { AiOutlineUnorderedList } from 'react-icons/ai';
 import { BiPaperPlane } from 'react-icons/bi';
 import { FaCogs } from 'react-icons/fa';
 import { HiOutlineClipboardList } from 'react-icons/hi';
+import { FaUserLock } from 'react-icons/fa';
+import { FaLock } from 'react-icons/fa';
+
+import { getCurrentUser } from '../services/authService';
 
 import {
     clearSelectedEventoId,
@@ -34,8 +38,8 @@ import { getDashboardEvento } from '../services/dashboardService';
 export default function Dashboard() {
     const { id: eventoId } = useParams();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true); // Inicia como true para evitar flashes de tela vazia
     const [erro, setErro] = useState('');
+    const [User, setUser] = useState({});
 
     const [dashboard, setDashboard] = useState(null);
 
@@ -55,6 +59,24 @@ export default function Dashboard() {
             year: 'numeric',
         }).format(data);
     };
+
+    useEffect(() => {
+        let ativo = true;
+
+        (async () => {
+            try {
+                const currentUser = await getCurrentUser();
+                if (!ativo) return;
+                setUser(currentUser);
+            } catch (e) {
+                console.log(e);
+            }
+        })();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
 
     const formatarStatus = (status) => {
         if (!status) {
@@ -77,6 +99,10 @@ export default function Dashboard() {
             .replace(/\b\w/g, (letra) => letra.toUpperCase());
     };
 
+    const possuiEtapaRealizacao = dashboard?.evento?.etapas?.some(
+        (etapa) => etapa.tipo_etapa === 'REALIZACAO_EVENTO',
+    );
+
     useEffect(() => {
         async function carregarDashboard() {
             // Se não veio ID na URL, resolve o redirecionamento e interrompe a execução
@@ -93,7 +119,6 @@ export default function Dashboard() {
             // Define o ID ativo apenas se ele veio na URL
             setSelectedEventoId(eventoId);
             adicionarEventoRecenteAdminId(eventoId);
-            setLoading(true);
             setErro('');
 
             try {
@@ -109,14 +134,18 @@ export default function Dashboard() {
                     return;
                 }
 
+                if (status === 403) {
+                    clearSelectedEventoId();
+                    navigate('/', { replace: true });
+                    return;
+                }
+
                 setDashboard(null);
                 setErro(
                     error?.response?.data?.detail ||
                         error?.message ||
                         'Erro ao carregar os dados do painel do evento no servidor.',
                 );
-            } finally {
-                setLoading(false);
             }
         }
 
@@ -248,7 +277,9 @@ export default function Dashboard() {
                                             Submissões
                                         </span>
                                         <span className="fw-bold fs-3 text-black">
-                                            mock
+                                            {dashboard?.metricas
+                                                ?.total_submissoes ||
+                                                'sem atrações'}
                                         </span>
                                         <span>Submetidas</span>
                                     </Col>
@@ -307,28 +338,32 @@ export default function Dashboard() {
                                             className="d-flex flex-column flex-md-row px-3 flex-wrap"
                                             style={{ gap: '1rem' }}
                                         >
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/editar_evento/${eventoId}`
-                                                            : '#'
-                                                    }
+                                            {User.group != 'Administrador' &&
+                                            User.group !=
+                                                'Coordenador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <BiSolidEdit
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Editar informações
-                                                </Link>
-                                            </Col>
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/editar_evento/${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <BiSolidEdit
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Editar informações
+                                                    </Link>
+                                                </Col>
+                                            )}
                                             <Col
                                                 className="d-flex flex-column p-0 text-secondary"
                                                 style={{
@@ -337,16 +372,42 @@ export default function Dashboard() {
                                             >
                                                 <Link
                                                     className="d-flex align-items-center p-3 btn btn-light"
+                                                    style={{
+                                                        opacity:
+                                                            !possuiEtapaRealizacao
+                                                                ? 0.65
+                                                                : 1,
+                                                        cursor: !possuiEtapaRealizacao
+                                                            ? 'not-allowed'
+                                                            : 'pointer',
+                                                    }}
+                                                    title={
+                                                        !possuiEtapaRealizacao
+                                                            ? 'O evento precisa possuir uma etapa de realização'
+                                                            : ''
+                                                    }
                                                     to={
+                                                        possuiEtapaRealizacao &&
                                                         eventoId
                                                             ? `/dashboard/${eventoId}/sessao_atribuir_data`
                                                             : '#'
                                                     }
+                                                    onClick={(e) => {
+                                                        if (
+                                                            !possuiEtapaRealizacao
+                                                        ) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
                                                 >
                                                     <IoCalendarOutline
                                                         size={20}
                                                         className="me-2"
-                                                        color="green"
+                                                        color={
+                                                            possuiEtapaRealizacao
+                                                                ? 'green'
+                                                                : 'gray'
+                                                        }
                                                     />
                                                     Configurar programação
                                                 </Link>
@@ -371,50 +432,57 @@ export default function Dashboard() {
                                                     Definir locais de trabalho
                                                 </Link>
                                             </Col>
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/atribuir_organizador?eventoId=${eventoId}`
-                                                            : '#'
-                                                    }
+                                            {User.group != 'Administrador' &&
+                                            User.group !=
+                                                'Coordenador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <RiTeamFill
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Gerenciar organizadores
-                                                </Link>
-                                            </Col>
-                                            <Col
-                                                className="d-flex flex-column p-0 text-secondary"
-                                                style={{
-                                                    flex: '1 1 calc(25% - 1rem)',
-                                                }}
-                                            >
-                                                <Link
-                                                    className="d-flex align-items-center p-3 btn btn-light"
-                                                    to={
-                                                        eventoId
-                                                            ? `/atribuir_coordenador?eventoId=${eventoId}`
-                                                            : '#'
-                                                    }
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/atribuir_organizador?eventoId=${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <RiTeamFill
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Gerenciar organizadores
+                                                    </Link>
+                                                </Col>
+                                            )}
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
                                                 >
-                                                    <FaCogs
-                                                        size={20}
-                                                        className="me-2"
-                                                        color="green"
-                                                    />
-                                                    Definir Coordenadores
-                                                </Link>
-                                            </Col>
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={
+                                                            eventoId
+                                                                ? `/atribuir_coordenador?eventoId=${eventoId}`
+                                                                : '#'
+                                                        }
+                                                    >
+                                                        <FaCogs
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Definir Coordenadores
+                                                    </Link>
+                                                </Col>
+                                            )}
                                             <Col
                                                 className="d-flex flex-column p-0 text-secondary"
                                                 style={{
@@ -433,6 +501,48 @@ export default function Dashboard() {
                                                     Lista de inscritos
                                                 </Link>
                                             </Col>
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
+                                                >
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={`/permissoes_pessoas`}
+                                                    >
+                                                        <FaUserLock
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Permissões de Usuários
+                                                    </Link>
+                                                </Col>
+                                            )}
+                                            {User.group !=
+                                            'Administrador' ? null : (
+                                                <Col
+                                                    className="d-flex flex-column p-0 text-secondary"
+                                                    style={{
+                                                        flex: '1 1 calc(25% - 1rem)',
+                                                    }}
+                                                >
+                                                    <Link
+                                                        className="d-flex align-items-center p-3 btn btn-light"
+                                                        to={`/permissoes_grupos`}
+                                                    >
+                                                        <FaLock
+                                                            size={20}
+                                                            className="me-2"
+                                                            color="green"
+                                                        />
+                                                        Permissões de Grupos
+                                                    </Link>
+                                                </Col>
+                                            )}
                                         </Row>
                                     </Col>
                                 </Row>
@@ -630,65 +740,68 @@ export default function Dashboard() {
                                 </Col>
                             </Col>
                         </Row>
-                        <Row className="mt-3">
-                            <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
-                                <Col
-                                    className="bg-white rounded-4 "
-                                    style={{
-                                        border: '1px solid rgba(0,0,0,0.09)',
-                                    }}
-                                >
-                                    <Row className="p-2 ">
-                                        <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
-                                            <div
-                                                className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
-                                                style={{
-                                                    background: '#e8f5ed',
-                                                }}
-                                            >
-                                                <TbMail
-                                                    size={20}
-                                                    color="green"
-                                                />
-                                            </div>
-                                            <span className="fw-semibold">
-                                                Comunicação e certificados
-                                            </span>
-                                        </Col>
-                                    </Row>
-                                    <hr />
-                                    <Row className="p-3 d-flex flex-column flex-md-row gap-md-0 gap-3 flex-wrap">
-                                        <Col sm={6}>
-                                            <Link
-                                                className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
-                                                to={
-                                                    eventoId
-                                                        ? `/dashboard/${eventoId}/enviar_emails`
-                                                        : '#'
-                                                }
-                                            >
-                                                <BiPaperPlane
-                                                    size={25}
-                                                    className="me-2"
-                                                    color="green"
-                                                />
-                                                Enviar e-mails
-                                            </Link>
-                                        </Col>
-                                        <Col sm={6}>
-                                            <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
-                                                <TbFileCertificate
-                                                    size={25}
-                                                    className="me-2"
-                                                    color="green"
-                                                />
-                                                Emitir Certificados
-                                            </Link>
-                                        </Col>
-                                    </Row>
+                        {User.group != 'Administrador' &&
+                        User.group != 'Coordenador' ? null : (
+                            <Row className="mt-3">
+                                <Col className="d-flex flex-row p-0 d-flex flex-row gap-3">
+                                    <Col
+                                        className="bg-white rounded-4 "
+                                        style={{
+                                            border: '1px solid rgba(0,0,0,0.09)',
+                                        }}
+                                    >
+                                        <Row className="p-2 ">
+                                            <Col className="d-flex flex-row align-items-center px-2 pt-2 ms-2">
+                                                <div
+                                                    className="p-2 d-flex justify-content-center align-items-center rounded-3 me-2"
+                                                    style={{
+                                                        background: '#e8f5ed',
+                                                    }}
+                                                >
+                                                    <TbMail
+                                                        size={20}
+                                                        color="green"
+                                                    />
+                                                </div>
+                                                <span className="fw-semibold">
+                                                    Comunicação e certificados
+                                                </span>
+                                            </Col>
+                                        </Row>
+                                        <hr />
+                                        <Row className="p-3 d-flex flex-column flex-md-row gap-md-0 gap-3 flex-wrap">
+                                            <Col sm={6}>
+                                                <Link
+                                                    className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light"
+                                                    to={
+                                                        eventoId
+                                                            ? `/dashboard/${eventoId}/enviar_emails`
+                                                            : '#'
+                                                    }
+                                                >
+                                                    <BiPaperPlane
+                                                        size={25}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Enviar e-mails
+                                                </Link>
+                                            </Col>
+                                            <Col sm={6}>
+                                                <Link className="d-flex align-items-center p-3 justify-content-center w-100 btn btn-light">
+                                                    <TbFileCertificate
+                                                        size={25}
+                                                        className="me-2"
+                                                        color="green"
+                                                    />
+                                                    Emitir Certificados
+                                                </Link>
+                                            </Col>
+                                        </Row>
+                                    </Col>
                                 </Col>
-                            </Col>
-                        </Row>
+                            </Row>
+                        )}
                     </Container>
                 </main>
 
