@@ -109,6 +109,7 @@ export default function PessoasGrupos({ campus = 'Campus Restinga' }) {
                                 onAcao2={handleAddPermission}
                                 save={handleSave}
                                 selecionado={selectedUserId}
+                                todos={true}
                             />
                         </Col>
                     </Row>

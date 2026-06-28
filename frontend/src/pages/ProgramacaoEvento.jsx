@@ -27,6 +27,7 @@ import { setSelectedEventoId } from '../utils/selectedEvento';
 // Importação dos seus hooks e services nativos idênticos ao Board
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarSessoes } from '../services/sessoesService';
+import { getCurrentUser } from '../services/authService';
 import { obterCorPorTag } from '../utils/themeTags';
 import useSessoes from '../hooks/useSessoes'; 
 
@@ -58,6 +59,9 @@ export default function ProgramacaoEvento() {
     const [carregando, setCarregando] = useState(true);
     const [erroMensagem, setErroMensagem] = useState(null);
     const [termoBusca, setTermoBusca] = useState('');
+    const [usuario, setUsuario] = useState(null);
+    const [submissaoHabilitada, setSubmissaoHabilitada] = useState(false);
+    const [submissaoVerificada, setSubmissaoVerificada] = useState(false);
     const [turnoAtivo, setTurnoAtivo] = useState('manhã');
     const [dataSelecionada, setDataSelecionada] = useState('');
     const [areaAtiva, setAreaAtiva] = useState(null); 
@@ -84,6 +88,15 @@ export default function ProgramacaoEvento() {
 
                 const listaSessoes = await pegarSessoes(eventoId);
                 setSessoesRaw(listaSessoes || []);
+                setUsuario(usuarioAtual);
+
+                const podeAcessar = podeAcessarSubmissao({
+                    evento: dadosEvento,
+                    usuario: usuarioAtual,
+                });
+
+                setSubmissaoHabilitada(podeAcessar);
+                setSubmissaoVerificada(true);
 
                 if (dadosEvento?.etapas && Array.isArray(dadosEvento.etapas)) {
                     const etapaRealizacao = dadosEvento.etapas.find((e) =>

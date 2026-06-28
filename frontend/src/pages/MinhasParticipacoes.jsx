@@ -7,6 +7,7 @@ import {
     Spinner,
     Button,
     Form,
+    Modal,
 } from 'react-bootstrap';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
@@ -28,12 +29,23 @@ import {
     editarSubmissao,
     excluirSubmissao,
 } from '../services/submissoesService';
+import {
+    listarAvaliacoesSubmissao,
+    listarItensAvaliacaoSubmissao,
+    pegarCriteriosSubmissaoPorModalidade,
+} from '../services/avaliacaoSubmissaoService';
+import {
+    listarAvaliacoesAtracao,
+    listarItensAvaliacaoAtracao,
+    pegarCriteriosPorModalidade,
+} from '../services/avaliacaoAtracaoService';
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarModalidade } from '../services/modalidadeService';
 import {
     getSelectedEventoId,
     setSelectedEventoId,
 } from '../utils/selectedEvento';
+import { etapaEstaAberta } from '../utils/submissaoAcesso';
 
 const LIMITS_EDICAO = {
     titulo: { minWords: 1, maxWords: 150 },
@@ -79,6 +91,13 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         useState(false);
     const [mostrarModalEdicao, setMostrarModalEdicao] = useState(false);
     const [somenteLeituraModal, setSomenteLeituraModal] = useState(false);
+    const [mostrarModalAvaliacoes, setMostrarModalAvaliacoes] = useState(false);
+    const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
+    const [avaliacoesLista, setAvaliacoesLista] = useState([]);
+    const [avaliacoesItensMap, setAvaliacoesItensMap] = useState({});
+    const [avaliacoesDisponiveisMap, setAvaliacoesDisponiveisMap] = useState(
+        {},
+    );
     const [tipoListagem, setTipoListagem] = useState('atracoes');
     const [termoBusca, setTermoBusca] = useState('');
     const [filtroStatus, setFiltroStatus] = useState('');
@@ -125,13 +144,13 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
 
                 const [dadosEvento, dadosAtracoes, dadosSubmissoes] =
                     await Promise.all([
-                    buscarEventoPorId(eventoSelecionadoId),
-                    listarAtracoes(eventoSelecionadoId),
-                    listarSubmissoes({
-                        evento: eventoSelecionadoId,
-                        minhas: true,
-                    }),
-                ]);
+                        buscarEventoPorId(eventoSelecionadoId),
+                        listarAtracoes(eventoSelecionadoId),
+                        listarSubmissoes({
+                            evento: eventoSelecionadoId,
+                            minhas: true,
+                        }),
+                    ]);
 
                 setEvento(dadosEvento);
                 setSelectedEventoId(eventoSelecionadoId);
@@ -595,17 +614,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         );
     };
 
-    const isAutorSubmissao = (item) => {
+    const isParticipanteSubmissao = (item) => {
         const autorias = Array.isArray(item?.autorias) ? item.autorias : [];
-        return autorias.some((autoria) => {
-            if (!usuarioCorrespondeAutoria(autoria)) {
-                return false;
-            }
-
-            return String(autoria?.tipo || autoria?.funcao || autoria?.papel || '')
-                .trim()
-                .toUpperCase() === 'AUTOR';
-        });
+        return autorias.some((autoria) => usuarioCorrespondeAutoria(autoria));
     };
 
     const coordenadorGerenciaEvento = (item) => {
@@ -633,7 +644,18 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 );
             }
 
-            return isAutorSubmissao(item) && statusPermitidos.includes(status);
+            if (!isParticipanteSubmissao(item)) {
+                return false;
+            }
+
+            if (statusPermitidos.includes(status)) {
+                return etapaEstaAberta(evento, 'SUBMISSAO_TRABALHOS');
+            }
+
+            return (
+                Boolean(item?.pode_editar_com_ressalvas) &&
+                etapaEstaAberta(evento, 'AVALIACAO_PREVIA')
+            );
         }
 
         if (!isCoordenador()) {
@@ -656,7 +678,7 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
             }
 
             return (
-                isAutorSubmissao(item) &&
+                isParticipanteSubmissao(item) &&
                 ['RASCUNHO', 'SUBMETIDA', 'PREVISTA'].includes(status)
             );
         }
@@ -669,14 +691,18 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
     };
 
     const itensFiltrados = useMemo(() => {
-        const base = tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
-        const termo = String(termoBusca || '').trim().toLowerCase();
+        const base =
+            tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
+        const termo = String(termoBusca || '')
+            .trim()
+            .toLowerCase();
 
         const filtrados = base.filter((item) => {
             if (
                 filtroStatus &&
-                String(item?.status || item?.status_submissao || '').toUpperCase() !==
-                    String(filtroStatus).toUpperCase()
+                String(
+                    item?.status || item?.status_submissao || '',
+                ).toUpperCase() !== String(filtroStatus).toUpperCase()
             ) {
                 return false;
             }
@@ -728,17 +754,22 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
     ]);
 
     const opcoesStatus = useMemo(() => {
-        const base = tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
+        const base =
+            tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
         const statusSet = new Set();
         base.forEach((item) => {
-            const status = String(item?.status || item?.status_submissao || '').trim();
+            const status = String(
+                item?.status || item?.status_submissao || '',
+            ).trim();
             if (status) statusSet.add(status);
         });
         return Array.from(statusSet.values()).sort();
     }, [tipoListagem, atracoesInscritas, submissoes]);
 
     const getStatusConfig = (status) => {
-        const statusNormalizado = String(status || '').trim().toUpperCase();
+        const statusNormalizado = String(status || '')
+            .trim()
+            .toUpperCase();
 
         const mapa = {
             RASCUNHO: { label: 'RASCUNHO', bg: 'secondary' },
@@ -775,6 +806,19 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
     const getStatusLabel = (item) =>
         getStatusConfig(item?.status || item?.status_submissao).label;
 
+    const formatarDataHoraCurta = (valor) => {
+        if (!valor) return '';
+        const data = new Date(valor);
+        if (Number.isNaN(data.getTime())) return '';
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     const getStatusBorderColor = (item) => {
         const status = String(item?.status || item?.status_submissao || '')
             .trim()
@@ -801,6 +845,129 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         return mapa[status] || '#6c757d';
     };
 
+    const getChaveAvaliacaoItem = (item, tipo) => `${tipo}-${item?.id}`;
+
+    const verificarAvaliacoesDisponiveis = async (item, tipo) => {
+        if (!item?.id) return false;
+
+        const chave = getChaveAvaliacaoItem(item, tipo);
+
+        try {
+            let avals = [];
+
+            if (tipo === 'atracoes') {
+                const dados = await listarAvaliacoesAtracao({
+                    atracao: item.id,
+                });
+                avals = Array.isArray(dados) ? dados : [];
+            } else {
+                const dados = await listarAvaliacoesSubmissao({
+                    submissao: item.id,
+                });
+                avals = Array.isArray(dados) ? dados : [];
+            }
+
+            const temAvaliacoes =
+                avals.length > 0 ||
+                Boolean(
+                    item?.avaliacoes?.length ||
+                        item?.avaliacao?.length ||
+                        item?.avaliacoes_atracao?.length ||
+                        item?.avaliacoes_submissao?.length,
+                );
+
+            setAvaliacoesDisponiveisMap((prev) => ({
+                ...prev,
+                [chave]: temAvaliacoes,
+            }));
+            return temAvaliacoes;
+        } catch (error) {
+            console.error('Erro ao verificar avaliações:', error);
+            setAvaliacoesDisponiveisMap((prev) => ({
+                ...prev,
+                [chave]: false,
+            }));
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const itensAtuais =
+            tipoListagem === 'atracoes' ? atracoesInscritas : submissoes;
+
+        if (!Array.isArray(itensAtuais) || itensAtuais.length === 0) {
+            setAvaliacoesDisponiveisMap({});
+            return;
+        }
+
+        setAvaliacoesDisponiveisMap({});
+
+        itensAtuais.forEach((item) => {
+            verificarAvaliacoesDisponiveis(item, tipoListagem);
+        });
+    }, [tipoListagem, atracoesInscritas, submissoes]);
+
+    const abrirModalAvaliacoes = async (item, tipo = tipoListagem) => {
+        if (!item?.id) return;
+        setMostrarModalAvaliacoes(true);
+        setCarregandoAvaliacoes(true);
+
+        try {
+            let dados = [];
+            let criterios = [];
+            let listarItens = null;
+            let paramAvaliacao = null;
+            let tipoItem = 'submissão';
+
+            if (tipo === 'atracoes') {
+                tipoItem = 'atração';
+                dados = await listarAvaliacoesAtracao({ atracao: item.id });
+                criterios = await pegarCriteriosPorModalidade();
+                listarItens = listarItensAvaliacaoAtracao;
+                paramAvaliacao = 'avaliacao_atracao';
+            } else {
+                dados = await listarAvaliacoesSubmissao({ submissao: item.id });
+                criterios = await pegarCriteriosSubmissaoPorModalidade();
+                listarItens = listarItensAvaliacaoSubmissao;
+                paramAvaliacao = 'avaliacao_submissao';
+            }
+
+            const avals = Array.isArray(dados) ? dados : [];
+            setAvaliacoesLista(avals);
+
+            const itensPorAvaliacaoEntries = await Promise.all(
+                avals.map(async (avaliacao) => {
+                    try {
+                        const itens = await listarItens(avaliacao.id);
+                        const itensComCriterio = (itens || []).map((it) => ({
+                            ...it,
+                            criterio_nome:
+                                (criterios || []).find(
+                                    (criterio) =>
+                                        criterio.id === it.criterio_avaliacao,
+                                )?.nome || `Critério ${it.criterio_avaliacao}`,
+                        }));
+                        return [avaliacao.id, itensComCriterio];
+                    } catch {
+                        return [avaliacao.id, []];
+                    }
+                }),
+            );
+
+            setAvaliacoesItensMap(Object.fromEntries(itensPorAvaliacaoEntries));
+        } catch (error) {
+            console.error('Erro ao carregar avaliações:', error);
+            setAvaliacoesLista([]);
+            setAvaliacoesItensMap({});
+            setAlerta({
+                mensagem: `Não foi possível carregar as avaliações desta ${tipoItem}.`,
+                variacao: 'danger',
+            });
+        } finally {
+            setCarregandoAvaliacoes(false);
+        }
+    };
+
     const abrirModalEdicao = (item, somenteLeitura = false) => {
         const sugestaoAtual = item.sugestao_vagas ?? '';
         const fonteAutoria =
@@ -822,7 +989,8 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
             acessibilidade: item?.acessibilidade || false,
             evento: item?.evento,
             sugestao_vagas: sugestaoAtual,
-            status: tipoListagem === 'submissoes' ? '' : item?.status || 'PREVISTA',
+            status:
+                tipoListagem === 'submissoes' ? '' : item?.status || 'PREVISTA',
             equipe: fonteAutoria.map((membro) => ({
                 user_id:
                     membro.user_id ||
@@ -1003,7 +1171,11 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
         if (!item?.id) return;
 
         const confirmou = window.confirm(
-            `Deseja realmente excluir ${tipoListagem === 'submissoes' ? 'esta submissão' : 'esta atração'}?`,
+            `Deseja realmente excluir ${
+                tipoListagem === 'submissoes'
+                    ? 'esta submissão'
+                    : 'esta atração'
+            }?`,
         );
         if (!confirmou) return;
 
@@ -1049,20 +1221,19 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
 
             <main className="flex-fill">
                 <Container fluid className="p-0">
-                    <Row className="m-0">
-                        <Col
-                            style={{
-                                backgroundImage:
-                                    'linear-gradient(to right,#17882c 0,#00510f 100%)',
-                                padding: '50px',
-                            }}
-                        >
-                            <h1 className="text-white text-center fw-bold">
-                                Minhas Participações
-                            </h1>
-                            <p className="text-white text-center fs-5 mb-0">
-                                Veja as atrações do evento selecionado.
-                            </p>
+                    <Row
+                        className="w-100 p-0"
+                        style={{
+                            backgroundImage:
+                                ' linear-gradient(to right, rgb(23, 136, 44) 0px, rgb(0, 81, 15) 100%)',
+                        }}
+                    >
+                        <Col className="text-center text-white pb-4 d-flex flex-column my-3 align-items-center">
+                            <h1 className="fw-bold">Minhas Participações</h1>
+
+                            <span className="fs-5">
+                                Veja suas partipações do evento selecionado.
+                            </span>
                         </Col>
                     </Row>
 
@@ -1092,7 +1263,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                     {!inscricaoEvento && (
                                         <div className="w-100">
                                             <div className="alert alert-warning mb-0">
-                                                Você não está inscrito neste evento. A interface permanece disponível para consulta.
+                                                Você não está inscrito neste
+                                                evento. A interface permanece
+                                                disponível para consulta.
                                             </div>
                                         </div>
                                     )}
@@ -1101,10 +1274,15 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                             <Row className="mb-2">
                                                 <Col>
                                                     <h5 className="mb-1 text-success fw-semibold text-center">
-                                                        Selecione o tipo de participação que deseja visualizar
+                                                        Selecione o tipo de
+                                                        participação que deseja
+                                                        visualizar
                                                     </h5>
                                                     <p className="text-muted text-center mb-0">
-                                                        Alterne entre submissões e atrações para consultar seus registros.
+                                                        Alterne entre submissões
+                                                        e atrações para
+                                                        consultar seus
+                                                        registros.
                                                     </p>
                                                 </Col>
                                             </Row>
@@ -1112,26 +1290,32 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                 <Col className="d-flex justify-content-center gap-2 flex-wrap">
                                                     <Button
                                                         variant={
-                                                            tipoListagem === 'submissoes'
+                                                            tipoListagem ===
+                                                            'submissoes'
                                                                 ? 'success'
                                                                 : 'outline-success'
                                                         }
                                                         size="sm"
                                                         onClick={() =>
-                                                            setTipoListagem('submissoes')
+                                                            setTipoListagem(
+                                                                'submissoes',
+                                                            )
                                                         }
                                                     >
                                                         Submissões
                                                     </Button>
                                                     <Button
                                                         variant={
-                                                            tipoListagem === 'atracoes'
+                                                            tipoListagem ===
+                                                            'atracoes'
                                                                 ? 'success'
                                                                 : 'outline-success'
                                                         }
                                                         size="sm"
                                                         onClick={() =>
-                                                            setTipoListagem('atracoes')
+                                                            setTipoListagem(
+                                                                'atracoes',
+                                                            )
                                                         }
                                                     >
                                                         Atrações
@@ -1150,38 +1334,72 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                         placeholder="Buscar por título, resumo, autor..."
                                                         value={termoBusca}
                                                         onChange={(e) =>
-                                                            setTermoBusca(e.target.value)
+                                                            setTermoBusca(
+                                                                e.target.value,
+                                                            )
                                                         }
-                                                        style={{ backgroundColor: '#eeeeee' }}
+                                                        style={{
+                                                            backgroundColor:
+                                                                '#eeeeee',
+                                                        }}
                                                     />
                                                 </Col>
                                                 <Col md={6} lg={3}>
                                                     <Form.Select
                                                         value={filtroStatus}
                                                         onChange={(e) =>
-                                                            setFiltroStatus(e.target.value)
+                                                            setFiltroStatus(
+                                                                e.target.value,
+                                                            )
                                                         }
-                                                        style={{ backgroundColor: '#eeeeee' }}
+                                                        style={{
+                                                            backgroundColor:
+                                                                '#eeeeee',
+                                                        }}
                                                     >
-                                                        <option value="">Todos status</option>
-                                                        {opcoesStatus.map((status) => (
-                                                            <option key={status} value={status}>
-                                                                {getStatusConfig(status).label}
-                                                            </option>
-                                                        ))}
+                                                        <option value="">
+                                                            Todos status
+                                                        </option>
+                                                        {opcoesStatus.map(
+                                                            (status) => (
+                                                                <option
+                                                                    key={status}
+                                                                    value={
+                                                                        status
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        getStatusConfig(
+                                                                            status,
+                                                                        ).label
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
                                                     </Form.Select>
                                                 </Col>
                                                 <Col md={6} lg={3}>
                                                     <Form.Select
                                                         value={ordenacao}
                                                         onChange={(e) =>
-                                                            setOrdenacao(e.target.value)
+                                                            setOrdenacao(
+                                                                e.target.value,
+                                                            )
                                                         }
-                                                        style={{ backgroundColor: '#eeeeee' }}
+                                                        style={{
+                                                            backgroundColor:
+                                                                '#eeeeee',
+                                                        }}
                                                     >
-                                                        <option value="criacao">Recente</option>
-                                                        <option value="titulo">Título</option>
-                                                        <option value="status">Status</option>
+                                                        <option value="criacao">
+                                                            Recente
+                                                        </option>
+                                                        <option value="titulo">
+                                                            Título
+                                                        </option>
+                                                        <option value="status">
+                                                            Status
+                                                        </option>
                                                     </Form.Select>
                                                 </Col>
                                             </Row>
@@ -1194,110 +1412,189 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                                                 key={item.id}
                                                 role="button"
                                                 tabIndex={0}
-                                                onClick={() => abrirModalEdicao(item, true)}
+                                                onClick={() =>
+                                                    abrirModalEdicao(item, true)
+                                                }
                                                 onKeyDown={(event) => {
-                                                    if (event.key === 'Enter' || event.key === ' ') {
+                                                    if (
+                                                        event.key === 'Enter' ||
+                                                        event.key === ' '
+                                                    ) {
                                                         event.preventDefault();
-                                                        abrirModalEdicao(item, true);
+                                                        abrirModalEdicao(
+                                                            item,
+                                                            true,
+                                                        );
                                                     }
                                                 }}
-                                                style={{ width: '100%', cursor: 'pointer' }}
+                                                style={{
+                                                    width: '100%',
+                                                    cursor: 'pointer',
+                                                }}
                                             >
-                                            <Card
-                                                corBorda={getStatusBorderColor(item)}
-                                            >
-                                                <Container fluid className="p-4">
-                                                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                                                        <h3 className="mb-0">{item.titulo}</h3>
-                                                        <div className="d-flex gap-2">
-                                                            <span className="badge bg-dark">
-                                                                {getStatusLabel(item)}
-                                                            </span>
-                                                            {tipoListagem === 'atracoes' ? (
-                                                                item.isAutor ? (
-                                                                    <span className="badge bg-success">
-                                                                        Autor
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="badge bg-secondary">
-                                                                        Participante
-                                                                    </span>
-                                                                )
-                                                            ) : (
-                                                                <span className="badge bg-success">
-                                                                    Submissão
+                                                <Card
+                                                    corBorda={getStatusBorderColor(
+                                                        item,
+                                                    )}
+                                                >
+                                                    <Container
+                                                        fluid
+                                                        className="p-4"
+                                                    >
+                                                        <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                                            <h3 className="mb-0">
+                                                                {item.titulo}
+                                                            </h3>
+                                                            <div className="d-flex gap-2">
+                                                                <span className="badge bg-dark">
+                                                                    {getStatusLabel(
+                                                                        item,
+                                                                    )}
                                                                 </span>
+                                                                {tipoListagem ===
+                                                                'atracoes' ? (
+                                                                    item.isAutor ? (
+                                                                        <span className="badge bg-success">
+                                                                            Autor
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="badge bg-secondary">
+                                                                            Participante
+                                                                        </span>
+                                                                    )
+                                                                ) : (
+                                                                    <span className="badge bg-success">
+                                                                        Submissão
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="text-muted mt-2 small">
+                                                            <div>
+                                                                <strong>
+                                                                    Tipo:
+                                                                </strong>{' '}
+                                                                {item.tipo ||
+                                                                    'Atração'}
+                                                            </div>
+                                                            <div>
+                                                                <strong>
+                                                                    Autor:
+                                                                </strong>{' '}
+                                                                {item.autor_nome ||
+                                                                    (Array.isArray(
+                                                                        item.autorias,
+                                                                    ) &&
+                                                                        item
+                                                                            .autorias[0]
+                                                                            ?.usuario_nome) ||
+                                                                    '—'}
+                                                            </div>
+                                                            <div>
+                                                                <strong>
+                                                                    Orientador:
+                                                                </strong>{' '}
+                                                                {item.orientador_nome ||
+                                                                    '—'}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="d-flex gap-2 mt-3 flex-wrap">
+                                                            {tipoListagem ===
+                                                                'atracoes' &&
+                                                                item.isAutor && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="success"
+                                                                        className="fw-bold px-3 py-1"
+                                                                        as={
+                                                                            Link
+                                                                        }
+                                                                        to={`/listar_inscritos_atracao?atracaoId=${item.id}`}
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) =>
+                                                                            event.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        Inscritos
+                                                                    </Button>
+                                                                )}
+                                                            {(tipoListagem ===
+                                                                'atracoes' ||
+                                                                tipoListagem ===
+                                                                    'submissoes') &&
+                                                                avaliacoesDisponiveisMap[
+                                                                    `${tipoListagem}-${item?.id}`
+                                                                ] && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline-success"
+                                                                        className="fw-bold px-3 py-1"
+                                                                        onClick={(
+                                                                            event,
+                                                                        ) => {
+                                                                            event.stopPropagation();
+                                                                            abrirModalAvaliacoes(
+                                                                                item,
+                                                                                tipoListagem,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        Ver
+                                                                        Avaliações
+                                                                    </Button>
+                                                                )}
+                                                            {podeEditarItem(
+                                                                item,
+                                                            ) && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="success"
+                                                                    className="fw-bold px-3 py-1"
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        abrirModalEdicao(
+                                                                            item,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Editar
+                                                                </Button>
+                                                            )}
+                                                            {podeExcluirItem(
+                                                                item,
+                                                            ) && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="danger"
+                                                                    className="fw-bold px-3 py-1"
+                                                                    onClick={(
+                                                                        event,
+                                                                    ) => {
+                                                                        event.stopPropagation();
+                                                                        handleExcluir(
+                                                                            item,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Excluir
+                                                                </Button>
                                                             )}
                                                         </div>
-                                                    </div>
-
-                                                    <div className="text-muted mt-2 small">
-                                                        <div>
-                                                            <strong>Tipo:</strong>{' '}
-                                                            {item.tipo || 'Atração'}
-                                                        </div>
-                                                        <div>
-                                                            <strong>Autor:</strong>{' '}
-                                                            {item.autor_nome ||
-                                                                (Array.isArray(item.autorias) &&
-                                                                    item.autorias[0]?.usuario_nome) ||
-                                                                '—'}
-                                                        </div>
-                                                        <div>
-                                                            <strong>Orientador:</strong>{' '}
-                                                            {item.orientador_nome || '—'}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="d-flex gap-2 mt-3 flex-wrap">
-                                                        {tipoListagem === 'atracoes' && item.isAutor && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="success"
-                                                                className="fw-bold px-3 py-1"
-                                                                as={Link}
-                                                                to={`/listar_inscritos_atracao?atracaoId=${item.id}`}
-                                                                onClick={(event) => event.stopPropagation()}
-                                                            >
-                                                                Inscritos
-                                                            </Button>
-                                                        )}
-                                                        {podeEditarItem(item) && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="success"
-                                                                className="fw-bold px-3 py-1"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    abrirModalEdicao(item);
-                                                                }}
-                                                            >
-                                                                Editar
-                                                            </Button>
-                                                        )}
-                                                        {podeExcluirItem(item) && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="danger"
-                                                                className="fw-bold px-3 py-1"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    handleExcluir(item);
-                                                                }}
-                                                            >
-                                                                Excluir
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </Container>
-                                            </Card>
+                                                    </Container>
+                                                </Card>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="text-center py-5 border rounded bg-white w-100">
                                             <p className="text-muted mb-0">
                                                 {baseListagemAtual.length === 0
-                                                    ? tipoListagem === 'submissoes'
+                                                    ? tipoListagem ===
+                                                      'submissoes'
                                                         ? 'Você ainda não possui submissões neste evento.'
                                                         : 'Você ainda não possui atrações neste evento.'
                                                     : 'Nenhum resultado encontrado para os filtros aplicados.'}
@@ -1320,6 +1617,88 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                     duracao={3000}
                 />
             )}
+            <Modal
+                show={mostrarModalAvaliacoes}
+                onHide={() => setMostrarModalAvaliacoes(false)}
+                size="lg"
+                centered
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Avaliações</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {carregandoAvaliacoes ? (
+                        <div className="text-center py-3">
+                            <Spinner animation="border" variant="success" />
+                        </div>
+                    ) : avaliacoesLista.length === 0 ? (
+                        <p className="text-muted">
+                            Nenhuma avaliação disponível para esta item.
+                        </p>
+                    ) : (
+                        <div>
+                            {avaliacoesLista.map((avaliacao, index) => (
+                                <div key={avaliacao.id} className="mb-3">
+                                    <h6 className="mb-1">
+                                        Avaliador {index + 1}
+                                    </h6>
+                                    <div className="small text-muted mb-1">
+                                        <strong>Status:</strong>{' '}
+                                        {avaliacao.status_aprovacao || '-'} •{' '}
+                                        <strong>Nota:</strong>{' '}
+                                        {avaliacao.nota_final ?? '-'} •{' '}
+                                        <strong>Data:</strong>{' '}
+                                        {formatarDataHoraCurta(
+                                            avaliacao.data_avaliacao,
+                                        ) || '-'}
+                                    </div>
+                                    <div>
+                                        {avaliacao.parecer || (
+                                            <span className="text-muted">
+                                                Sem parecer.
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {avaliacoesItensMap[avaliacao.id] &&
+                                    avaliacoesItensMap[avaliacao.id].length >
+                                        0 ? (
+                                        <div className="mt-2">
+                                            <strong>Itens de Avaliação:</strong>
+                                            <ul className="mb-2">
+                                                {avaliacoesItensMap[
+                                                    avaliacao.id
+                                                ].map((item) => (
+                                                    <li
+                                                        key={item.id}
+                                                        className="small"
+                                                    >
+                                                        {item.criterio_nome} —{' '}
+                                                        <strong>
+                                                            {item.nota}
+                                                        </strong>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : null}
+
+                                    <hr />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button
+                        variant="secondary"
+                        onClick={() => setMostrarModalAvaliacoes(false)}
+                    >
+                        Fechar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
             <EditarAtracaoModal
                 show={mostrarModalEdicao}
                 formEdicao={formEdicao}
@@ -1329,7 +1708,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 opcoesEdicao={opcoesEdicao}
                 modalidadeEdicaoDetalhe={modalidadeEdicaoDetalhe}
                 habilitarSugestaoVagasEdicao={habilitarSugestaoVagasEdicao}
-                setHabilitarSugestaoVagasEdicao={setHabilitarSugestaoVagasEdicao}
+                setHabilitarSugestaoVagasEdicao={
+                    setHabilitarSugestaoVagasEdicao
+                }
                 contarPalavras={contarPalavras}
                 LIMITS_EDICAO={LIMITS_EDICAO}
                 selecionarNivelEnsinoEdicao={selecionarNivelEnsinoEdicao}
@@ -1337,7 +1718,9 @@ export default function MinhasParticipacoes({ campus = 'Campus Restinga' }) {
                 normalizarAreaEdicao={normalizarAreaEdicao}
                 getNomeUsuario={getNomeUsuario}
                 getNivelEnsinoMembroEdicao={getNivelEnsinoMembroEdicao}
-                getUsuariosDisponiveisLinhaEdicao={getUsuariosDisponiveisLinhaEdicao}
+                getUsuariosDisponiveisLinhaEdicao={
+                    getUsuariosDisponiveisLinhaEdicao
+                }
                 handleAdicionarMembroEdicao={handleAdicionarMembroEdicao}
                 handleRemoverMembroEdicao={handleRemoverMembroEdicao}
                 handleMembroEdicaoChange={handleMembroEdicaoChange}

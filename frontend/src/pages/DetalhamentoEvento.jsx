@@ -19,13 +19,16 @@ import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { buscarEventoPorId } from '../services/eventoService';
 import { listarMinhasInscricoesEventos } from '../services/inscricaoEventoService';
+import { getCurrentUser } from '../services/authService';
 import { useNavigate } from 'react-router-dom';
+import { podeAcessarSubmissao } from '../utils/submissaoAcesso';
 
 export default function DetalheEvento() {
     const { id } = useParams();
     const [evento, setEvento] = useState(null);
     const [loading, setLoading] = useState(true);
     const [estaInscritoEvento, setEstaInscritoEvento] = useState(false);
+    const [submissaoHabilitada, setSubmissaoHabilitada] = useState(true);
     const navigate = useNavigate();
     const verdeIFRS = '#00A44B';
 
@@ -42,11 +45,22 @@ export default function DetalheEvento() {
         async function carregarDados() {
             try {
                 setLoading(true);
-                const dados = await buscarEventoPorId(id);
+                const [dados, minhas, usuarioAtual] = await Promise.all([
+                    buscarEventoPorId(id),
+                    listarMinhasInscricoesEventos(),
+                    getCurrentUser(),
+                ]);
+
                 setEvento(dados);
+                setSubmissaoHabilitada(
+                    podeAcessarSubmissao({
+                        evento: dados,
+                        usuario: usuarioAtual,
+                    }),
+                );
+
                 // ve se o usuário está inscrito no evento pra disponibilizar o botão de inscrição em atrações
                 try {
-                    const minhas = await listarMinhasInscricoesEventos();
                     const inscrito = Array.isArray(minhas)
                         ? minhas.some((i) => Number(i.evento_id) === Number(id))
                         : false;
@@ -115,16 +129,19 @@ export default function DetalheEvento() {
                             {evento.descricao?.substring(0, 150)}...
                         </p>
                         <div className="d-flex justify-content-center gap-3 flex-wrap">
-                            <Button
-                                variant="light"
-                                as={Link}
-                                to="/adicionar_submissao"
-                                onClick={() => setSelectedEventoId(id)}
-                                className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm"
-                                style={{ color: verdeIFRS }}
-                            >
-                                <MdSend className="me-2" /> Submeter Trabalho
-                            </Button>
+                            {submissaoHabilitada && (
+                                <Button
+                                    variant="light"
+                                    as={Link}
+                                    to="/adicionar_submissao"
+                                    onClick={() => setSelectedEventoId(id)}
+                                    className="rounded-pill px-4 py-2 d-flex align-items-center fw-bold shadow-sm"
+                                    style={{ color: verdeIFRS }}
+                                >
+                                    <MdSend className="me-2" /> Submeter
+                                    Trabalho
+                                </Button>
+                            )}
 
                             <Button
                                 variant="outline-light"

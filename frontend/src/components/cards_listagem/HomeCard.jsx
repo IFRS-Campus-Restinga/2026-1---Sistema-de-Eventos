@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     MdAccessTime,
     MdCalendarToday,
@@ -46,7 +47,9 @@ export default function HomeCard({
     corBotao1,
     varianteBotao2,
     showDestaqueBadge = true,
+    opcoesBotaoPrincipal = null,
 }) {
+    const [menuAberto, setMenuAberto] = useState(false);
     const etapaLabel = etapaAtual || 'Etapa atual';
     const mostrarBotaoInscricao = permiteInscricao || possuiInscricao;
     const inscricaoCancelada =
@@ -87,7 +90,7 @@ export default function HomeCard({
                 boxSizing: 'border-box',
                 borderRadius: destaque ? '1.5rem' : '1.25rem',
                 boxShadow: '0 18px 40px rgba(19, 44, 26, 0.08)',
-                overflow: 'hidden',
+                overflow: 'visible',
             }}
         >
             {destaque ? (
@@ -151,22 +154,74 @@ export default function HomeCard({
                             </div>
 
                             <div className="d-flex flex-wrap justify-content-md-end gap-2">
-                                <button
-                                    type="button"
-                                    className="btn btn-success text-white"
-                                    style={
-                                        corBotao1
-                                            ? {
-                                                  background: corBotao1,
-                                                  border: corBotao1,
-                                              }
-                                            : undefined
-                                    }
-                                    onClick={detalheHandler}
-                                >
-                                    {detalheLabel}
-                                    <MdOutlineArrowForward aria-hidden="true" />
-                                </button>
+                                {Array.isArray(opcoesBotaoPrincipal) &&
+                                opcoesBotaoPrincipal.length > 1 ? (
+                                    <div className="position-relative">
+                                        <button
+                                            type="button"
+                                            className="btn btn-success text-white"
+                                            style={
+                                                corBotao1
+                                                    ? {
+                                                          background: corBotao1,
+                                                          border: corBotao1,
+                                                      }
+                                                    : undefined
+                                            }
+                                            onClick={() =>
+                                                setMenuAberto((valor) => !valor)
+                                            }
+                                        >
+                                            {detalheLabel}
+                                            <MdOutlineArrowForward aria-hidden="true" />
+                                        </button>
+
+                                        {menuAberto ? (
+                                            <div
+                                                className="position-absolute start-0 mt-2 shadow rounded border bg-white"
+                                                style={{
+                                                    zIndex: 10,
+                                                    minWidth: '12rem',
+                                                }}
+                                            >
+                                                {opcoesBotaoPrincipal.map(
+                                                    (opcao) => (
+                                                        <button
+                                                            key={opcao.label}
+                                                            type="button"
+                                                            className="btn btn-link text-start text-decoration-none w-100 px-3 py-2 text-secondary"
+                                                            onClick={() => {
+                                                                opcao.onClick?.();
+                                                                setMenuAberto(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                        >
+                                                            {opcao.label}
+                                                        </button>
+                                                    ),
+                                                )}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="btn btn-success text-white"
+                                        style={
+                                            corBotao1
+                                                ? {
+                                                      background: corBotao1,
+                                                      border: corBotao1,
+                                                  }
+                                                : undefined
+                                        }
+                                        onClick={detalheHandler}
+                                    >
+                                        {detalheLabel}
+                                        <MdOutlineArrowForward aria-hidden="true" />
+                                    </button>
+                                )}
 
                                 {segundaLabel ? (
                                     <button
@@ -268,22 +323,70 @@ export default function HomeCard({
                     </div>
 
                     <div className="mt-auto pt-3 border-top d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-3">
-                        <button
-                            type="button"
-                            className="btn btn-success text-white"
-                            style={
-                                corBotao1
-                                    ? {
-                                          background: corBotao1,
-                                          border: corBotao1,
-                                      }
-                                    : undefined
-                            }
-                            onClick={detalheHandler}
-                        >
-                            {detalheLabel}
-                            <MdOutlineArrowForward aria-hidden="true" />
-                        </button>
+                        {Array.isArray(opcoesBotaoPrincipal) &&
+                        opcoesBotaoPrincipal.length > 1 ? (
+                            <div className="position-relative">
+                                <button
+                                    type="button"
+                                    className="btn btn-success text-white"
+                                    style={
+                                        corBotao1
+                                            ? {
+                                                  background: corBotao1,
+                                                  border: corBotao1,
+                                              }
+                                            : undefined
+                                    }
+                                    onClick={() =>
+                                        setMenuAberto((valor) => !valor)
+                                    }
+                                >
+                                    {detalheLabel}
+                                    <MdOutlineArrowForward aria-hidden="true" />
+                                </button>
+
+                                {menuAberto ? (
+                                    <div
+                                        className="position-absolute start-0 mt-2 shadow rounded border bg-white"
+                                        style={{
+                                            zIndex: 10,
+                                            minWidth: '12rem',
+                                        }}
+                                    >
+                                        {opcoesBotaoPrincipal.map((opcao) => (
+                                            <button
+                                                key={opcao.label}
+                                                type="button"
+                                                className="btn btn-link text-start text-decoration-none w-100 px-3 py-2 text-secondary"
+                                                onClick={() => {
+                                                    opcao.onClick?.();
+                                                    setMenuAberto(false);
+                                                }}
+                                            >
+                                                {opcao.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="btn btn-success text-white"
+                                style={
+                                    corBotao1
+                                        ? {
+                                              background: corBotao1,
+                                              border: corBotao1,
+                                          }
+                                        : undefined
+                                }
+                                onClick={detalheHandler}
+                            >
+                                {detalheLabel}
+                                <MdOutlineArrowForward aria-hidden="true" />
+                            </button>
+                        )}
 
                         {segundaLabel ? (
                             <button

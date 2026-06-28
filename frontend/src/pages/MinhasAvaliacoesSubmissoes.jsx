@@ -191,7 +191,7 @@ export default function MinhasAvaliacoesSubmissoes() {
                                         className="fw-bold text-white"
                                         style={{
                                             fontSize:
-                                                'clamp(2.75rem, 6vw, 3.8rem)',
+                                                'clamp(2.75rem, 6vw, 1.8rem)',
                                             lineHeight: 0.8,
                                             margin: '0 0 0.9rem',
                                         }}

@@ -13,6 +13,33 @@ import {
 } from '../services/eventoService';
 import { useState, useEffect } from 'react';
 
+const formatarDataHoraParaInput = (valor) => {
+    if (!valor) return '';
+
+    if (typeof valor === 'string') {
+        const valorNormalizado = valor.replace('Z', '');
+        const correspondencia = valorNormalizado.match(
+            /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2})?$/,
+        );
+
+        if (correspondencia) {
+            return `${correspondencia[1]}T${correspondencia[2]}`;
+        }
+
+        const data = new Date(valorNormalizado);
+        if (!Number.isNaN(data.getTime())) {
+            const pad = (numero) => String(numero).padStart(2, '0');
+            return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(
+                data.getDate(),
+            )}T${pad(data.getHours())}:${pad(data.getMinutes())}`;
+        }
+
+        return valor.substring(0, 16);
+    }
+
+    return '';
+};
+
 export default function CriarEvento() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -33,8 +60,8 @@ export default function CriarEvento() {
     const [etapasSelecionadas, setEtapasSelecionadas] = useState([]);
     const [areasSelecionadas, setAreasSelecionadas] = useState([]);
     const [listaAreasDisponiveis, setListaAreasDisponiveis] = useState([]);
-    const [modalidades, setModalidades] = useState([])
-    const [modalidadesSelecionadas,setModalidadesSelecionadas] = useState([])
+    const [modalidades, setModalidades] = useState([]);
+    const [modalidadesSelecionadas, setModalidadesSelecionadas] = useState([]);
     const [etapaId, setEtapaId] = useState('');
     const [areaConhecimentoId, setAreaConhecimentoId] = useState('');
     const [linkEdital, setLinkEdital] = useState('');
@@ -55,31 +82,36 @@ export default function CriarEvento() {
                     const idDoLocal = evento.local?.id || evento.local;
                     setLocalId(idDoLocal || '');
                     const idEtapa = evento.etapas?.id || evento.etapas;
-                    setLinkEdital(evento.link_edital || '')
+                    setLinkEdital(evento.link_edital || '');
                     setEtapaId(idEtapa);
                     if (evento.area_conhecimento_detalhes) {
                         setAreasSelecionadas(evento.area_conhecimento_detalhes);
                     } else if (evento.area_conhecimento) {
                         // Fallback caso venha apenas IDs: transforma [1, 2] em [{id: 1}, {id: 2}]
-                        setAreasSelecionadas(evento.area_conhecimento.map(id => ({ id })));
+                        setAreasSelecionadas(
+                            evento.area_conhecimento.map((id) => ({ id })),
+                        );
                     }
 
                     if (evento.modalidades_detalhes) {
                         setModalidadesSelecionadas(evento.modalidades_detalhes);
                     } else if (evento.modalidades) {
-                        setModalidadesSelecionadas(evento.modalidades.map(id => ({ id })));
+                        setModalidadesSelecionadas(
+                            evento.modalidades.map((id) => ({ id })),
+                        );
                     }
 
                     if (evento.etapas) {
-                        const etapasFormatadas = evento.etapas.map(etapa => ({
+                        const etapasFormatadas = evento.etapas.map((etapa) => ({
                             ...etapa,
-                            data_inicio: etapa.data_inicio ? etapa.data_inicio.substring(0, 10) : '',
-                            data_fim: etapa.data_fim ? etapa.data_fim.substring(0, 10) : ''
+                            data_inicio: formatarDataHoraParaInput(
+                                etapa.data_inicio,
+                            ),
+                            data_fim: formatarDataHoraParaInput(etapa.data_fim),
                         }));
                         setEtapas(etapasFormatadas);
                     }
                 }
-                
             } catch (error) {
                 console.error('Erro ao carregar dados:', error);
             }
@@ -88,74 +120,93 @@ export default function CriarEvento() {
     }, [id]);
 
     const handleSalvar = async () => {
-        const errosDetectados = {}
-        const datasInvalidas = etapas.some(e => e.data_inicio > e.data_fim);
+        const errosDetectados = {};
+        const datasInvalidas = etapas.some((e) => e.data_inicio > e.data_fim);
         const urlPattern = new RegExp(
-            '^(https?:\\/\\/)?'+ // protocolo
-            '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domínio
-            '((\\d{1,3}\\.){3}\\d{1,3}))'+ // ou IP
-            '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // porta e caminho
-            '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-            '(\\#[-a-z\\d_]*)?$','i' // fragmento
+            '^(https?:\\/\\/)?' + // protocolo
+                '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domínio
+                '((\\d{1,3}\\.){3}\\d{1,3}))' + // ou IP
+                '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // porta e caminho
+                '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+                '(\\#[-a-z\\d_]*)?$',
+            'i', // fragmento
         );
-        
-        if(!localId){
-            errosDetectados.local = "selecione um local.";
+
+        if (!localId) {
+            errosDetectados.local = 'selecione um local.';
         }
         // 3. Checagem campos obrigatórios simples
-        if (!nome.trim()) errosDetectados.nome = "O nome do evento é obrigatório.";
+        if (!nome.trim())
+            errosDetectados.nome = 'O nome do evento é obrigatório.';
 
-        if (!descricao.trim()) errosDetectados.descricao = "A descrição do evento é obrigatória.";
+        if (!descricao.trim())
+            errosDetectados.descricao = 'A descrição do evento é obrigatória.';
 
-        if (!tema.trim()) errosDetectados.tema = "O tema do evento é um campo obrigatório.";
+        if (!tema.trim())
+            errosDetectados.tema = 'O tema do evento é um campo obrigatório.';
 
-        if (!setor.trim()) errosDetectados.setor = "É obrigatório definir um setor para o evento.";
+        if (!setor.trim())
+            errosDetectados.setor =
+                'É obrigatório definir um setor para o evento.';
 
-        if (carga_horaria <= 0) errosDetectados.carga_horaria = "A carga horária deve ser maior que 0.";
-        
-        if (!linkEdital){
-            errosDetectados.link_edital ="O link do edital é obrigatório.";
+        if (carga_horaria <= 0)
+            errosDetectados.carga_horaria =
+                'A carga horária deve ser maior que 0.';
 
-        }else if (!urlPattern.test(linkEdital)) {
-            errosDetectados.link_edital = "Insira uma URL válida (ex: https://...)";
+        if (!linkEdital) {
+            errosDetectados.link_edital = 'O link do edital é obrigatório.';
+        } else if (!urlPattern.test(linkEdital)) {
+            errosDetectados.link_edital =
+                'Insira uma URL válida (ex: https://...)';
         }
         // 4. Checagem das listas ManyToMany
-        if (areasSelecionadas.length === 0 || areasSelecionadas.every(a => !a.id)) {
-            errosDetectados.area_conhecimento = "Adicione e selecione ao menos uma área.";
+        if (
+            areasSelecionadas.length === 0 ||
+            areasSelecionadas.every((a) => !a.id)
+        ) {
+            errosDetectados.area_conhecimento =
+                'Adicione e selecione ao menos uma área.';
         }
 
         if (modalidadesSelecionadas.length === 0) {
-            errosDetectados.modalidades = "Selecione ao menos uma modalidade.";
+            errosDetectados.modalidades = 'Selecione ao menos uma modalidade.';
         }
 
         // 5. Checagem das Etapas
         if (etapas.length === 0) {
-            errosDetectados.etapas = "O evento precisa de ao menos uma etapa configurada.";
+            errosDetectados.etapas =
+                'O evento precisa de ao menos uma etapa configurada.';
         } else {
             // Verifica se todas as etapas adicionadas têm tipo e datas preenchidas
-            const etapaIncompleta = etapas.some(e => !e.tipo_etapa || !e.data_inicio || !e.data_fim);
+            const etapaIncompleta = etapas.some(
+                (e) => !e.tipo_etapa || !e.data_inicio || !e.data_fim,
+            );
             if (etapaIncompleta) {
-                errosDetectados.etapas = "Preencha todos os campos (tipo e datas) de todas as etapas adicionadas.";
+                errosDetectados.etapas =
+                    'Preencha todos os campos (tipo e datas) de todas as etapas adicionadas.';
             }
         }
 
         if (datasInvalidas) {
-            errosDetectados.etapas = "A data de início não pode ser posterior à data de término.";
+            errosDetectados.etapas =
+                'A data de início não pode ser posterior à data de término.';
         }
 
         // 6. Se houver erros, aborta o salvamento
         if (Object.keys(errosDetectados).length > 0) {
             setErrors(errosDetectados);
             // Opcional: scroll até o primeiro erro ou mostrar um alerta
-            return; 
+            return;
         }
 
         setErrors({});
         setExibirSucesso(false);
         setExibirErro(false);
 
-        const areas_conhecimento = areasSelecionadas.map((area)=>area.id)
-        const modalidades_salvas = modalidadesSelecionadas.map((modalidade)=>modalidade.id)
+        const areas_conhecimento = areasSelecionadas.map((area) => area.id);
+        const modalidades_salvas = modalidadesSelecionadas.map(
+            (modalidade) => modalidade.id,
+        );
         const etapasValidadas = etapas
             .filter((e) => e.tipo_etapa)
             .map((e) => ({
@@ -174,11 +225,10 @@ export default function CriarEvento() {
             tema,
             local_id: parseInt(localId),
             area_conhecimento: areas_conhecimento,
-            modalidades: modalidades_salvas,// ✅ Usa a variável tratada acima
+            modalidades: modalidades_salvas, // ✅ Usa a variável tratada acima
             etapas: etapasValidadas,
-            link_edital: linkEdital
+            link_edital: linkEdital,
         };
-
 
         try {
             if (id) {
@@ -242,10 +292,14 @@ export default function CriarEvento() {
                                 }
                                 modalidades={modalidades}
                                 setModalidades={setModalidades}
-                                modalidadesSelecionadas={modalidadesSelecionadas}
-                                setModalidadesSelecionadas={setModalidadesSelecionadas}
+                                modalidadesSelecionadas={
+                                    modalidadesSelecionadas
+                                }
+                                setModalidadesSelecionadas={
+                                    setModalidadesSelecionadas
+                                }
                                 linkEdital={linkEdital}
-                                setLinkEdital = {setLinkEdital}
+                                setLinkEdital={setLinkEdital}
                                 etapasSelecionadas={etapasSelecionadas}
                                 setEtapasSelecionadas={setEtapasSelecionadas}
                             />

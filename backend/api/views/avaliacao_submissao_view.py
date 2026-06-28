@@ -48,8 +48,6 @@ class AvaliacaoSubmissaoListView(APIView):
                 ).exists()
             )
             if not is_admin_or_coordenador:
-                # usuários comuns podem ver avaliações que eles fizeram
-                # e avaliações relacionadas às suas submissões (como autor/orientador)
                 from django.db.models import Q
 
                 avaliacoes = avaliacoes.filter(

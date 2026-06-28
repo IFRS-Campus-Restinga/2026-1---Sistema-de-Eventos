@@ -82,10 +82,10 @@ export default function GerenciarAvaliacoesAtracoes({}) {
                                     padding: '0.45rem 0.85rem',
                                 }}
                             >
-                                AtraçÕes
+                                Atrações
                             </span>
                             <span className="fs-5">
-                                Gerencie AtraçÕes e distribua avaliadores
+                                Gerencie Atrações e distribua avaliadores
                             </span>
                         </Col>
                     </Row>
