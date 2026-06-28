@@ -1,3 +1,4 @@
+import Button from 'react-bootstrap/Button';
 import Table from 'react-bootstrap/Table';
 import { FaCircleArrowLeft } from 'react-icons/fa6';
 import { FaCircleArrowRight } from 'react-icons/fa6';
@@ -12,9 +13,10 @@ export default function Vinculo({
     onAcao1,
     onAcao2,
     selecionado,
+    todos = false,
     renderItem = (item) => item.nome || item.name || item.username,
-    // esse renderItem é só pq o user n tem "name", mas sim "username", 
-    // então ele ta aq por isso, mas ele filtra se o item tem name ou username, 
+    // esse renderItem é só pq o user n tem "name", mas sim "username",
+    // então ele ta aq por isso, mas ele filtra se o item tem name ou username,
     // ent ta sereno
 }) {
     return (
@@ -40,7 +42,24 @@ export default function Vinculo({
                                         top: 0,
                                     }}
                                 >
-                                    {cabecario1}
+                                    <div className="d-flex justify-content-between align-items-center gap-2">
+                                        <span>{cabecario1}</span>
+                                        {todos && (
+                                            <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                onClick={() =>
+                                                    onAcao2(
+                                                        dados1.map(
+                                                            (item) => item.id,
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                Selecionar todos
+                                            </Button>
+                                        )}
+                                    </div>
                                 </th>
                             </tr>
                         </thead>
@@ -49,7 +68,9 @@ export default function Vinculo({
                                 <tr key={item.id}>
                                     <td>
                                         <div className="d-flex">
-                                            <span className="mx-auto">{renderItem(item)}</span>
+                                            <span className="mx-auto">
+                                                {renderItem(item)}
+                                            </span>
                                             <FaCircleArrowRight
                                                 className="text-success"
                                                 size={20}
@@ -82,25 +103,48 @@ export default function Vinculo({
                                         zIndex: 10,
                                     }}
                                 >
-                                    {cabecario2}
+                                    <div className="d-flex justify-content-between align-items-center gap-2">
+                                        <span>{cabecario2}</span>
+                                        {selecionado && todos ? (
+                                            <Button
+                                                variant="outline-light"
+                                                size="sm"
+                                                onClick={() =>
+                                                    onAcao1(
+                                                        dados2.map(
+                                                            (item) => item.id,
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                Selecionar todos
+                                            </Button>
+                                        ) : null}
+                                    </div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {selecionado ? dados2.map((item) => (
-                                <tr key={item.id}>
-                                    <td>
-                                        <div className="d-flex">
-                                            <FaCircleArrowLeft
-                                                className="text-success"
-                                                size={20}
-                                                onClick={() => onAcao1(item.id)}
-                                            />
-                                            <span className="mx-auto">{renderItem(item)}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : null}
+                            {selecionado
+                                ? dados2.map((item) => (
+                                      <tr key={item.id}>
+                                          <td>
+                                              <div className="d-flex">
+                                                  <FaCircleArrowLeft
+                                                      className="text-success"
+                                                      size={20}
+                                                      onClick={() =>
+                                                          onAcao1(item.id)
+                                                      }
+                                                  />
+                                                  <span className="mx-auto">
+                                                      {renderItem(item)}
+                                                  </span>
+                                              </div>
+                                          </td>
+                                      </tr>
+                                  ))
+                                : null}
                         </tbody>
                     </Table>
                 </div>

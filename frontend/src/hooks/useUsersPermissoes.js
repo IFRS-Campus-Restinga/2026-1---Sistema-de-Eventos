@@ -19,7 +19,9 @@ export function useUsersPermissoes(allPermissions) {
             try {
                 const user = await pegarUser(selectedUserId);
                 setSelectedUser(user);
-                const permIds = new Set((user.permissions || []).map((p) => p.id));
+                const permIds = new Set(
+                    (user.permissions || []).map((p) => p.id),
+                );
                 setEditingPermissions(permIds);
                 setMessage('');
             } catch (erro) {
@@ -33,9 +35,15 @@ export function useUsersPermissoes(allPermissions) {
 
     // permissões que o user tem e não tem
     const [permsDoUser, permsNaoDoUser] = useMemo(() => {
-        const sourcePermissions = Array.isArray(allPermissions) ? allPermissions : [];
-        const doUser = sourcePermissions.filter((p) => editingPermissions.has(p.id));
-        const naoDoUser = sourcePermissions.filter((p) => !editingPermissions.has(p.id));
+        const sourcePermissions = Array.isArray(allPermissions)
+            ? allPermissions
+            : [];
+        const doUser = sourcePermissions.filter((p) =>
+            editingPermissions.has(p.id),
+        );
+        const naoDoUser = sourcePermissions.filter(
+            (p) => !editingPermissions.has(p.id),
+        );
         return [doUser, naoDoUser];
     }, [editingPermissions, allPermissions]);
 
@@ -53,16 +61,22 @@ export function useUsersPermissoes(allPermissions) {
         return false;
     }, [editingPermissions, originalPermissions, selectedUser]);
 
-    const handleAddPermission = (permId) => {
-        const next = new Set(editingPermissions);
-        next.add(permId);
-        setEditingPermissions(next);
+    const handleAddPermission = (permIds) => {
+        const ids = Array.isArray(permIds) ? permIds : [permIds];
+        setEditingPermissions((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.add(id));
+            return next;
+        });
     };
 
-    const handleRemovePermission = (permId) => {
-        const next = new Set(editingPermissions);
-        next.delete(permId);
-        setEditingPermissions(next);
+    const handleRemovePermission = (permIds) => {
+        const ids = Array.isArray(permIds) ? permIds : [permIds];
+        setEditingPermissions((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.delete(id));
+            return next;
+        });
     };
 
     const handleSave = async () => {
@@ -71,7 +85,7 @@ export function useUsersPermissoes(allPermissions) {
         setLoading(true);
         try {
             const permIds = Array.from(editingPermissions);
-            await atualizarPermissoesUsers(selectedUserId, permIds); 
+            await atualizarPermissoesUsers(selectedUserId, permIds);
             setMessage({
                 type: 'success',
                 text: 'Permissões salvas com sucesso!',
@@ -89,7 +103,10 @@ export function useUsersPermissoes(allPermissions) {
 
     const handleReset = () => {
         if (selectedUser) {
-            const permIds = new Set((selectedUser.permissions || []).map((p) => p.id));            setEditingPermissions(permIds);
+            const permIds = new Set(
+                (selectedUser.permissions || []).map((p) => p.id),
+            );
+            setEditingPermissions(permIds);
             setMessage('');
         }
     };

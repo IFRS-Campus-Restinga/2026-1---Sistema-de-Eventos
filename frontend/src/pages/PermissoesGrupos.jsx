@@ -100,6 +100,7 @@ export default function PermissoesGrupos({ campus = 'Campus Restinga' }) {
                             <Vinculo
                                 cabecario1="Permissões disponíveis"
                                 cabecario2="Permissões Grupo"
+                                todos={true}
                                 corTexto="#fff"
                                 corCabecario="#006B3F"
                                 dados1={permsNaoDoGrupo.filter((p) =>

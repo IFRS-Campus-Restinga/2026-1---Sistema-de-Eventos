@@ -56,16 +56,22 @@ export function useGroupPermissions(perms) {
         return false;
     }, [editingPermissions, originalPermissions, selectedGroup]);
 
-    const handleAddPermission = (permId) => {
-        const next = new Set(editingPermissions);
-        next.add(permId);
-        setEditingPermissions(next);
+    const handleAddPermission = (permIds) => {
+        const ids = Array.isArray(permIds) ? permIds : [permIds];
+        setEditingPermissions((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.add(id));
+            return next;
+        });
     };
 
-    const handleRemovePermission = (permId) => {
-        const next = new Set(editingPermissions);
-        next.delete(permId);
-        setEditingPermissions(next);
+    const handleRemovePermission = (permIds) => {
+        const ids = Array.isArray(permIds) ? permIds : [permIds];
+        setEditingPermissions((prev) => {
+            const next = new Set(prev);
+            ids.forEach((id) => next.delete(id));
+            return next;
+        });
     };
 
     const handleSave = async () => {
