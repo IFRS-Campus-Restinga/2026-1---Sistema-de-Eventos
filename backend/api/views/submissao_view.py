@@ -143,9 +143,8 @@ class SubmissaoListView(APIView):
         return str(value).strip().lower() in {"1", "true", "sim", "yes"}
 
     def _base_queryset(self):
-        return Submissao.objects.exclude(
-            status_submissao=StatusSubmissao.CONVERTIDA_EM_ATRACAO
-        ).select_related("evento", "modalidade", "orientador")
+        # Não colocar exclussão de CONVERTIDA_EM_ATRACAO por favor
+        return Submissao.objects.select_related("evento", "modalidade", "orientador")
 
     def _scoped_queryset(self, request):
         user = request.user
