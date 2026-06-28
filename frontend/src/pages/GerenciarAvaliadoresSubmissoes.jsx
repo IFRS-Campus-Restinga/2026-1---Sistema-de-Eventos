@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
+import { MdArrowBack } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../components/footer/Footer';
 import Alerta from '../components/common/Alerta';
 import FiltroAvaliadores from '../components/gerenciar_avaliadores/FiltroAvaliadores';
@@ -108,6 +110,7 @@ export default function GerenciarAvaliacoesSubmissoes() {
         await reprovarSubmissao(modalReprovar.submissao);
         fecharModalReprovar();
     };
+    const navigate = useNavigate();
 
     return (
         <div className="d-flex flex-column min-vh-100 bg-light">
@@ -212,6 +215,19 @@ export default function GerenciarAvaliacoesSubmissoes() {
                                 destaque={false}
                                 status={true}
                             />
+                        </Col>
+                    </Row>
+                    <Row className="d-flex justify-content-end w-75">
+                        <Col className="d-flex justify-content-end ">
+                            <div className="d-flex justify-content-end my-4 ">
+                                <Button
+                                    onClick={() => navigate(-1)}
+                                    variant="secondary"
+                                    className="d-flex align-items-center gap-2 px-4 py-2"
+                                >
+                                    <MdArrowBack /> Voltar
+                                </Button>
+                            </div>
                         </Col>
                     </Row>
                 </Container>
