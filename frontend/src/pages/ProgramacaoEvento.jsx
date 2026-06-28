@@ -23,14 +23,12 @@ import { useParams, Link } from 'react-router-dom';
 import NavBar from '../components/nav_bar/NavBar';
 import Footer from '../components/footer/Footer';
 import { setSelectedEventoId } from '../utils/selectedEvento';
-
-// Importação dos seus hooks e services nativos idênticos ao Board
 import { buscarEventoPorId } from '../services/eventoService';
 import { pegarSessoes } from '../services/sessoesService';
 import { getCurrentUser } from '../services/authService';
 import { obterCorPorTag } from '../utils/themeTags';
 import useSessoes from '../hooks/useSessoes'; 
-// ✅ ADICIONADO: Importando a função de verificação que faltava no topo
+
 import { podeAcessarSubmissao } from '../utils/submissaoAcesso'; 
 
 export default function ProgramacaoEvento() {
@@ -90,12 +88,9 @@ export default function ProgramacaoEvento() {
 
                 const listaSessoes = await pegarSessoes(eventoId);
                 setSessoesRaw(listaSessoes || []);
-
-                // ✅ CORREÇÃO: Busca o usuário logado usando a função nativa importada do authService
                 const dadosUsuario = await getCurrentUser();
                 setUsuario(dadosUsuario);
 
-                // ✅ CORREÇÃO: Passa a variável de escopo correta para validar a submissão
                 const podeAcessar = podeAcessarSubmissao({
                     evento: dadosEvento,
                     usuario: dadosUsuario,
