@@ -150,7 +150,10 @@ class Submissao(Base):
         if self.slug is None or self.slug == "":
             self.slug = self._gerar_slug_unico()
 
-        if not self.pk:
-            self.vagas_disponiveis = self.sugestao_vagas
+        if self._state.adding:
+            if self.sugestao_vagas is not None:
+                self.vagas_disponiveis = self.sugestao_vagas
+            else:
+                self.vagas_disponiveis = 0
 
         super().save(*args, **kwargs)

@@ -41,6 +41,7 @@ class SubmissaoSerializer(serializers.ModelSerializer):
             "acessibilidade",
             "evento",
             "sugestao_vagas",
+            "vagas_disponiveis",
             "equipe",
             "autorias",
             "equipe_nomes",
