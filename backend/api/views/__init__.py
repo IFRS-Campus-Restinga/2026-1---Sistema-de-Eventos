@@ -1,4 +1,5 @@
 # ruff: noqa: F403
+from .credenciamento_view import *
 from .cadastro_complementar_view import *
 from .campo_formulario_view import *
 from .criterio_avaliacao_atracao_view import *

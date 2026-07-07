@@ -22,3 +22,4 @@ from .perfil import *
 from .resposta import *
 from .sessao import *
 from .submissao import *
+from .credenciamento import *

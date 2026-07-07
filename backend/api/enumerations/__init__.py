@@ -9,3 +9,4 @@ from .status_inscricao import *
 from .tipo_campo import *
 from .tipo_autoria import *
 from .tipo_etapa import *
+from .perfis_participacao import *

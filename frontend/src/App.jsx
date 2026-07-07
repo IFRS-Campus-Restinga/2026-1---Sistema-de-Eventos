@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
+import ListarCredenciais from './pages/ListarCredenciais';
 import PermissoesGroups from './pages/PermissoesGrupos';
 import PessoasGrupos from './pages/PessoasGrupos';
 import PermissoesPessoas from './pages/PermissoesPessoas';
@@ -90,6 +91,7 @@ function App() {
             {/* prettier-ignore */}
             <Routes>
                 {/* Publico / Abertas        */}
+                <Route path="/listar_credenciais" element={<ListarCredenciais />} />
                 <Route path="/" element={<Home />} />
                 <Route path="/cadastro_complementar" element={<CadastroComplementar />} />
 
@@ -102,6 +104,7 @@ function App() {
 
                 {/* Eventos (criacao/edicao) */}
                 {/* eventulmente tem q tirar esse dashboard sem id, já que ele tem q ter, por lógica*/}
+                <Route path="/" element={<Home />} />
                 <Route path="/dashboard" element={protegido(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/dashboard/:id" element={protegidoPorEvento(<Dashboard />, ADMIN_GROUPS)} />
                 <Route path="/adicionar_evento" element={protegidoPorEvento(<AdicionarEvento />,ADMIN_GROUPS.filter(m=>m=="Administrador"))} />

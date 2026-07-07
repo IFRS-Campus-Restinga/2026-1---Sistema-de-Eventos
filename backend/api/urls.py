@@ -1,9 +1,15 @@
 from django.urls import path
 
+# CREDENCIAMENTO 
+from .views.credenciamento_view import CredenciamentoDetailView, CredenciamentoListView
+
+
+
 from emails.views.enviar_emails_view import EnviarEmailsView
 
 from .enumerations import Setor
 from .views import EnumChoicesAPIView
+from .views import credenciamento_view
 from .views import csrf_token_view as views
 from .views.area_conhecimento_view import AreaConhecimentoViewSet
 from .views.arquivo_view import ArquivoListView
@@ -13,6 +19,7 @@ from .views.atracao_view import (
     AtracaoListView,
     MinhasAtracoesAvaliadorView,
 )
+
 from .views.avaliacao_atracao_view import (
     AvaliacaoAtracaoDetailView,
     AvaliacaoAtracaoListView,
@@ -103,6 +110,11 @@ app_name = "api"
 
 # fmt: off
 urlpatterns = [
+
+    #CREDENCIAMENTO
+    path("credenciamento/", CredenciamentoListView.as_view()),
+    path("credenciamentos/<int:pk>/", CredenciamentoDetailView.as_view()),
+
     # eventos
     path("eventos/", EventoListView.as_view()),
     path("eventos/minhas/coordenador/", MeusEventosCoordenadorView.as_view()),

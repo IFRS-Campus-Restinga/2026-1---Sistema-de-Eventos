@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    Credenciamento,
     AreaConhecimento,
     Arquivo,
     Atracao,
@@ -57,6 +58,7 @@ class CoautorAdmin(admin.ModelAdmin):
     list_filter = ("funcao",)
 
 # simples: registros sem ModelAdmin customizado
+admin.site.register(Credenciamento)
 admin.site.register(Modalidade)
 admin.site.register(CampoFormulario)
 admin.site.register(CriterioAvaliacaoAtracao)

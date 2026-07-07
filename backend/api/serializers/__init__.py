@@ -19,3 +19,4 @@ from .resposta_serializer import *
 from .sessao_serializer import *
 from .submissao_serializer import *
 from .users_serializer import *
+from .credenciamento_serializer import *
